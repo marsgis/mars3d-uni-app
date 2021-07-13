@@ -1,0 +1,19 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "三维地球", 
+				"app-plus": {  
+					"titleNView": false //禁用原生导航栏  
+				}  
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "三维地球",
+		"navigationBarBackgroundColor": "#000000",
+		"backgroundColor": "#000000"
+	}
+}
