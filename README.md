@@ -1,4 +1,20 @@
 # Mars3D最简项目模版 - uni-app版
+
+<p>
+<a target="_black" href="https://github.com/marsgis/mars3d">
+<img alt="GitHub stars" src="https://img.shields.io/github/stars/marsgis/mars3d?style=flat&logo=github">
+</a>
+<a target="_black" href="https://github.com/marsgis/mars3d">
+<img alt="GitHub forks" src="https://img.shields.io/github/forks/marsgis/mars3d?style=flat&logo=github">
+</a>
+<a target="_black" href="https://www.npmjs.com/package/mars3d">
+<img alt="Npm downloads" src="https://img.shields.io/npm/dt/mars3d?style=flat&logo=npm">
+</a>
+<a target="_black" href="https://www.npmjs.com/package/mars3d">
+<img alt="Npm version" src="https://img.shields.io/npm/v/mars3d.svg?style=flat&logo=npm&label=version"/>
+</a>
+</p>
+
     Mars3D平台，在`uni-app技术栈下`的最简的应用项目模版。
     
  > 其他技术栈，请参考： [https://github.com/marsgis/mars3d](https://github.com/marsgis/mars3d)
