@@ -1,19 +1,20 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "三维地球", 
-				"app-plus": {  
-					"titleNView": false //禁用原生导航栏  
-				}  
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "三维地球",
-		"navigationBarBackgroundColor": "#000000",
-		"backgroundColor": "#000000"
-	}
+  "pages": [
+    //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Mars3D地球",
+        "app-plus": {
+          "titleNView": true //禁用原生导航栏
+        }
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Mars3D地球",
+    "navigationBarBackgroundColor": "rgba(32, 160, 255, 0.9)",
+    "backgroundColor": "rgba(32, 160, 255, 0.9)"
+  }
 }

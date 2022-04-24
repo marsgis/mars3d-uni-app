@@ -1,0 +1,33 @@
+{
+  "name": "mars3d-uni-app",
+  "version": "3.3.0",
+  "description": "基于uni-app技术栈的 Mars3D 最简项目模板",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@originjs/vite-plugin-commonjs": "^1.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marsgis/mars3d.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marsgis/mars3d/issues",
+    "email": "wh@marsgis.cn"
+  },
+  "keywords": [
+    "marsgis",
+    "mars3d",
+    "cesium",
+    "vue",
+    "vue3",
+    "gis",
+    "webgis"
+  ],
+  "author": "火星科技",
+  "license": "Apache-2.0",
+  "homepage": "http://mars3d.cn"
+}

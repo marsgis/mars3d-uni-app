@@ -1,27 +1,103 @@
 <template>
-	<view class="content">
-        <web-view :src="url"></web-view>
-    </view>
+  <view class="content">
+    <!-- #ifdef APP-PLUS || H5 -->
+    <div id="mars3dContainer" class="mars3d-container"></div>
+    <!-- #endif -->
+    <!-- #ifndef APP-PLUS || H5 -->
+    <web-view :src="url"></web-view>
+    <!-- #endif -->
+  </view>
 </template>
 
-<script>
-    export default {
-        data() {
-            return {
-                url: 'https://mars3d.cn/example-es5/a10_createMap_url.html'
-            }
-        },
-        onLoad(e) { 
-			
-        }
-    }
+<script module="mars3d" lang="renderjs">
+import { mapOptions } from './config.js'
+
+export default {
+	data() {
+		return {
+			url: 'https://mars3d.cn/example-es5/a10_createMap_url.html'
+		}
+	},
+	mounted() {
+		this.loadSource([
+			"static/lib/Cesium/Widgets/widgets.css",
+			"static/lib/Cesium/Cesium.js",
+			"static/lib/mars3d/mars3d.css",
+			"static/lib/mars3d/mars3d.js",
+		]).then(() => {
+			this.createMap()
+		})
+	},
+	methods: {
+		//创建地图
+		createMap() {
+			var map = new mars3d.Map('mars3dContainer', mapOptions);
+			console.log("map构造完成", map)
+		},
+
+		// 加载资源
+		loadSource(loadQueen) {
+			const stepOne = (resolve) => {
+				if (loadQueen.length) {
+					const dep = loadQueen.shift()
+
+					let loader
+					if (dep.endsWith(".css")) {
+						loader = this.loadLink(dep)
+					} else {
+						loader = this.loadScript(dep)
+					}
+
+					loader.then(() => {
+						stepOne(resolve)
+					})
+				} else {
+					resolve(true)
+				}
+			}
+
+			return new Promise((resolve) => {
+				stepOne(resolve)
+			})
+		},
+
+		// 加载scrpit
+		loadScript(src, async = true) {
+			const $script = document.createElement("script")
+			$script.async = async
+			$script.src = src
+			document.body.appendChild($script)
+			return new Promise((resolve, reject) => {
+				$script.onload = () => {
+					resolve(true)
+				}
+			})
+		},
+
+		// 加载scrpit
+		loadLink(src) {
+			const $link = document.createElement("link")
+			$link.rel = "stylesheet"
+			$link.href = src
+			document.head.appendChild($link)
+			return new Promise((resolve, reject) => {
+				$link.onload = () => {
+					resolve(true)
+				}
+			})
+		}
+
+	}
+}
 </script>
 
 <style>
-	.content {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-	}  
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
 </style>
