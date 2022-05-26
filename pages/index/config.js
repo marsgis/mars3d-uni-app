@@ -69,7 +69,7 @@ export const mapOptions = {
       "id": 2021,
       "pid": 10,
       "name": "天地图影像",
-      "icon": "img/basemaps/tdt_img.png",
+      "icon": "http://mars3d.cn/img/basemaps/tdt_img.png",
       "type": "group",
       "layers": [
         { "name": "底图", "type": "tdt", "layer": "img_d" },
@@ -80,7 +80,7 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "天地图电子",
-      "icon": "img/basemaps/tdt_vec.png",
+      "icon": "http://mars3d.cn/img/basemaps/tdt_vec.png",
       "type": "group",
       "layers": [
         { "name": "底图", "type": "tdt", "layer": "vec_d" },
@@ -91,7 +91,7 @@ export const mapOptions = {
       "pid": 10,
       "name": "高德影像",
       "type": "group",
-      "icon": "img/basemaps/gaode_img.png",
+      "icon": "http://mars3d.cn/img/basemaps/gaode_img.png",
       "layers": [
         { "name": "底图", "type": "gaode", "layer": "img_d" },
         { "name": "注记", "type": "gaode", "layer": "img_z" }
@@ -101,14 +101,14 @@ export const mapOptions = {
       "pid": 10,
       "name": "高德电子",
       "type": "gaode",
-      "icon": "img/basemaps/gaode_vec.png",
+      "icon": "http://mars3d.cn/img/basemaps/gaode_vec.png",
       "layer": "vec"
     },
     {
       "pid": 10,
       "name": "百度影像",
       "type": "group",
-      "icon": "img/basemaps/bd-img.png",
+      "icon": "http://mars3d.cn/img/basemaps/bd-img.png",
       "layers": [
         { "name": "底图", "type": "baidu", "layer": "img_d" },
         { "name": "注记", "type": "baidu", "layer": "img_z" }
@@ -117,14 +117,14 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "百度电子",
-      "icon": "img/basemaps/bd-vec.png",
+      "icon": "http://mars3d.cn/img/basemaps/bd-vec.png",
       "type": "baidu",
       "layer": "vec"
     },
     {
       "pid": 10,
       "name": "腾讯影像",
-      "icon": "img/basemaps/gaode_img.png",
+      "icon": "http://mars3d.cn/img/basemaps/gaode_img.png",
       "type": "group",
       "layers": [
         { "name": "底图", "type": "tencent", "layer": "img_d" },
@@ -134,14 +134,14 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "腾讯电子",
-      "icon": "img/basemaps/gaode_vec.png",
+      "icon": "http://mars3d.cn/img/basemaps/gaode_vec.png",
       "type": "tencent",
       "layer": "vec"
     },
     {
       "pid": 10,
       "name": "ArcGIS影像",
-      "icon": "img/basemaps/esriWorldImagery.png",
+      "icon": "http://mars3d.cn/img/basemaps/esriWorldImagery.png",
       "type": "xyz",
       "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       "enablePickFeatures": false
@@ -149,7 +149,7 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "微软影像",
-      "icon": "img/basemaps/bingAerial.png",
+      "icon": "http://mars3d.cn/img/basemaps/bingAerial.png",
       "type": "bing",
       "layer": "Aerial"
     },
@@ -157,7 +157,7 @@ export const mapOptions = {
       "pid": 10,
       "name": "OSM地图",
       "type": "xyz",
-      "icon": "img/basemaps/osm.png",
+      "icon": "http://mars3d.cn/img/basemaps/osm.png",
       "url": "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       "subdomains": "abc"
     },
@@ -166,7 +166,7 @@ export const mapOptions = {
       "pid": 10,
       "name": "暗色底图",
       "type": "gaode",
-      "icon": "img/basemaps/blackMarble.png",
+      "icon": "http://mars3d.cn/img/basemaps/blackMarble.png",
       "layer": "vec",
       "invertColor": true,
       "filterColor": "#4e70a6",
@@ -179,7 +179,7 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "蓝色底图",
-      "icon": "img/basemaps/bd-c-midnight.png",
+      "icon": "http://mars3d.cn/img/basemaps/bd-c-midnight.png",
       "type": "xyz",
       "url": "http://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}",
       "chinaCRS": "GCJ02",
@@ -188,7 +188,7 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "黑色底图",
-      "icon": "img/basemaps/bd-c-dark.png",
+      "icon": "http://mars3d.cn/img/basemaps/bd-c-dark.png",
       "type": "tencent",
       "layer": "custom",
       "style": "4"
@@ -197,7 +197,7 @@ export const mapOptions = {
       "pid": 10,
       "name": "离线地图 (供参考)",
       "type": "group",
-      "icon": "img/basemaps/google_img.png",
+      "icon": "http://mars3d.cn/img/basemaps/google_img.png",
       "layers": [
         {
           "name": "全球",
@@ -229,7 +229,7 @@ export const mapOptions = {
     {
       "pid": 10,
       "name": "单张图片 (本地离线)",
-      "icon": "img/basemaps/offline.png",
+      "icon": "http://mars3d.cn/img/basemaps/offline.png",
       "type": "image",
       "url": "//data.mars3d.cn/file/img/world/world.jpg"
     }
