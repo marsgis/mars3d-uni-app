@@ -15,7 +15,7 @@ import { mapOptions } from './config.js'
 export default {
 	data() {
 		return {
-			url: 'https://mars3d.cn/example-es5/a10_createMap_url.html'
+			url: 'http://mars3d.cn/project/app/'
 		}
 	},
 	mounted() {
