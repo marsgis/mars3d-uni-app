@@ -1,10 +1,10 @@
 /**
  * Mars3D三维可视化平台  mars3d
  *
- * 版本信息：v3.3.6
- * 编译日期：2022-04-22 16:03:43
+ * 版本信息：v3.4.0
+ * 编译日期：2022-07-14 09:44:55
  * 版权所有：Copyright by 火星科技  http://mars3d.cn
- * 使用单位：免费公开版 ，2022-02-01
+ * 使用单位：免费公开版 ，2022-06-01
  */
 
 /**地球容器div*/
@@ -16,8 +16,21 @@
   overflow: hidden;
   position: relative;
 }
-.cesium-viewer .cesium-widget-credits {
+.mars3d-container .cesium-widget-credits {
   display: none;
+}
+.mars3d-container .mars3d-vrButton {
+  right: auto !important;
+}
+/**隐藏的div对象，如 DivBillboardEntity、HeatLayer 等*/
+.mars3d-hideDiv {
+  z-index: -99;
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
 }
 /**右键菜单*/
 .mars3d-contextmenu {
@@ -36,10 +49,12 @@
   padding: 0;
 }
 .mars3d-contextmenu-ul .contextmenu-icon {
-  padding-right: 10px;
-  min-width: 20px;
+  position: absolute;
+  left: 5px;
+  width: 20px;
+  height: 20px;
   text-align: center;
-  height: 100%;
+  overflow: hidden;
 }
 .mars3d-contextmenu-ul .contextmenu-arrow {
   position: absolute;
@@ -77,7 +92,7 @@
   border: 1px;
 }
 .mars3d-contextmenu-ul > li > a {
-  padding: 6px 10px;
+  padding: 6px 10px 6px 30px;
   -webkit-transition: background-color 0.25s;
   -o-transition: background-color 0.25s;
   transition: background-color 0.25s;
@@ -480,7 +495,6 @@
   margin: -2px;
   box-sizing: content-box;
 }
-/**内置的DivGraphic通用样式【动画点】*/
 .mars3d-animation-point,
 .mars3d-animation-point:after,
 .mars3d-animation-point:before,
@@ -513,6 +527,14 @@
   transform: translate(-50%, -50%);
   box-shadow: 0 0 2em currentColor, 0 0 0.5em currentColor;
   position: absolute;
+}
+.mars3d-animation-point .mars3d-animation-point-lbl {
+  position: absolute;
+  transform: translate(-50%, -120%);
+  left: 50%;
+  font-size: 16px;
+  width: fit-content;
+  white-space: nowrap;
 }
 .mars3d-animation-point p {
   position: absolute;
@@ -581,26 +603,26 @@
     filter: alpha(opacity=1);
   }
   25% {
-    width: 12px;
-    height: 12px;
+    width: 120%;
+    height: 120%;
     opacity: 0.7;
     filter: alpha(opacity=70);
   }
   50% {
-    width: 20px;
-    height: 20px;
+    width: 200%;
+    height: 200%;
     opacity: 0.5;
     filter: alpha(opacity=50);
   }
   75% {
-    width: 30px;
-    height: 30px;
+    width: 300%;
+    height: 300%;
     opacity: 0.2;
     filter: alpha(opacity=20);
   }
   to {
-    width: 40px;
-    height: 40px;
+    width: 400%;
+    height: 400%;
     opacity: 0;
     filter: alpha(opacity=0);
   }
@@ -613,26 +635,26 @@
     filter: alpha(opacity=1);
   }
   25% {
-    width: 12px;
-    height: 12px;
+    width: 120%;
+    height: 120%;
     opacity: 0.7;
     filter: alpha(opacity=70);
   }
   50% {
-    width: 20px;
-    height: 20px;
+    width: 200%;
+    height: 200%;
     opacity: 0.5;
     filter: alpha(opacity=50);
   }
   75% {
-    width: 30px;
-    height: 30px;
+    width: 300%;
+    height: 300%;
     opacity: 0.2;
     filter: alpha(opacity=20);
   }
   to {
-    width: 40px;
-    height: 40px;
+    width: 400%;
+    height: 400%;
     opacity: 0;
     filter: alpha(opacity=0);
   }
@@ -645,26 +667,26 @@
     filter: alpha(opacity=1);
   }
   25% {
-    width: 12px;
-    height: 12px;
+    width: 120%;
+    height: 120%;
     opacity: 0.7;
     filter: alpha(opacity=70);
   }
   50% {
-    width: 20px;
-    height: 20px;
+    width: 200%;
+    height: 200%;
     opacity: 0.5;
     filter: alpha(opacity=50);
   }
   75% {
-    width: 30px;
-    height: 30px;
+    width: 300%;
+    height: 300%;
     opacity: 0.2;
     filter: alpha(opacity=20);
   }
   to {
-    width: 40px;
-    height: 40px;
+    width: 400%;
+    height: 400%;
     opacity: 0;
     filter: alpha(opacity=0);
   }
@@ -677,26 +699,26 @@
     filter: alpha(opacity=1);
   }
   25% {
-    width: 12px;
-    height: 12px;
+    width: 120%;
+    height: 120%;
     opacity: 0.7;
     filter: alpha(opacity=70);
   }
   50% {
-    width: 20px;
-    height: 20px;
+    width: 200%;
+    height: 200%;
     opacity: 0.5;
     filter: alpha(opacity=50);
   }
   75% {
-    width: 30px;
-    height: 30px;
+    width: 300%;
+    height: 300%;
     opacity: 0.2;
     filter: alpha(opacity=20);
   }
   to {
-    width: 40px;
-    height: 40px;
+    width: 400%;
+    height: 400%;
     opacity: 0;
     filter: alpha(opacity=0);
   }
@@ -709,26 +731,26 @@
     filter: alpha(opacity=1);
   }
   25% {
-    width: 12px;
-    height: 12px;
+    width: 120%;
+    height: 120%;
     opacity: 0.7;
     filter: alpha(opacity=70);
   }
   50% {
-    width: 20px;
-    height: 20px;
+    width: 200%;
+    height: 200%;
     opacity: 0.5;
     filter: alpha(opacity=50);
   }
   75% {
-    width: 30px;
-    height: 30px;
+    width: 300%;
+    height: 300%;
     opacity: 0.2;
     filter: alpha(opacity=20);
   }
   to {
-    width: 40px;
-    height: 40px;
+    width: 400%;
+    height: 400%;
     opacity: 0;
     filter: alpha(opacity=0);
   }
@@ -865,9 +887,6 @@
     transform-origin: 50% 50%;
     transform: scale(1, 1);
   }
-}
-.mars3d-popup-background {
-  background: rgba(41, 84, 141, 0.9) !important;
 }
 .mars3d-popup-btn {
   padding: 3px 10px;
