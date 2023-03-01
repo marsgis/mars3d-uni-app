@@ -34,6 +34,9 @@
 目前尚未找到具体原因, 目前如需将本项目运行到app平台，请先打包为静态资源后使用HbuilderX打包，或者使用webview。
 如果您有解决方法，欢迎提交pull 或 发代码到我邮箱`wh@marsgis.cn`
 
+可能的方式：
+ 需要改下lib.5plus.base-release.aar 基座代码，在WebviewActivity.java 中设置webView时加下允许跨域
+ 
 
 
 ## 视频讲解
