@@ -63,11 +63,11 @@ export const mapOptions = {
     },
   },
   templateValues: {
-    dataServer: "//data.mars3d.cn",
-    gltfServerUrl: "//data.mars3d.cn/gltf",
+    dataServer: "http://data.mars3d.cn",
+    gltfServerUrl: "http://data.mars3d.cn/gltf",
   },
   terrain: {
-    url: "//data.mars3d.cn/terrain",
+    url: "http://data.mars3d.cn/terrain",
     show: true,
   },
   basemaps: [
@@ -248,7 +248,7 @@ export const mapOptions = {
       name: "单张图片 (本地离线)",
       icon: "img/basemaps/offline.png",
       type: "image",
-      url: "//data.mars3d.cn/file/img/world/world.jpg",
+      url: "http://data.mars3d.cn/file/img/world/world.jpg",
     },
   ],
   layers: [
@@ -269,7 +269,7 @@ export const mapOptions = {
       layer: "time",
       minimumTerrainLevel: 4,
       minimumLevel: 4,
-      proxy: "//server.mars3d.cn/proxy/",
+      proxy: "http://server.mars3d.cn/proxy/",
       mapSplit: false,
     },
     {
@@ -319,7 +319,7 @@ export const mapOptions = {
       pid: 4020,
       name: "教育设施点",
       type: "wms",
-      url: "//server.mars3d.cn/geoserver/mars/wms",
+      url: "http://server.mars3d.cn/geoserver/mars/wms",
       layers: "mars:hfjy",
       crs: "EPSG:4326",
       parameters: { transparent: "true", format: "image/png" },
@@ -333,7 +333,7 @@ export const mapOptions = {
       pid: 4020,
       name: "道路线",
       type: "wms",
-      url: "//server.mars3d.cn/geoserver/mars/wms",
+      url: "http://server.mars3d.cn/geoserver/mars/wms",
       layers: "mars:hfdl",
       crs: "EPSG:4326",
       parameters: { transparent: "true", format: "image/png" },
@@ -353,7 +353,7 @@ export const mapOptions = {
       pid: 4020,
       name: "建筑物面",
       type: "wms",
-      url: "//server.mars3d.cn/geoserver/mars/wms",
+      url: "http://server.mars3d.cn/geoserver/mars/wms",
       layers: "mars:hfjzw",
       crs: "EPSG:4326",
       parameters: { transparent: "true", format: "image/png" },
@@ -383,7 +383,7 @@ export const mapOptions = {
       pid: 4020,
       name: "规划面",
       type: "wms",
-      url: "//server.mars3d.cn/geoserver/mars/wms",
+      url: "http://server.mars3d.cn/geoserver/mars/wms",
       layers: "mars:hfgh",
       crs: "EPSG:4326",
       parameters: { transparent: "true", format: "image/png" },
@@ -416,7 +416,7 @@ export const mapOptions = {
       pid: 4010,
       type: "arcgis",
       name: "主要道路",
-      url: "//server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer",
+      url: "http://server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer",
       layers: "24",
       highlight: {
         type: "polyline",
@@ -440,7 +440,7 @@ export const mapOptions = {
       pid: 4010,
       type: "arcgis",
       name: "建筑物",
-      url: "//server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer",
+      url: "http://server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer",
       layers: "35,36,37,39",
       highlight: {
         fill: true,
@@ -467,7 +467,7 @@ export const mapOptions = {
       pid: 4010,
       type: "arcgis",
       name: "规划",
-      url: "//server.mars3d.cn/arcgis/rest/services/mars/guihua/MapServer",
+      url: "http://server.mars3d.cn/arcgis/rest/services/mars/guihua/MapServer",
       highlight: {
         showTime: 5000,
         fill: true,
@@ -760,7 +760,7 @@ export const mapOptions = {
       pid: 3070,
       type: "wfs",
       name: "建筑物面",
-      url: "//server.mars3d.cn/geoserver/mars/ows",
+      url: "http://server.mars3d.cn/geoserver/mars/ows",
       layer: "mars:hfjzw",
       parameters: { maxFeatures: 500 },
       minimumLevel: 15,
@@ -782,7 +782,7 @@ export const mapOptions = {
       pid: 3070,
       name: "教育设施点",
       type: "wfs",
-      url: "//server.mars3d.cn/geoserver/mars/ows",
+      url: "http://server.mars3d.cn/geoserver/mars/ows",
       layer: "mars:hfjy",
       parameters: { maxFeatures: 500 },
       minimumLevel: 13,
@@ -823,7 +823,7 @@ export const mapOptions = {
       pid: 3010,
       type: "arcgis_wfs",
       name: "兴趣点",
-      url: "//server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/1",
+      url: "http://server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/1",
       where: " 1=1 ",
       minimumLevel: 15,
       center: {
@@ -869,7 +869,7 @@ export const mapOptions = {
       pid: 3010,
       type: "arcgis_wfs",
       name: "道路",
-      url: "//server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/28",
+      url: "http://server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/28",
       minimumLevel: 14,
       symbol: {
         type: "polylineP",
@@ -895,7 +895,7 @@ export const mapOptions = {
       pid: 3010,
       type: "arcgis_wfs",
       name: "建筑物面",
-      url: "//server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/37",
+      url: "http://server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/37",
       minimumLevel: 15,
       symbol: {
         styleOptions: {
@@ -988,7 +988,7 @@ export const mapOptions = {
           type: "modelP",
           position: [117.219071, 31.828783, 39.87],
           style: {
-            url: "//data.mars3d.cn/gltf/mars/fengche.gltf",
+            url: "http://data.mars3d.cn/gltf/mars/fengche.gltf",
             scale: 50,
             heading: -93,
           },
@@ -1012,7 +1012,7 @@ export const mapOptions = {
           type: "modelP",
           position: [117.217458, 31.815349, 35.03],
           style: {
-            url: "//data.mars3d.cn/gltf/mars/qzcar/GKZY_anim.gltf",
+            url: "http://data.mars3d.cn/gltf/mars/qzcar/GKZY_anim.gltf",
             scale: 2,
             heading: -95,
             clampToGround: true,
@@ -1092,7 +1092,7 @@ export const mapOptions = {
       pid: 2050,
       type: "3dtiles",
       name: "高压线塔杆",
-      url: "//data.mars3d.cn/3dtiles/pnts-ganta/tileset.json",
+      url: "http://data.mars3d.cn/3dtiles/pnts-ganta/tileset.json",
       maximumScreenSpaceError: 1,
       position: { alt: 31 },
       style: {
@@ -1268,7 +1268,7 @@ export const mapOptions = {
           type: "modelP",
           position: [121.479813, 29.791278, 16],
           style: {
-            url: "//data.mars3d.cn/gltf/mars/zhamen.glb",
+            url: "http://data.mars3d.cn/gltf/mars/zhamen.glb",
             heading: 105,
           },
         },

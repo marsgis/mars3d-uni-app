@@ -20,10 +20,16 @@ export default {
 	},
 	mounted() {
 		this.loadSource([
-			"static/lib/Cesium/Widgets/widgets.css",
-			"static/lib/Cesium/Cesium.js",
-			"static/lib/mars3d/mars3d.css",
-			"static/lib/mars3d/mars3d.js",
+			//用本地地址
+			// "static/lib/Cesium/Widgets/widgets.css",
+			// "static/lib/Cesium/Cesium.js",
+			// "static/lib/mars3d/mars3d.css",
+			// "static/lib/mars3d/mars3d.js",
+			//用在线地址
+			"http://mars3d.cn/lib/Cesium/Widgets/widgets.css",
+			"http://mars3d.cn/lib/Cesium/Cesium.js",
+			"http://mars3d.cn/lib/mars3d/mars3d.css",
+			"http://mars3d.cn/lib/mars3d/mars3d.js", 
 		]).then(() => {
 			this.createMap()
 		})
