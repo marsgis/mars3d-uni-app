@@ -24,7 +24,7 @@
 ## 如何使用？
 使用` HBuilder X`打开项目即可。【特别说明：暂不支持APP，只支持H5或webviewx】
 
-> 如果您使用vue3开发，也可以使用vue技术栈[mars3d-vue-app](https://gitee.com/marsgis/mars3d-vue-app)进行开发，并使用HBuilderX打包pak文件或苹果APP
+> 如果您使用vue3技术栈，也可以使用vue技术栈[mars3d-vue-app](https://gitee.com/marsgis/mars3d-vue-app)开源项目模版进行开发，并使用HBuilderX打包pak文件或苹果APP
 
 
  
