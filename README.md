@@ -37,8 +37,11 @@
 如果您有解决方法，欢迎提交pull 或 发代码到我邮箱`wh@marsgis.cn`
 
 可能的方式：
- 需要改下lib.5plus.base-release.aar 基座代码，在WebviewActivity.java 中设置webView时加下允许跨域
- 
+- 选择云打包中的快速打包可能造成部分JS丢失的问题，选择传统打包可以出现地图(有用户反馈此方式解决的)
+- 需要改下lib.5plus.base-release.aar 基座代码，在WebviewActivity.java 中设置webView时加下允许跨域
+- 可能还与手机有关系
+
+
 
 
 ## 视频讲解
