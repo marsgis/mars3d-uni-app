@@ -20,7 +20,7 @@ export default {
 	},
 	mounted() {
 		this.loadSource([
-			//用本地地址
+			//用本地地址，并可以官网下载最新包，手动覆盖下，http://mars3d.cn/download.html
 			// "static/lib/Cesium/Widgets/widgets.css",
 			// "static/lib/Cesium/Cesium.js",
 			// "static/lib/mars3d/mars3d.css",
