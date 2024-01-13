@@ -9,8 +9,8 @@
 /unpackage
 # dependencies
 /node_modules
-src/common/mars2d-sdk/dist/plugins/
-mars2d-*src.*
+src/common/mars3d-sdk/dist/plugins/
+mars3d-*src.*
 
 
 # profiling files
