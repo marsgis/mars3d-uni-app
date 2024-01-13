@@ -32,14 +32,10 @@
 
 ### 1. HbuilderX运行到手机上的就可以看到地图(自定义基座), 如果是打包后的apk安装到手机上的地图就是白屏
 
-回复：
-目前尚未找到具体原因, 目前如需将本项目运行到app平台，请先打包为静态资源后使用HbuilderX打包，或者使用webview。
-如果您有解决方法，欢迎提交pull 或 发代码到我邮箱`wh@marsgis.cn`
-
-可能的方式：
-- 选择云打包中的快速打包可能造成部分JS丢失的问题，选择传统打包可以出现地图(有用户反馈此方式解决的)
-- 需要改下lib.5plus.base-release.aar 基座代码，在WebviewActivity.java 中设置webView时加下允许跨域
-- 可能还与手机有关系
+可能的原因：
+- 资源用了本地file:协议的文件，Cesium不支持加载或加载出问题了；
+- 选择云打包中的快速打包可能造成部分JS丢失的问题，选择传统打包可以出现地图(有用户反馈此方式解决的)；
+- 需要改下lib.5plus.base-release.aar 基座代码，在WebviewActivity.java 中设置webView时加下允许跨域；
 
 
 
