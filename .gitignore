@@ -6,7 +6,7 @@
 /out-tsc
 # Only exists if Bazel was run
 /bazel-out
-
+/unpackage
 # dependencies
 /node_modules
 src/common/mars2d-sdk/dist/plugins/

@@ -34,15 +34,15 @@ export default {
 	mounted() {
 		this.loadSource([
 			//用本地地址，并可以官网下载最新包，手动覆盖下，http://mars3d.cn/download.html
-			// "static/lib/Cesium/Widgets/widgets.css",
-			// "static/lib/Cesium/Cesium.js",
-			// "static/lib/mars3d/mars3d.css",
-			// "static/lib/mars3d/mars3d.js",
+			"static/lib/Cesium/Widgets/widgets.css",
+			"static/lib/Cesium/Cesium.js",
+			"static/lib/mars3d/mars3d.css",
+			"static/lib/mars3d/mars3d.js",
 			//用在线地址
-			"http://mars3d.cn/lib/Cesium/Widgets/widgets.css",
-			"http://mars3d.cn/lib/Cesium/Cesium.js",
-			"http://mars3d.cn/lib/mars3d/mars3d.css",
-			"http://mars3d.cn/lib/mars3d/mars3d.js", 
+			// "http://mars3d.cn/lib/Cesium/Widgets/widgets.css",
+			// "http://mars3d.cn/lib/Cesium/Cesium.js",
+			// "http://mars3d.cn/lib/mars3d/mars3d.css",
+			// "http://mars3d.cn/lib/mars3d/mars3d.js",
 		]).then(() => {
      this.rewriteCesiumSources(Cesium);
       this.createMap()
@@ -52,7 +52,29 @@ export default {
 		//创建地图
 		createMap() {
 			var map = new mars3d.Map('mars3dContainer', mapOptions);
-			console.log("map构造完成", map)
+      console.log("map构造完成", map)
+      // 创建矢量数据图层
+      let graphicLayer = new mars3d.layer.GraphicLayer({
+        allowDrillPick: true // 如果存在坐标完全相同的图标点，可以打开该属性，click事件通过graphics判断
+      })
+      map.addLayer(graphicLayer)
+      const Cesium = mars3d.Cesium;
+      function addDemoGraphic1(graphicLayer) {
+        const graphic = new mars3d.graphic.BillboardEntity({
+          position: [117.229619, 31.686288, 1000],
+          style: {
+            image: "static/testLocalImg.jpg",
+            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            width:100,
+            height:100
+          },
+          attr: { remark: "示例1" }
+        })
+        graphicLayer.addGraphic(graphic) // 还可以另外一种写法: graphic.addTo(graphicLayer)
+
+      }
+      addDemoGraphic1(graphicLayer)
 		},
 
 		// 加载资源
@@ -107,7 +129,7 @@ export default {
     },
 
 
-		// 加载scrpit
+    // 加载scrpit
 		loadScript(src, async = true) {
 			const $script = document.createElement("script")
 			$script.async = async
