@@ -10,21 +10,20 @@
 </template>
 
 <script module="mars3d" lang="renderjs">
-import { mapOptions } from './config.js'
+import {	mapOptions} from './config.js'
+
 // 添加 replaceAll 的 polyfill 有些安卓机的 js 引擎没有这个 api
 if (!String.prototype.replaceAll) {
-  String.prototype.replaceAll = function (str, newStr) {
-
-    // If a regex pattern
-    if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
-      return this.replace(str, newStr);
-    }
-
-    // If a string
-    return this.replace(new RegExp(str, 'g'), newStr);
-
-  };
+	String.prototype.replaceAll = function(str, newStr) {
+		// If a regex pattern
+		if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
+			return this.replace(str, newStr);
+		}
+		// If a string
+		return this.replace(new RegExp(str, 'g'), newStr);
+	};
 }
+
 export default {
 	data() {
 		return {
@@ -38,43 +37,72 @@ export default {
 			"static/lib/Cesium/Cesium.js",
 			"static/lib/mars3d/mars3d.css",
 			"static/lib/mars3d/mars3d.js",
+			"static/css/style.css",
+
 			//用在线地址
 			// "http://mars3d.cn/lib/Cesium/Widgets/widgets.css",
 			// "http://mars3d.cn/lib/Cesium/Cesium.js",
 			// "http://mars3d.cn/lib/mars3d/mars3d.css",
 			// "http://mars3d.cn/lib/mars3d/mars3d.js",
+			// "static/css/style.css",
 		]).then(() => {
-     this.rewriteCesiumSources(Cesium);
-      this.createMap()
+			this.rewriteCesiumSources(Cesium);
+			this.createMap()
 		})
 	},
 	methods: {
 		//创建地图
 		createMap() {
-			var map = new mars3d.Map('mars3dContainer', mapOptions);
-      console.log("map构造完成", map)
-      // 创建矢量数据图层
-      let graphicLayer = new mars3d.layer.GraphicLayer({
-        allowDrillPick: true // 如果存在坐标完全相同的图标点，可以打开该属性，click事件通过graphics判断
-      })
-      map.addLayer(graphicLayer)
-      const Cesium = mars3d.Cesium;
-      function addDemoGraphic1(graphicLayer) {
-        const graphic = new mars3d.graphic.BillboardEntity({
-          position: [117.229619, 31.686288, 1000],
-          style: {
-            image: "static/testLocalImg.jpg",
-            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            width:100,
-            height:100
-          },
-          attr: { remark: "示例1" }
-        })
-        graphicLayer.addGraphic(graphic) // 还可以另外一种写法: graphic.addTo(graphicLayer)
+			const Cesium = mars3d.Cesium;
 
-      }
-      addDemoGraphic1(graphicLayer)
+			var map = new mars3d.Map('mars3dContainer', mapOptions);
+			console.log("map构造完成", map)
+
+			// 创建矢量数据图层
+			let graphicLayer = new mars3d.layer.GraphicLayer({
+				allowDrillPick: true // 如果存在坐标完全相同的图标点，可以打开该属性，click事件通过graphics判断
+			})
+			map.addLayer(graphicLayer)
+
+
+			//测试本地图片
+			const graphic = new mars3d.graphic.BillboardEntity({
+				position: [117.229619, 31.686288, 1000],
+				style: {
+					image: "static/img/mark-red.png",
+					horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+					verticalOrigin: Cesium.VerticalOrigin.BOTTOM
+				},
+				attr: {
+					remark: "示例1"
+				}
+			})
+			graphicLayer.addGraphic(graphic)
+		},
+
+		//重写cesium接口
+		rewriteCesiumSources(Cesium) {
+			const loadImageElement_old = Cesium.Resource._Implementations.loadImageElement;
+			Cesium.Resource._Implementations.loadImageElement = function(url, crossOrigin, deferred) {
+				// 修改本地file本地文件需要设置跨域（uniapp环境等）
+				if (url.startsWith('file')) {
+					crossOrigin = true;
+				}
+				if (!url.startsWith('http')) {
+					crossOrigin = true;
+				}
+
+				return loadImageElement_old(url, crossOrigin, deferred);
+			};
+
+			const contains_old = Cesium.TrustedServers.contains;
+			Cesium.TrustedServers.contains = function(url) {
+				// 修改本地file本地文件需要设置跨域（uniapp环境等）
+				if (url.startsWith('file')) {
+					return false;
+				}
+				return contains_old.bind(this)(url);
+			};
 		},
 
 		// 加载资源
@@ -103,33 +131,7 @@ export default {
 			})
 		},
 
-    rewriteCesiumSources (Cesium) {
-      const loadImageElement_old = Cesium.Resource._Implementations.loadImageElement;
-      Cesium.Resource._Implementations.loadImageElement = function (url, crossOrigin, deferred) {
-        // 修改本地file本地文件需要设置跨域（uniapp环境等）
-        if (url.startsWith('file')) {
-          crossOrigin = true;
-        }
-        if (!url.startsWith('http')) {
-          crossOrigin = true;
-        }
-
-        return loadImageElement_old(url, crossOrigin, deferred);
-      };
-
-      const contains_old = Cesium.TrustedServers.contains;
-      Cesium.TrustedServers.contains = function (url) {
-        // 修改本地file本地文件需要设置跨域（uniapp环境等）
-        if (url.startsWith('file')) {
-          return false;
-        }
-
-        return contains_old.bind(this)(url);
-      };
-    },
-
-
-    // 加载scrpit
+		// 加载scrpit
 		loadScript(src, async = true) {
 			const $script = document.createElement("script")
 			$script.async = async
