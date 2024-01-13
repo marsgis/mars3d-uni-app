@@ -11,7 +11,20 @@
 
 <script module="mars3d" lang="renderjs">
 import { mapOptions } from './config.js'
+// 添加 replaceAll 的 polyfill 有些安卓机的 js 引擎没有这个 api
+if (!String.prototype.replaceAll) {
+  String.prototype.replaceAll = function (str, newStr) {
 
+    // If a regex pattern
+    if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
+      return this.replace(str, newStr);
+    }
+
+    // If a string
+    return this.replace(new RegExp(str, 'g'), newStr);
+
+  };
+}
 export default {
 	data() {
 		return {
