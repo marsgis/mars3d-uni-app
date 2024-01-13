@@ -7,6 +7,9 @@ export const mapOptions = {
       heading: 359.2,
       pitch: -39.5,
     },
+    contextOptions: {
+      requestWebgl1: true,
+    },
     scene3DOnly: false,
     shadows: false,
     removeDblClick: true,
