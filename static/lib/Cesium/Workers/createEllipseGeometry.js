@@ -1,7 +1,7 @@
 /**
  * @license
  * Cesium - https://github.com/CesiumGS/cesium
- * Version 1.95
+ * Version 1.112.1
  *
  * Copyright 2011-2022 Cesium Contributors
  *
@@ -22,4 +22,5 @@
  * Portions licensed separately.
  * See https://github.com/CesiumGS/cesium/blob/main/LICENSE.md for full licensing details.
  */
-define(["./Matrix2-6555478a","./defaultValue-ac2201bb","./EllipseGeometry-81d0a760","./RuntimeError-d45af186","./ComponentDatatype-43ab226f","./WebGLConstants-e12cdc8a","./Transforms-6c4dd71f","./_commonjsHelpers-3aae1032-ac53d93e","./combine-0dce9b0f","./EllipseGeometryLibrary-70788c4f","./GeometryAttribute-a34d86d0","./GeometryAttributes-d060f8b5","./GeometryInstance-9c4e19d7","./GeometryOffsetAttribute-a17b96d9","./GeometryPipeline-f5483757","./AttributeCompression-d9dabbfc","./EncodedCartesian3-3f5898d8","./IndexDatatype-88be9f5a","./IntersectionTests-4db2368e","./Plane-a0b66c27","./VertexFormat-d53ce9da"],(function(e,t,r,a,n,o,i,d,c,s,l,b,f,m,p,u,y,G,E,C,_){"use strict";return function(a,n){return t.defined(n)&&(a=r.EllipseGeometry.unpack(a,n)),a._center=e.Cartesian3.clone(a._center),a._ellipsoid=e.Ellipsoid.clone(a._ellipsoid),r.EllipseGeometry.createGeometry(a)}}));
+
+import{a as o}from"./chunk-FRDBUEIP.js";import"./chunk-O3WJWM6A.js";import"./chunk-LOWWUSFQ.js";import"./chunk-FBM3JESV.js";import"./chunk-OC7MLE3Q.js";import"./chunk-O4VLKRHR.js";import"./chunk-AZYTUSKY.js";import"./chunk-KRQEAAZ7.js";import"./chunk-YVVGHWSC.js";import"./chunk-2IMUNWHG.js";import"./chunk-SJNODVHR.js";import"./chunk-JG3RCMCC.js";import"./chunk-WSYBXUHN.js";import"./chunk-PTSTFZLG.js";import"./chunk-7Z2WYQAS.js";import"./chunk-5AHZBYPC.js";import"./chunk-IZQESGEM.js";import{a as t,c}from"./chunk-H2WX2IRV.js";import"./chunk-7IJPHC6F.js";import"./chunk-6X7UWHGB.js";import"./chunk-DZYRDQ3X.js";import"./chunk-5LFSMKBW.js";import"./chunk-SCK4WQG5.js";import{e as n}from"./chunk-QCJNT7ZH.js";function a(r,i){return n(i)&&(r=o.unpack(r,i)),r._center=t.clone(r._center),r._ellipsoid=c.clone(r._ellipsoid),o.createGeometry(r)}var u=a;export{u as default};

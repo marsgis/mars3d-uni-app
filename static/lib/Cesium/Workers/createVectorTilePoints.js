@@ -1,7 +1,7 @@
 /**
  * @license
  * Cesium - https://github.com/CesiumGS/cesium
- * Version 1.95
+ * Version 1.112.1
  *
  * Copyright 2011-2022 Cesium Contributors
  *
@@ -22,4 +22,5 @@
  * Portions licensed separately.
  * See https://github.com/CesiumGS/cesium/blob/main/LICENSE.md for full licensing details.
  */
-define(["./AttributeCompression-d9dabbfc","./Matrix2-6555478a","./ComponentDatatype-43ab226f","./createTaskProcessorWorker","./RuntimeError-d45af186","./defaultValue-ac2201bb","./WebGLConstants-e12cdc8a"],(function(e,a,t,r,n,o,i){"use strict";const s=32767,c=new a.Cartographic,u=new a.Cartesian3,p=new a.Rectangle,l=new a.Ellipsoid,f={min:void 0,max:void 0};return r((function(r,n){const o=new Uint16Array(r.positions);!function(e){e=new Float64Array(e);let t=0;f.min=e[t++],f.max=e[t++],a.Rectangle.unpack(e,t,p),t+=a.Rectangle.packedLength,a.Ellipsoid.unpack(e,t,l)}(r.packedBuffer);const i=p,d=l,m=f.min,b=f.max,h=o.length/3,C=o.subarray(0,h),g=o.subarray(h,2*h),w=o.subarray(2*h,3*h);e.AttributeCompression.zigZagDeltaDecode(C,g,w);const k=new Float64Array(o.length);for(let e=0;e<h;++e){const r=C[e],n=g[e],o=w[e],p=t.CesiumMath.lerp(i.west,i.east,r/s),l=t.CesiumMath.lerp(i.south,i.north,n/s),f=t.CesiumMath.lerp(m,b,o/s),h=a.Cartographic.fromRadians(p,l,f,c),y=d.cartographicToCartesian(h,u);a.Cartesian3.pack(y,k,3*e)}return n.push(k.buffer),{positions:k.buffer}}))}));
+
+import{a as x}from"./chunk-QG3ADWPZ.js";import{a as w}from"./chunk-OC7MLE3Q.js";import{c}from"./chunk-5AHZBYPC.js";import"./chunk-IZQESGEM.js";import{a as h,b as l,c as p}from"./chunk-H2WX2IRV.js";import{a as i}from"./chunk-7IJPHC6F.js";import"./chunk-6X7UWHGB.js";import"./chunk-DZYRDQ3X.js";import"./chunk-5LFSMKBW.js";import"./chunk-SCK4WQG5.js";import"./chunk-QCJNT7ZH.js";var u=32767,F=new l,L=new h,b=new c,y=new p,a={min:void 0,max:void 0};function V(t){t=new Float64Array(t);let o=0;a.min=t[o++],a.max=t[o++],c.unpack(t,o,b),o+=c.packedLength,p.unpack(t,o,y)}function z(t,o){let s=new Uint16Array(t.positions);V(t.packedBuffer);let e=b,C=y,A=a.min,P=a.max,n=s.length/3,f=s.subarray(0,n),g=s.subarray(n,2*n),d=s.subarray(2*n,3*n);w.zigZagDeltaDecode(f,g,d);let m=new Float64Array(s.length);for(let r=0;r<n;++r){let k=f[r],E=g[r],H=d[r],M=i.lerp(e.west,e.east,k/u),R=i.lerp(e.south,e.north,E/u),T=i.lerp(A,P,H/u),v=l.fromRadians(M,R,T,F),D=C.cartographicToCartesian(v,L);h.pack(D,m,r*3)}return o.push(m.buffer),{positions:m.buffer}}var G=x(z);export{G as default};

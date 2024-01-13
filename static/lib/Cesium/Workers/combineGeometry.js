@@ -1,7 +1,7 @@
 /**
  * @license
  * Cesium - https://github.com/CesiumGS/cesium
- * Version 1.95
+ * Version 1.112.1
  *
  * Copyright 2011-2022 Cesium Contributors
  *
@@ -22,4 +22,5 @@
  * Portions licensed separately.
  * See https://github.com/CesiumGS/cesium/blob/main/LICENSE.md for full licensing details.
  */
-define(["./PrimitivePipeline-4b589c04","./createTaskProcessorWorker","./Transforms-6c4dd71f","./Matrix2-6555478a","./RuntimeError-d45af186","./defaultValue-ac2201bb","./ComponentDatatype-43ab226f","./WebGLConstants-e12cdc8a","./_commonjsHelpers-3aae1032-ac53d93e","./combine-0dce9b0f","./GeometryAttribute-a34d86d0","./GeometryAttributes-d060f8b5","./GeometryPipeline-f5483757","./AttributeCompression-d9dabbfc","./EncodedCartesian3-3f5898d8","./IndexDatatype-88be9f5a","./IntersectionTests-4db2368e","./Plane-a0b66c27","./WebMercatorProjection-a6181c09"],(function(e,t,i,r,n,a,o,c,s,m,b,d,f,u,P,p,l,y,G){"use strict";return t((function(t,i){const r=e.PrimitivePipeline.unpackCombineGeometryParameters(t),n=e.PrimitivePipeline.combineGeometry(r);return e.PrimitivePipeline.packCombineGeometryResults(n,i)}))}));
+
+import{a as e}from"./chunk-OCFDT3AB.js";import{a as r}from"./chunk-QG3ADWPZ.js";import"./chunk-YR4ANEDH.js";import"./chunk-FBM3JESV.js";import"./chunk-OC7MLE3Q.js";import"./chunk-O4VLKRHR.js";import"./chunk-YVVGHWSC.js";import"./chunk-2IMUNWHG.js";import"./chunk-SJNODVHR.js";import"./chunk-JG3RCMCC.js";import"./chunk-WSYBXUHN.js";import"./chunk-PTSTFZLG.js";import"./chunk-7Z2WYQAS.js";import"./chunk-5AHZBYPC.js";import"./chunk-IZQESGEM.js";import"./chunk-H2WX2IRV.js";import"./chunk-7IJPHC6F.js";import"./chunk-6X7UWHGB.js";import"./chunk-DZYRDQ3X.js";import"./chunk-5LFSMKBW.js";import"./chunk-SCK4WQG5.js";import"./chunk-QCJNT7ZH.js";function n(o,t){let m=e.unpackCombineGeometryParameters(o),i=e.combineGeometry(m);return e.packCombineGeometryResults(i,t)}var c=r(n);export{c as default};

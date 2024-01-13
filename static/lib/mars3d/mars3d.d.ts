@@ -2,10 +2,10 @@
 /**
  * Mars3D三维可视化平台  mars3d
  *
- * 版本信息：v3.4.0
- * 编译日期：2022-07-14 09:44:55
+ * 版本信息：v3.6.18
+ * 编译日期：2023-12-31 22:41:30
  * 版权所有：Copyright by 火星科技  http://mars3d.cn
- * 使用单位：免费公开版 ，2022-06-01
+ * 使用单位：免费公开版 ，2023-03-17
  */
 
 import * as Cesium from "mars3d-cesium"
@@ -17,7 +17,6 @@ declare const update: string
 declare const name: string
 
 declare const proj4: any
-
 declare const provider: any
 
 
@@ -122,6 +121,36 @@ declare enum CRS {
 }
 
 /**
+ * 矢量对象编辑时 拖拽点类型
+ */
+declare enum EditPointType {
+    /**
+     * 位置控制
+     */
+    Control = 1,
+    /**
+     * 整体平移(如线面)
+     */
+    MoveAll = 2,
+    /**
+     * 辅助增加新点
+     */
+    AddMidPoint = 3,
+    /**
+     * 上下移动高度
+     */
+    MoveHeight = 4,
+    /**
+     * 辅助修改属性（如半径）
+     */
+    EditAttr = 5,
+    /**
+     * 旋转角度修改
+     */
+    EditRotation = 6
+}
+
+/**
  * 特效类型
  */
 declare enum EffectType {
@@ -136,7 +165,8 @@ declare enum EffectType {
     outline,
     rain,
     snow,
-    snowCover
+    snowCover,
+    colorCorrection
 }
 
 /**
@@ -176,6 +206,10 @@ declare enum EventType {
      */
     removeLayer = "removeLayer",
     /**
+     * 底图变化了，在 map.basemap = xx 时触发
+     */
+    changeBasemap = "changeBasemap",
+    /**
      * 地图上添加控件
      */
     addControl = "addControl",
@@ -183,6 +217,10 @@ declare enum EventType {
      * 从地图上移除控件
      */
     removeControl = "removeControl",
+    /**
+     * 更新了控件（比如show变化）
+     */
+    updateControl = "updateControl",
     /**
      * 地图上添加Effect特效
      */
@@ -235,6 +273,10 @@ declare enum EventType {
      * 完成
      */
     stop = "stop",
+    /**
+     * 地图zoomIn/zoomOut方法缩放事件
+     */
+    zoom = "zoom",
     /**
      * 完成加载，但未做任何其他处理前
      */
@@ -514,6 +556,10 @@ declare enum EventType {
      */
     clockTick = "clockTick",
     /**
+     * 时钟结束（当达到clock.stopTime时） 场景事件
+     */
+    clockStop = "clockStop",
+    /**
      * 地形变化  事件
      */
     terrainChange = "terrainChange",
@@ -543,11 +589,12 @@ declare enum GraphicType {
     divBillboard,
     fontBillboard,
     billboardP,
+    flatBillboard,
     model,
     modelP,
-    modelC,
     plane,
     planeP,
+    doubleSidedPlane,
     box,
     boxP,
     circle,
@@ -559,50 +606,62 @@ declare enum GraphicType {
     coneTrackP,
     ellipsoid,
     ellipsoidP,
+    particleSystem,
+    lightCone,
+    tetrahedron,
+    frustum,
+    arcFrustum,
+    rectangularSensor,
+    camberRadar,
+    conicSensor,
+    rectSensor,
+    satelliteSensor,
+    satellite,
     polyline,
     curve,
+    brushLine,
     polylineP,
-    polylineSP,
     polylineC,
     polylineVolume,
     polylineVolumeP,
     path,
-    roamLine,
-    dynamicRoamLine,
+    route,
+    fixedRoute,
     corridor,
     corridorP,
+    road,
+    dynamicRiver,
     wall,
     wallP,
+    scrollWall,
+    diffuseWall,
+    thickWall,
     polygon,
     polygonP,
     polygonC,
-    rectangle,
-    rectangleP,
-    frustum,
     water,
     waterC,
+    reflectionWater,
+    pit,
+    pitEntity,
+    video2D,
+    video3D,
+    viewShed,
+    rectangle,
+    rectangleP,
     div,
     divLightPoint,
     divUpLabel,
     divBoderLabel,
-    particleSystem,
-    video2D,
-    video3D,
-    flatBillboard,
-    lightCone,
-    scrollWall,
-    diffuseWall,
-    dynamicRiver,
-    road,
-    rectangularSensor,
-    pit,
-    tetrahedron,
+    popup,
+    tooltip,
     distanceMeasure,
     distanceSurfaceMeasure,
     sectionMeasure,
     areaMeasure,
     areaSurfaceMeasure,
     volumeMeasure,
+    volumeDepthMeasure,
     heightMeasure,
     heightTriangleMeasure,
     angleMeasure,
@@ -619,11 +678,7 @@ declare enum GraphicType {
     isosTriangle,
     closeVurve,
     gatheringPlace,
-    camberRadar,
-    conicSensor,
-    rectSensor,
-    satelliteSensor,
-    satellite
+    group
 }
 
 /**
@@ -892,146 +947,209 @@ declare enum Icon {
 
 /**
  * 多语种文本配置，
- * 值为数组，对应{@link LangType}按照固定顺序排列,如：[中文简体,中文繁體,English]
  * @example
- * mars3d.Lang["_单击开始绘制"][mars3d.LangType.ZH] ="新的中文提示语句";
+ * // 更新Lang单个值
+ * map.setLangText("_放大", "Zoom In")
+ *
+ * // 更新Lang多个值
+ * map.setLangText({
+ *   _放大: "Zoom In",
+ *   _缩小: "Zoom Out",
+ *   //其他需要更新的文本
+ * })
+ *
+ * // 获取Lang值
+ * const text = map.getLangText("_放大")
  */
 declare enum Lang {
-    "_放大" = "[\"\u653E\u5927\",\"\u653E\u5927\",\"Zoom In\"]",
-    "_缩小" = "[\"\u7F29\u5C0F\",\"\u7E2E\u5C0F\",\"Zoom Out\"]",
-    "_查看此处坐标" = "[\"\u67E5\u770B\u6B64\u5904\u5750\u6807\",\"\u67E5\u770B\u6B64\u8655\u5750\u6A19\",\"Location info\"]",
-    "_位置信息" = "[\"\u4F4D\u7F6E\u4FE1\u606F\",\"\u4F4D\u7F6E\u4FE1\u606F\",\"The location information\"]",
-    "_经度" = "[\"\u7ECF\u5EA6\",\"\u7D93\u5EA6\",\"Lon\"]",
-    "_纬度" = "[\"\u7EAC\u5EA6\",\"\u7DEF\u5EA6\",\"Lat\"]",
-    "_海拔" = "[\"\u9AD8\u7A0B\",\"\u9AD8\u7A0B\",\"Alt\"]",
-    "_横坐标" = "[\"\u6A2A\u5750\u6807\",\"\u6A6B\u5750\u6A19\",\"X\"]",
-    "_纵坐标" = "[\"\u7EB5\u5750\u6807\uFF1A\",\"\u7E31\u5750\u6A19\",\"Y\"]",
-    "_查看当前视角" = "[\"\u67E5\u770B\u5F53\u524D\u89C6\u89D2\",\"\u67E5\u770B\u7576\u524D\u8996\u89D2\",\"Camera info\"]",
-    "_当前视角信息" = "[\"\u5F53\u524D\u89C6\u89D2\u4FE1\u606F\",\"\u7576\u524D\u8996\u89D2\u4FE1\u606F\",\"Current Camera Information\"]",
-    "_视角切换" = "[\"\u89C6\u89D2\u5207\u6362\",\"\u8996\u89D2\u5207\u63DB\",\"Camera\"]",
-    "_禁止进入地下" = "[\"\u7981\u6B62\u8FDB\u5165\u5730\u4E0B\",\"\u7981\u6B62\u9032\u5165\u5730\u4E0B\",\"Do not go underground\"]",
-    "_允许进入地下" = "[\"\u5141\u8BB8\u8FDB\u5165\u5730\u4E0B\",\"\u5141\u8A31\u9032\u5165\u5730\u4E0B\",\"Access to the ground\"]",
-    "_绕此处环绕飞行" = "[\"\u7ED5\u6B64\u5904\u73AF\u7ED5\u98DE\u884C\",\"\u7E5E\u6B64\u8655\u74B0\u7E5E\u98DB\u884C\",\"Fly around here\"]",
-    "_关闭环绕飞行" = "[\"\u5173\u95ED\u73AF\u7ED5\u98DE\u884C\",\"\u95DC\u9589\u74B0\u7E5E\u98DB\u884C\",\"Close off circling\"]",
-    "_移动到此处" = "[\"\u79FB\u52A8\u5230\u6B64\u5904\",\"\u79FB\u52D5\u5230\u6B64\u8655\",\"Move it over here\"]",
-    "_第一视角站到此处" = "[\"\u7B2C\u4E00\u89C6\u89D2\u7AD9\u5230\u6B64\u5904\",\"\u7B2C\u4E00\u8996\u89D2\u7AD9\u5230\u6B64\u8655\",\"First view is here\"]",
-    "_开启键盘漫游" = "[\"\u5F00\u542F\u952E\u76D8\u6F2B\u6E38\",\"\u958B\u5553\u9375\u76E4\u6F2B\u904A\",\"Enable keyboard roaming\"]",
-    "_关闭键盘漫游" = "[\"\u5173\u95ED\u952E\u76D8\u6F2B\u6E38\",\"\u95DC\u9589\u9375\u76E4\u6F2B\u904A\",\"Turn off keyboard roaming\"]",
-    "_跟踪锁定" = "[\"\u8DDF\u8E2A\u9501\u5B9A\",\"\u8DDF\u8E2A\u9396\u5B9A\",\"TrackedEntity\"]",
-    "_取消锁定" = "[\"\u53D6\u6D88\u9501\u5B9A\",\"\u53D6\u6D88\u9396\u5B9A\",\"Unlocked\"]",
-    "_三维模型" = "[\"\u4E09\u7EF4\u6A21\u578B\",\"\u4E09\u7DAD\u6A21\u578B\",\"3DTiles\"]",
-    "_显示三角网" = "[\"\u663E\u793A\u4E09\u89D2\u7F51\",\"\u986F\u793A\u4E09\u89D2\u7DB2\",\"Display Wireframe\"]",
-    "_关闭三角网" = "[\"\u5173\u95ED\u4E09\u89D2\u7F51\",\"\u95DC\u9589\u4E09\u89D2\u7DB2\",\"Close Wireframe\"]",
-    "_显示包围盒" = "[\"\u663E\u793A\u5305\u56F4\u76D2\",\"\u986F\u793A\u5305\u570D\u76D2\",\"Display BoundingVolume\"]",
-    "_关闭包围盒" = "[\"\u5173\u95ED\u5305\u56F4\u76D2\",\"\u95DC\u9589\u5305\u570D\u76D2\",\"Close BoundingVolume\"]",
-    "_地形服务" = "[\"\u5730\u5F62\u670D\u52A1\",\"\u5730\u5F62\u670D\u52D9\",\"Terrain\"]",
-    "_开启地形" = "[\"\u5F00\u542F\u5730\u5F62\",\"\u986F\u793A\u5730\u5F62\",\"Open terrain\"]",
-    "_关闭地形" = "[\"\u5173\u95ED\u5730\u5F62\",\"\u95DC\u9589\u5730\u5F62\",\"Close terrain\"]",
-    "_图上标记" = "[\"\u56FE\u4E0A\u6807\u8BB0\",\"\u5716\u4E0A\u6A19\u8A18\",\"Drawing\"]",
-    "_标记点" = "[\"\u6807\u8BB0\u70B9\",\"\u6A19\u8A18\u9EDE\",\"Mark points\"]",
-    "_标记线" = "[\"\u6807\u8BB0\u7EBF\",\"\u6A19\u8A18\u7DDA\",\"Tag line\"]",
-    "_标记面" = "[\"\u6807\u8BB0\u9762\",\"\u6A19\u8A18\u9762\",\"Mark surface\"]",
-    "_标记圆" = "[\"\u6807\u8BB0\u5706\",\"\u6A19\u8A18\u5713\",\"Mark round\"]",
-    "_标记矩形" = "[\"\u6807\u8BB0\u77E9\u5F62\",\"\u6A19\u8A18\u77E9\u5F62\",\"Mark rectangular\"]",
-    "_允许编辑" = "[\"\u5141\u8BB8\u7F16\u8F91\",\"\u5141\u8A31\u7DE8\u8F2F\",\"Allowed to edit\"]",
-    "_禁止编辑" = "[\"\u7981\u6B62\u7F16\u8F91\",\"\u7981\u6B62\u7DE8\u8F2F\",\"Prohibit to edit\"]",
-    "_导出GeoJSON" = "[\"\u5BFC\u51FAGeoJSON\",\"\u5C0E\u51FAGeoJSON\",\"Export GeoJSON\"]",
-    "_清除所有标记" = "[\"\u6E05\u9664\u6240\u6709\u6807\u8BB0\",\"\u6E05\u9664\u6240\u6709\u6A19\u8A18\",\"Clear\"]",
-    "_特效效果" = "[\"\u7279\u6548\u6548\u679C\",\"\u7279\u6548\u6548\u679C\",\"Effects\"]",
-    "_开启下雨" = "[\"\u5F00\u542F\u4E0B\u96E8\",\"\u958B\u5553\u4E0B\u96E8\",\"Enable rain\"]",
-    "_关闭下雨" = "[\"\u5173\u95ED\u4E0B\u96E8\",\"\u95DC\u9589\u4E0B\u96E8\",\"Close rain\"]",
-    "_开启下雪" = "[\"\u5F00\u542F\u4E0B\u96EA\",\"\u958B\u5553\u4E0B\u96EA\",\"Enable snow\"]",
-    "_关闭下雪" = "[\"\u5173\u95ED\u4E0B\u96EA\",\"\u95DC\u9589\u4E0B\u96EA\",\"Close snow\"]",
-    "_开启雾天气" = "[\"\u5F00\u542F\u96FE\u5929\u6C14\",\"\u958B\u5553\u9727\u5929\u6C23\",\"Enable fog\"]",
-    "_关闭雾天气" = "[\"\u5173\u95ED\u96FE\u5929\u6C14\",\"\u95DC\u9589\u9727\u5929\u6C23\",\"Close fog\"]",
-    "_开启泛光" = "[\"\u5F00\u542F\u6CDB\u5149\",\"\u958B\u5553\u6CDB\u5149\",\"Enable bloom\"]",
-    "_关闭泛光" = "[\"\u5173\u95ED\u6CDB\u5149\",\"\u95DC\u9589\u6CDB\u5149\",\"Close bloom\"]",
-    "_开启亮度" = "[\"\u5F00\u542F\u4EAE\u5EA6\",\"\u958B\u5553\u4EAE\u5EA6\",\"Enable brightness\"]",
-    "_关闭亮度" = "[\"\u5173\u95ED\u4EAE\u5EA6\",\"\u95DC\u9589\u4EAE\u5EA6\",\"Close brightness\"]",
-    "_开启夜视" = "[\"\u5F00\u542F\u591C\u89C6\",\"\u958B\u5553\u591C\u8996\",\"Enable night vision\"]",
-    "_关闭夜视" = "[\"\u5173\u95ED\u591C\u89C6\",\"\u95DC\u9589\u591C\u8996\",\"Close night vision\"]",
-    "_开启黑白" = "[\"\u5F00\u542F\u9ED1\u767D\",\"\u958B\u5553\u9ED1\u767D\",\"Enable black and white\"]",
-    "_关闭黑白" = "[\"\u5173\u95ED\u9ED1\u767D\",\"\u95DC\u9589\u9ED1\u767D\",\"Close black and white\"]",
-    "_开启拾取高亮" = "[\"\u5F00\u542F\u62FE\u53D6\u9AD8\u4EAE\",\"\u958B\u5553\u62FE\u53D6\u9AD8\u4EAE\",\"Enable Pick highlighted\"]",
-    "_关闭拾取高亮" = "[\"\u5173\u95ED\u62FE\u53D6\u9AD8\u4EAE\",\"\u95DC\u9589\u62FE\u53D6\u9AD8\u4EAE\",\"Close Pick highlighted\"]",
-    "_场景设置" = "[\"\u573A\u666F\u8BBE\u7F6E\",\"\u5834\u666F\u8A2D\u7F6E\",\"Scene\"]",
-    "_开启深度监测" = "[\"\u5F00\u542F\u6DF1\u5EA6\u76D1\u6D4B\",\"\u958B\u5553\u6DF1\u5EA6\u76E3\u6E2C\",\"Enable depth test against terrain\"]",
-    "_关闭深度监测" = "[\"\u5173\u95ED\u6DF1\u5EA6\u76D1\u6D4B\",\"\u95DC\u9589\u6DF1\u5EA6\u76E3\u6E2C\",\"Close depth test against terrain\"]",
-    "_显示星空背景" = "[\"\u663E\u793A\u661F\u7A7A\u80CC\u666F\",\"\u986F\u793A\u661F\u7A7A\u80CC\u666F\",\"Enable skyBox\"]",
-    "_关闭星空背景" = "[\"\u5173\u95ED\u661F\u7A7A\u80CC\u666F\",\"\u95DC\u9589\u661F\u7A7A\u80CC\u666F\",\"Close skyBox\"]",
-    "_开启日照阴影" = "[\"\u5F00\u542F\u65E5\u7167\u9634\u5F71\",\"\u958B\u5553\u65E5\u7167\u9670\u5F71\",\"Enable shadow\"]",
-    "_关闭日照阴影" = "[\"\u5173\u95ED\u65E5\u7167\u9634\u5F71\",\"\u95DC\u9589\u65E5\u7167\u9670\u5F71\",\"Close shadow\"]",
-    "_开启大气渲染" = "[\"\u5F00\u542F\u5927\u6C14\u6E32\u67D3\",\"\u958B\u5553\u5927\u6C23\u6E32\u67D3\",\"Enable sky atmosphere\"]",
-    "_关闭大气渲染" = "[\"\u5173\u95ED\u5927\u6C14\u6E32\u67D3\",\"\u95DC\u9589\u5927\u6C23\u6E32\u67D3\",\"Close sky atmosphere\"]",
-    "_场景出图" = "[\"\u573A\u666F\u51FA\u56FE\",\"\u5834\u666F\u51FA\u5716\",\"Export image\"]",
-    "_图上量算" = "[\"\u56FE\u4E0A\u91CF\u7B97\",\"\u5716\u4E0A\u91CF\u7B97\",\"Measure\"]",
-    "_删除测量" = "[\"\u5220\u9664\u6D4B\u91CF\",\"\u522A\u9664\u6E2C\u91CF\",\"Delete\"]",
-    "_角度" = "[\"\u89D2\u5EA6\",\"\u89D2\u5EA6\",\"Angle\"]",
-    "_距离" = "[\"\u8DDD\u79BB\",\"\u8DDD\u96E2\",\"Distance\"]",
-    "_面积" = "[\"\u9762\u79EF\",\"\u9762\u7A4D\",\"Area\"]",
-    "_总长" = "[\"\u603B\u957F\",\"\u7E3D\u9577\",\"Total distance\"]",
-    "_起点" = "[\"\u8D77\u70B9\",\"\u8D77\u9EDE\",\"Start\"]",
-    "_高度差" = "[\"\u9AD8\u5EA6\u5DEE\",\"\u9AD8\u5EA6\u5DEE\",\"Height difference\"]",
-    "_空间距离" = "[\"\u7A7A\u95F4\u8DDD\u79BB\",\"\u7A7A\u9593\u8DDD\u96E2\",\"Space distance\"]",
-    "_水平距离" = "[\"\u6C34\u5E73\u8DDD\u79BB\",\"\u6C34\u5E73\u8DDD\u96E2\",\"Horizontal distance\"]",
-    "_正在计算体积" = "[\"\u6B63\u5728\u8BA1\u7B97\u4F53\u79EF\",\"\u6B63\u5728\u8A08\u7B97\u9AD4\u7A4D\",\"Calculating volume\"]",
-    "_填方体积" = "[\"\u586B\u65B9\u4F53\u79EF\",\"\u586B\u65B9\u9AD4\u7A4D\",\"The volume of fill\"]",
-    "_挖方体积" = "[\"\u6316\u65B9\u4F53\u79EF\",\"\u6316\u65B9\u9AD4\u7A4D\",\"Excavation volume\"]",
-    "_横切面积" = "[\"\u6A2A\u5207\u9762\u79EF\",\"\u6A6B\u5207\u9762\u7A4D\",\"Crosscutting area\"]",
-    "_面上" = "[\"\u9762\u4E0A\",\"\u9762\u4E0A\",\"Up\"]",
-    "_面下" = "[\"\u9762\u4E0B\",\"\u9762\u4E0B\",\"Down\"]",
-    "_米" = "[\"\u7C73\",\"\u7C73\",\"m\"]",
-    "_公里" = "[\"\u516C\u91CC\",\"\u516C\u88CF\",\"km\"]",
-    "_海里" = "[\"\u6D77\u91CC\",\"\u6D77\u88CF\",\"mile\"]",
-    "_丈" = "[\"\u4E08\",\"\u4E08\",\"zhang\"]",
-    "_平方米" = "[\"\u5E73\u65B9\u7C73\",\"\u5E73\u65B9\u7C73\",\"m\u00B2\"]",
-    "_平方公里" = "[\"\u5E73\u65B9\u516C\u91CC\",\"\u5E73\u65B9\u516C\u88CF\",\"km\u00B2\"]",
-    "_亩" = "[\"\u4EA9\",\"\u755D\",\"mu\"]",
-    "_公顷" = "[\"\u516C\u9877\",\"\u516C\u9803\",\"ha\"]",
-    "_立方米" = "[\"\u65B9\",\"\u65B9\",\"m\u00B3\"]",
-    "_万立方米" = "[\"\u4E07\u65B9\",\"\u4E07\u65B9\",\"wm\u00B3\"]",
-    "_单击开始绘制" = "[\"\u5355\u51FB\u5F00\u59CB\u7ED8\u5236\",\"\u55AE\u64CA\u958B\u59CB\u7E6A\u5236\",\"Click to start drawing\"]",
-    "_单击完成绘制" = "[\"\u5355\u51FB\u5B8C\u6210\u7ED8\u5236\",\"\u55AE\u64CA\u5B8C\u6210\u7E6A\u5236\",\"Click to finish drawing\"]",
-    "_双击完成绘制" = "[\"\u53CC\u51FB\u5B8C\u6210\u7ED8\u5236\",\"\u96D9\u64CA\u5B8C\u6210\u7E6A\u5236\",\"Double click to finish drawing\"]",
-    "_单击增加点" = "[\"\u5355\u51FB\u589E\u52A0\u70B9\",\"\u55AE\u64CA\u589E\u52A0\u9EDE\",\"left click add point\"]",
-    "_右击删除点" = "[\"\u53F3\u51FB\u5220\u9664\u70B9\",\"\u53F3\u64CA\u522A\u9664\u9EDE\",\"right click delete point\"]",
-    "_单击后激活编辑" = "[\"\u5355\u51FB\u540E\u6FC0\u6D3B\u7F16\u8F91\",\"\u55AE\u64CA\u5F8C \u6FC0\u6D3B\u7DE8\u8F2F\",\"Click to activate editing\"]",
-    "_右击菜单删除" = "[\"\u53F3\u51FB\u83DC\u5355\u5220\u9664\",\"\u53F3\u64CA\u83DC\u55AE\u522A\u9664\",\"Right click menu to delete\"]",
-    "_更多功能请右击" = "[\"\u66F4\u591A\u529F\u80FD\u8BF7\u53F3\u51FB\",\"\u66F4\u591A\u529F\u80FD\u8ACB\u53F3\u64CA\",\"For more functions, right click\"]",
-    "_释放后完成修改" = "[\"\u91CA\u653E\u540E\u5B8C\u6210\u4FEE\u6539\",\"\u91CB\u653E\u5F8C\u5B8C\u6210\u4FEE\u6539\",\"Complete the modification after release\"]",
-    "_该对象不允许编辑" = "[\"\u8BE5\u5BF9\u8C61\u4E0D\u5141\u8BB8\u7F16\u8F91\",\"\u8A72\u5C0D\u8C61\u4E0D\u5141\u8A31\u7DE8\u8F2F\",\"This object does not allow editing\"]",
-    "_拖动该点后" = "[\"\u62D6\u52A8\u8BE5\u70B9\u540E\",\"\u62D6\u52D5\u8A72\u9EDE\u5F8C\",\"Drag that point\"]",
-    "_拖动对象后" = "[\"\u62D6\u52A8\u5BF9\u8C61\u540E\",\"\u62D6\u52D5\u5C0D\u8C61\u5F8C\",\"Drag that object\"]",
-    "_修改位置" = "[\"\u4FEE\u6539\u4F4D\u7F6E\",\"\u4FEE\u6539\u4F4D\u7F6E\",\"Modify the position\"]",
-    "_整体平移" = "[\"\u6574\u4F53\u5E73\u79FB\",\"\u6574\u9AD4\u5E73\u79FB\",\"The overall translation\"]",
-    "_增加点" = "[\"\u589E\u52A0\u70B9\",\"\u589E\u52A0\u9EDE\",\"Add point\"]",
-    "_修改高度" = "[\"\u4FEE\u6539\u9AD8\u5EA6\",\"\u4FEE\u6539\u9AD8\u5EA6\",\"Modify the height\"]",
-    "_修改半径" = "[\"\u4FEE\u6539\u534A\u5F84\",\"\u4FEE\u6539\u534A\u5F91\",\"Modify the radius\"]",
-    "_修改长度" = "[\"\u4FEE\u6539\u957F\u5EA6(X\u65B9\u5411)\",\"\u4FEE\u6539\u9577\u5EA6(X\u65B9\u5411)\",\"Modify the length(X direction )\"]",
-    "_修改宽度" = "[\"\u4FEE\u6539\u5BBD\u5EA6(Y\u65B9\u5411)\",\"\u4FEE\u6539\u5BEC\u5EA6(Y\u65B9\u5411)\",\"Change the width(Y direction)\"]",
-    "_修改方向" = "[\"\u4FEE\u6539\u65B9\u5411\",\"\u4FEE\u6539\u65B9\u5411\",\"Change direction\"]",
-    "_修改缩放比例" = "[\"\u4FEE\u6539\u7F29\u653E\u6BD4\u4F8B\",\"\u4FEE\u6539\u7E2E\u653E\u6BD4\u4F8B\",\"Modify the Scale\"]",
-    "_无法删除不能少于最小点数" = "[\"\u65E0\u6CD5\u5220\u9664\uFF0C\u70B9\u6570\u91CF\u4E0D\u80FD\u5C11\u4E8E\",\"\u7121\u6CD5\u522A\u9664\uFF0C\u9EDE\u6578\u91CF\u4E0D\u80FD\u5C11\u4E8E\",\"Cannot delete, the number of dots cannot be less than\"]",
-    "_删除" = "[\"\u5220\u9664\",\"\u522A\u9664\",\"Delete\"]",
-    "_加载模型中" = "[\"\u52A0\u8F7D\u6A21\u578B\u4E2D\u2026\",\"\u52A0\u8F7D\u6A21\u578B\u4E2D\u2026\",\"Load Model\u2026\"]"
-}
-
-/**
- * 语言类型  枚举
- */
-declare enum LangType {
     /**
-     * 简体中文
+     * 标识语言的唯一标识
      */
-    ZH = 0,
+    type = "cn",
     /**
-     * 繁体中文(香港、台湾等地区)
+     * Cesium renderError 错误弹窗
      */
-    ZHHK = 1,
-    /**
-     * English英文  en
-     */
-    EN = 2
+    RenderingHasStopped = "WebGL\u53D1\u751F\u6E32\u67D3\u9519\u8BEF,\u6E32\u67D3\u5DF2\u7ECF\u505C\u6B62,\u8BF7\u5237\u65B0\u9875\u9762\u3002",
+    ErrorConstructingCesiumWidget = "WebGL\u53D1\u751F\u6E32\u67D3\u9519\u8BEF,\u6E32\u67D3\u5DF2\u7ECF\u505C\u6B62,\u8BF7\u5237\u65B0\u9875\u9762\u3002",
+    Today = "\u4ECA\u5929",
+    TodayRealTime = "\u4ECA\u5929\uFF08\u5B9E\u9645\u65F6\u95F4\uFF09",
+    Pause = "\u6682\u505C",
+    PlayReverse = "\u540E\u9000\u64AD\u653E",
+    PlayForward = "\u524D\u8FDB\u64AD\u653E",
+    CurrentTimeNotInRange = "\u5F53\u524D\u65F6\u95F4\u4E0D\u5728\u8303\u56F4\u5185",
+    Imagery = "\u5F71\u50CF",
+    CesiumIon = "\u5B98\u65B9ION",
+    Other = "\u5176\u4ED6",
+    Terrain = "\u5730\u5F62\u670D\u52A1",
+    EllipsoidTerrainProvider = "\u65E0\u5730\u5F62",
+    EllipsoidTerrainProviderTooltip = "WGS84\u6807\u51C6\u692D\u7403\u4F53\uFF0C\u6CA1\u6709\u5730\u5F62\u6570\u636E",
+    TerrainProvider = "\u6709\u5730\u5F62",
+    TerrainProviderTooltip = "\u63D0\u4F9B\u7684\u9AD8\u7CBE\u5EA6\u7684DEM\u5730\u5F62\u670D\u52A1",
+    FullScreen = "\u5168\u5C4F",
+    ExitFullScreen = "\u9000\u51FA\u5168\u5C4F",
+    FullScreenUnavailable = "\u5168\u5C4F\u4E0D\u53EF\u7528",
+    EnterAnAddressOrLandmark = "\u8BF7\u8F93\u5165\u5730\u5740...",
+    Searching = "\u67E5\u8BE2\u4E2D...",
+    ViewHome = "\u521D\u59CB\u89C6\u56FE",
+    NavigationInstructions = "\u5E2E\u52A9",
+    Mouse = "\u9F20\u6807\u64CD\u4F5C",
+    Touch = "\u89E6\u6478\u624B\u52BF",
+    PanView = "\u5E73\u79FB\u89C6\u56FE",
+    LeftClickDrag = "\u9F20\u6807\u5DE6\u952E+\u62D6\u62FD",
+    ZoomView = "\u7F29\u653E\u89C6\u56FE",
+    RightClick = "\u53F3\u952E+\u62D6\u62FD\uFF0C\u6216\u8005",
+    MouseWheelScroll = "\u4E2D\u952E\u6EDA\u52A8",
+    RotateView = "\u65CB\u8F6C\u89C6\u56FE",
+    MiddleClickDrag = "\u4E2D\u952E\u6309\u4E0B\u62D6\u62FD\uFF0C\u6216\u8005",
+    CtrlAndClickDrag = "\u6309Ctrl\u952E \u540C\u65F6 \u5DE6/\u53F3\u952E\u62D6\u62FD",
+    OneFingerDrag = "\u5355\u6307\u62D6\u52A8",
+    TwoFingerPinch = "\u53CC\u6307\u5411\u5185\u6216\u5411\u5916\u6ED1\u52A8",
+    TiltView = "\u503E\u659C\u89C6\u56FE",
+    TwoFingerDragSameDirection = "\u53CC\u6307\u6309\u76F8\u540C\u65B9\u5411\u62D6\u52A8",
+    TwoFingerDragOppositeDirection = "\u53CC\u6307\u6309\u76F8\u53CD\u65B9\u5411\u62D6\u52A8",
+    PerspectiveProjection = "\u900F\u89C6\u6295\u5F71",
+    OrthographicProjection = "\u6B63\u5C04\u6295\u5F71",
+    _2D = "\u4E8C\u7EF4\u89C6\u56FE",
+    _3D = "\u4E09\u7EF4\u89C6\u56FE",
+    ColumbusView = "\u54E5\u4F26\u5E032.5D\u89C6\u56FE",
+    EnterVRMode = "\u8FDB\u5165VR\u6A21\u5F0F",
+    ExitVRMode = "\u9000\u51FAVR\u6A21\u5F0F",
+    VRModeIsUnavailable = "VR\u6A21\u5F0F\u4E0D\u53EF\u7528",
+    "_放大" = "\u653E\u5927",
+    "_缩小" = "\u7F29\u5C0F",
+    "_暂停" = "\u6682\u505C",
+    "_继续" = "\u7EE7\u7EED",
+    "_导航球" = "\u5BFC\u822A\u7403",
+    "_拖拽调整俯仰角" = "\u62D6\u62FD\u8C03\u6574\u4FEF\u4EF0\u89D2",
+    "_拖拽调整四周方向角" = "\u62D6\u62FD\u8C03\u6574\u56DB\u5468\u65B9\u5411\u89D2\uFF0C\u53CC\u51FB\u56DE\u6B63\u5317",
+    "_查看此处坐标" = "\u67E5\u770B\u6B64\u5904\u5750\u6807",
+    "_位置信息" = "\u4F4D\u7F6E\u4FE1\u606F",
+    "_经度" = "\u7ECF\u5EA6",
+    "_纬度" = "\u7EAC\u5EA6",
+    "_海拔" = "\u9AD8\u7A0B",
+    "_横坐标" = "\u6A2A\u5750\u6807",
+    "_纵坐标" = "\u7EB5\u5750\u6807",
+    "_查看当前视角" = "\u67E5\u770B\u5F53\u524D\u89C6\u89D2",
+    "_当前视角信息" = "\u5F53\u524D\u89C6\u89D2\u4FE1\u606F",
+    "_视角切换" = "\u89C6\u89D2\u5207\u6362",
+    "_禁止进入地下" = "\u7981\u6B62\u8FDB\u5165\u5730\u4E0B",
+    "_允许进入地下" = "\u5141\u8BB8\u8FDB\u5165\u5730\u4E0B",
+    "_绕此处环绕飞行" = "\u7ED5\u6B64\u5904\u73AF\u7ED5\u98DE\u884C",
+    "_关闭环绕飞行" = "\u5173\u95ED\u73AF\u7ED5\u98DE\u884C",
+    "_移动到此处" = "\u79FB\u52A8\u5230\u6B64\u5904",
+    "_第一视角站到此处" = "\u7B2C\u4E00\u89C6\u89D2\u7AD9\u5230\u6B64\u5904",
+    "_开启键盘漫游" = "\u5F00\u542F\u952E\u76D8\u6F2B\u6E38",
+    "_关闭键盘漫游" = "\u5173\u95ED\u952E\u76D8\u6F2B\u6E38",
+    "_跟踪锁定" = "\u8DDF\u8E2A\u9501\u5B9A",
+    "_取消锁定" = "\u53D6\u6D88\u9501\u5B9A",
+    "_三维模型" = "\u4E09\u7EF4\u6A21\u578B",
+    "_显示三角网" = "\u663E\u793A\u4E09\u89D2\u7F51",
+    "_关闭三角网" = "\u5173\u95ED\u4E09\u89D2\u7F51",
+    "_显示包围盒" = "\u663E\u793A\u5305\u56F4\u76D2",
+    "_关闭包围盒" = "\u5173\u95ED\u5305\u56F4\u76D2",
+    "_地形服务" = "\u5730\u5F62\u670D\u52A1",
+    "_开启地形" = "\u5F00\u542F\u5730\u5F62",
+    "_关闭地形" = "\u5173\u95ED\u5730\u5F62",
+    "_图上标记" = "\u56FE\u4E0A\u6807\u8BB0",
+    "_标记点" = "\u6807\u8BB0\u70B9",
+    "_标记线" = "\u6807\u8BB0\u7EBF",
+    "_标记面" = "\u6807\u8BB0\u9762",
+    "_标记圆" = "\u6807\u8BB0\u5706",
+    "_标记矩形" = "\u6807\u8BB0\u77E9\u5F62",
+    "_允许编辑" = "\u5141\u8BB8\u7F16\u8F91",
+    "_禁止编辑" = "\u7981\u6B62\u7F16\u8F91",
+    "_导出GeoJSON" = "\u5BFC\u51FAGeoJSON",
+    "_清除所有标记" = "\u6E05\u9664\u6240\u6709\u6807\u8BB0",
+    "_特效效果" = "\u7279\u6548\u6548\u679C",
+    "_开启下雨" = "\u5F00\u542F\u4E0B\u96E8",
+    "_关闭下雨" = "\u5173\u95ED\u4E0B\u96E8",
+    "_开启下雪" = "\u5F00\u542F\u4E0B\u96EA",
+    "_关闭下雪" = "\u5173\u95ED\u4E0B\u96EA",
+    "_开启雾天气" = "\u5F00\u542F\u96FE\u5929\u6C14",
+    "_关闭雾天气" = "\u5173\u95ED\u96FE\u5929\u6C14",
+    "_开启泛光" = "\u5F00\u542F\u6CDB\u5149",
+    "_关闭泛光" = "\u5173\u95ED\u6CDB\u5149",
+    "_开启亮度" = "\u5F00\u542F\u4EAE\u5EA6",
+    "_关闭亮度" = "\u5173\u95ED\u4EAE\u5EA6",
+    "_开启夜视" = "\u5F00\u542F\u591C\u89C6",
+    "_关闭夜视" = "\u5173\u95ED\u591C\u89C6",
+    "_开启黑白" = "\u5F00\u542F\u9ED1\u767D",
+    "_关闭黑白" = "\u5173\u95ED\u9ED1\u767D",
+    "_开启拾取高亮" = "\u5F00\u542F\u62FE\u53D6\u9AD8\u4EAE",
+    "_关闭拾取高亮" = "\u5173\u95ED\u62FE\u53D6\u9AD8\u4EAE",
+    "_场景设置" = "\u573A\u666F\u8BBE\u7F6E",
+    "_开启深度监测" = "\u5F00\u542F\u6DF1\u5EA6\u76D1\u6D4B",
+    "_关闭深度监测" = "\u5173\u95ED\u6DF1\u5EA6\u76D1\u6D4B",
+    "_显示星空背景" = "\u663E\u793A\u661F\u7A7A\u80CC\u666F",
+    "_关闭星空背景" = "\u5173\u95ED\u661F\u7A7A\u80CC\u666F",
+    "_开启日照阴影" = "\u5F00\u542F\u65E5\u7167\u9634\u5F71",
+    "_关闭日照阴影" = "\u5173\u95ED\u65E5\u7167\u9634\u5F71",
+    "_开启大气渲染" = "\u5F00\u542F\u5927\u6C14\u6E32\u67D3",
+    "_关闭大气渲染" = "\u5173\u95ED\u5927\u6C14\u6E32\u67D3",
+    "_场景出图" = "\u573A\u666F\u51FA\u56FE",
+    "_图上量算" = "\u56FE\u4E0A\u91CF\u7B97",
+    "_删除测量" = "\u5220\u9664\u6D4B\u91CF",
+    "_角度" = "\u89D2\u5EA6",
+    "_距离" = "\u8DDD\u79BB",
+    "_面积" = "\u9762\u79EF",
+    "_总长" = "\u603B\u957F",
+    "_起点" = "\u8D77\u70B9",
+    "_高度差" = "\u9AD8\u5EA6\u5DEE",
+    "_空间距离" = "\u7A7A\u95F4\u8DDD\u79BB",
+    "_水平距离" = "\u6C34\u5E73\u8DDD\u79BB",
+    "_正在计算体积" = "\u6B63\u5728\u8BA1\u7B97\u4F53\u79EF",
+    "_填方体积" = "\u586B\u65B9\u4F53\u79EF",
+    "_挖方体积" = "\u6316\u65B9\u4F53\u79EF",
+    "_横切面积" = "\u6A2A\u5207\u9762\u79EF",
+    "_面上" = "\u9762\u4E0A",
+    "_面下" = "\u9762\u4E0B",
+    "_米" = "\u7C73",
+    "_公里" = "\u516C\u91CC",
+    "_万米" = "\u4E07\u7C73",
+    "_海里" = "\u6D77\u91CC",
+    "_丈" = "\u4E08",
+    "_平方米" = "\u5E73\u65B9\u7C73",
+    "_平方公里" = "\u5E73\u65B9\u516C\u91CC",
+    "_亩" = "\u4EA9",
+    "_公顷" = "\u516C\u9877",
+    "_立方米" = "\u65B9",
+    "_万立方米" = "\u4E07\u65B9",
+    "_秒" = "\u79D2",
+    "_分钟" = "\u5206\u949F",
+    "_小时" = "\u5C0F\u65F6",
+    "_单击开始绘制" = "\u5355\u51FB\u5F00\u59CB\u7ED8\u5236",
+    "_单击完成绘制" = "\u5355\u51FB\u5B8C\u6210\u7ED8\u5236",
+    "_双击完成绘制" = "\u53CC\u51FB\u5B8C\u6210\u7ED8\u5236",
+    "_单击增加点" = "\u5355\u51FB\u589E\u52A0\u70B9",
+    "_右击删除点" = "\u53F3\u51FB\u5220\u9664\u70B9",
+    "_单击后激活编辑" = "\u5355\u51FB\u540E\u6FC0\u6D3B\u7F16\u8F91",
+    "_右击菜单删除" = "\u53F3\u51FB\u83DC\u5355\u5220\u9664",
+    "_更多功能请右击" = "\u66F4\u591A\u529F\u80FD\u8BF7\u53F3\u51FB",
+    "_停止编辑" = "\u505C\u6B62\u7F16\u8F91",
+    "_删除该点" = "\u5220\u9664\u8BE5\u70B9",
+    "_按轴平移" = "\u6309\u8F74\u5E73\u79FB",
+    "_停止按轴平移" = "\u505C\u6B62\u6309\u8F74\u5E73\u79FB",
+    "_按轴旋转" = "\u6309\u8F74\u65CB\u8F6C",
+    "_停止按轴旋转" = "\u505C\u6B62\u6309\u8F74\u65CB\u8F6C",
+    "_调整比例" = "\u8C03\u6574\u6BD4\u4F8B",
+    "_停止调整比例" = "\u505C\u6B62\u8C03\u6574\u6BD4\u4F8B",
+    "_释放后完成修改" = "\u91CA\u653E\u540E\u5B8C\u6210\u4FEE\u6539",
+    "_该对象不允许编辑" = "\u8BE5\u5BF9\u8C61\u4E0D\u5141\u8BB8\u7F16\u8F91",
+    "_拖动该点后" = "\u62D6\u52A8\u8BE5\u70B9\u540E",
+    "_拖动对象后" = "\u62D6\u52A8\u5BF9\u8C61\u540E",
+    "_修改位置" = "\u4FEE\u6539\u4F4D\u7F6E",
+    "_整体平移" = "\u6574\u4F53\u5E73\u79FB",
+    "_增加点" = "\u589E\u52A0\u70B9",
+    "_修改高度" = "\u4FEE\u6539\u9AD8\u5EA6",
+    "_修改半径" = "\u4FEE\u6539\u534A\u5F84",
+    "_修改长度" = "\u4FEE\u6539\u957F\u5EA6(X\u65B9\u5411)",
+    "_修改宽度" = "\u4FEE\u6539\u5BBD\u5EA6(Y\u65B9\u5411)",
+    "_修改方向" = "\u4FEE\u6539\u65B9\u5411",
+    "_修改缩放比例" = "\u4FEE\u6539\u7F29\u653E\u6BD4\u4F8B",
+    "_无法删除不能少于最小点数" = "\u65E0\u6CD5\u5220\u9664\uFF0C\u70B9\u6570\u91CF\u4E0D\u80FD\u5C11\u4E8E",
+    "_删除" = "\u5220\u9664",
+    "_半径" = "\u534A\u5F84",
+    "_加载模型中" = "\u52A0\u8F7D\u6A21\u578B\u4E2D\u2026"
 }
 
 /**
@@ -1056,6 +1174,7 @@ declare enum LayerType {
     wmts,
     tms,
     gee,
+    empty,
     tileinfo,
     grid,
     terrain,
@@ -1063,11 +1182,13 @@ declare enum LayerType {
     graphic,
     graphicGroup,
     geojson,
+    busineData,
     lodGraphic,
     wfs,
     arcgis_wfs,
     arcgis_wfs_single,
-    tileset或3dtiles,
+    tileset,
+    i3s,
     czmGeojson,
     kml,
     czml,
@@ -1075,9 +1196,6 @@ declare enum LayerType {
     gaodePOI,
     osmBuildings,
     tdt_dm,
-    supermap_s3m,
-    supermap_img,
-    supermap_mvt,
     mapv,
     echarts,
     heat,
@@ -1129,13 +1247,21 @@ declare namespace MaterialType {
      */
     const Color: string;
     /**
-     * 线：虚线
+     * 线：虚线(等长度虚线间隔)
      * @property [color = Cesium.Color.WHITE] - 颜色
      * @property [gapColor = Cesium.Color.TRANSPARENT] - 虚线间隔颜色，默认为透明
      * @property [dashLength = 16.0] - 虚线间隔长度，以像素为单位
      * @property [dashPattern = 255.0] - 指定的16位模式
      */
     const PolylineDash: string;
+    /**
+     * 线：点划线虚线
+     * @property [color = Cesium.Color.WHITE] - 颜色
+     * @property [gapColor = Cesium.Color.TRANSPARENT] - 虚线间隔颜色，默认为透明
+     * @property [dashLength = 16.0] - 虚线间隔长度，以像素为单位
+     * @property [dashPattern = 255.0] - 指定的16位模式
+     */
+    const LineDotDash: string;
     /**
      * 线：衬色线
      * @property [color = Cesium.Color.WHITE] - 主颜色
@@ -1162,6 +1288,7 @@ declare namespace MaterialType {
      * @property [repeat = new Cesium.Cartesian2(1.0, 1.0)] - 横纵方向重复次数
      * @property [speed = 10] - 速度，值越大越快
      * @property [axisY = false] - 是否Y轴朝上
+     * @property [mixt = false] - 默认为color颜色，true时color颜色与图片颜色混合
      * @property [hasImage2 = false] - 是否有2张图片的混合模式
      * @property [image2 = Cesium.Material.DefaultImageId] - 第2张背景图片URL地址
      * @property [color2 = new Cesium.Color(1, 1, 1)] - 第2张背景图片颜色
@@ -1205,7 +1332,7 @@ declare namespace MaterialType {
      */
     const LineBloom: string;
     /**
-     * 线状: 数字流动线
+     * 数字流动线数字 材质(可用于PlanePrimitive)
      * @property image - 背景图片URL
      * @property [color = new Cesium.Color(1, 0, 0, 1.0)] - 背景图片颜色
      * @property [speed = 10] - 速度，值越大越快
@@ -1214,6 +1341,27 @@ declare namespace MaterialType {
      * @property [segment = 3.0] - 分段数
      */
     const DigitalFlow: string;
+    /**
+     * 线状: 三条平行虚线
+     * @property [color = Cesium.Color.RED] - 中心线颜色
+     * @property [dashLength = 16.0] - 中心线虚线间隔长度，以像素为单位
+     * @property [widthRatio = 0.1] - 中心线百分比
+     * @property [sidesColor = Cesium.Color.WHITE] - 外侧线颜色
+     * @property [sidesDashLength = 32] - 外侧线长度
+     * @property [sidesWidthRatio = 0.1] - 外侧线百分比
+     * @property [dashPattern = 255.0] - 指定的16位模式
+     */
+    const LineThreeDash: string;
+    /**
+     * 线状: 十字形间隔线
+     * @property [color = Cesium.Color.WHITE] - 线颜色
+     * @property [dashLength = 64.0] - 十字长度，以像素为单位
+     * @property [maskLength = 9.0] - 空隙间隔长度
+     * @property [centerPower = 0.1] - 中心百分比
+     * @property [dashPower = 0.1] - 虚线百分比
+     * @property [dashPattern = 255.0] - 指定的16位模式
+     */
+    const LineCross: string;
     /**
      * 墙体: 走马灯效果
      * @property [image = Cesium.Material.DefaultImageId] - 背景图片URL
@@ -1238,6 +1386,11 @@ declare namespace MaterialType {
      * @property image - 图片对象或图片地址
      * @property [opacity = 1.0] - 透明度
      * @property [color = Cesium.Color.WHITE] - 颜色
+     * @property [speed = 0] - 不为0时呈现图片滚动效果，数字代表滚动速度
+     * @property [flipx = false] - 是否X方向翻转图片
+     * @property [flipy = false] - 是否Y方向翻转图片
+     * @property [repeat = new Cesium.Cartesian2(1.0, 1.0)] - 指定图像在每个方向上重复的次数
+     * @property [noWhite = true] - 是否不显示白色，true时没有加载完成前的白色闪烁，但也不支持纯白色的图片
      */
     const Image2: string;
     /**
@@ -1252,9 +1405,13 @@ declare namespace MaterialType {
      * @property [stroke = true] - 是否描边文本
      * @property [strokeColor = new Cesium.Color(1.0, 1.0, 1.0, 0.8)] - 描边的颜色
      * @property [strokeWidth = 2] - 描边的宽度
+     * @property [outlineWidth] - 边框的宽度。
+     * @property [outlineColor = color] - 矩形边框的颜色。
+     * @property [background = false] - 是否背景色。
      * @property [backgroundColor = new Cesium.Color(1.0, 1.0, 1.0, 0.1)] - 画布的背景色
      * @property [padding = 10] - 要在文本周围添加的填充的像素大小
      * @property [textBaseline = 'top'] - 文本的基线
+     * @property [speed = 0] - 不为0时呈现文字滚动效果，数字代表滚动速度
      */
     const Text: string;
     /**
@@ -1455,7 +1612,11 @@ declare enum State {
      */
     INITIALIZED = "inited",
     /**
-     * 已添加到地图上
+     * 开始添加到地图上，添加前
+     */
+    ADD = "add",
+    /**
+     * 已添加到地图上，添加结束
      */
     ADDED = "added",
     /**
@@ -1496,6 +1657,30 @@ declare enum TerrainType {
      * VR 地形
      */
     VR = "vr"
+}
+
+/**
+ * Thing对象(如分析、管理类等) 类型 【提示：仅与地图一对一的类型，非所有Thing类】
+ */
+declare enum ThingType {
+    shadows,
+    sightline,
+    skyline,
+    cameraHistory,
+    rotateOut,
+    rotatePoint,
+    firstPersonRoam,
+    streetView,
+    terrainFlat,
+    terrainClip,
+    terrainPlanClip,
+    terrainUplift,
+    floodByMaterial,
+    floodByGraphic,
+    underground,
+    contourLine,
+    Slope,
+    limitHeight
 }
 
 /**
@@ -1611,7 +1796,7 @@ declare class BaseControl extends BaseThing {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
         eventParent?: BaseClass | boolean;
     });
     /**
@@ -1634,6 +1819,11 @@ declare class BaseControl extends BaseThing {
      * 父容器DOM对象的ID
      */
     readonly parentContainerId: string;
+    /**
+     * 重新加载
+     * @returns 无
+     */
+    reload(): void;
     /**
      * 添加到地图上，同 map.addControl
      * @param map - 地图对象
@@ -1671,9 +1861,21 @@ declare class BaseControl extends BaseThing {
      */
     setStyle(style: any): void;
     /**
+     * 获取当前key对应语言的文本内容。
+     * @param key - 文本key
+     * @returns lang参数指定的对应文本内容
+     */
+    getLangText(key: string): string;
+    /**
      * 设置对象的启用和禁用状态。
      */
     enabled: boolean;
+    /**
+     * 更新图层参数
+     * @param options - 与类的构造方法参数相同
+     * @returns 当前对象本身，可以链式调用
+     */
+    setOptions(options: any): BaseThing | BaseControl | any;
 }
 
 /**
@@ -1693,7 +1895,7 @@ declare class ClockAnimate extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
 }
 
@@ -1706,6 +1908,8 @@ declare class ClockAnimate extends BaseControl {
  * @param [options.bottom] - css定位bottom位置，支持配置'toolbar'自动跟随cesium-viewer-toolbar
  * @param [options.left] - css定位left位置
  * @param [options.right] - css定位right位置
+ * @param [options.maxPitch = 0] - 最大俯仰角,度数
+ * @param [options.minPitch = -90] - 最小俯仰角,度数
  * @param [options.outerSvg] - 外部圆环区域的SVG图片
  * @param [options.innerSvg] - 中心球区域的SVG图片
  * @param [options.rotationArcSvg] - rotation为true时，按中间区域往四周拖拽时，调整俯仰角的对外部圆环的半弧遮盖SVG图片
@@ -1723,6 +1927,8 @@ declare class Compass extends BaseControl {
         bottom?: string;
         left?: string;
         right?: string;
+        maxPitch?: string;
+        minPitch?: string;
         outerSvg?: string;
         innerSvg?: string;
         rotationArcSvg?: string;
@@ -1730,7 +1936,7 @@ declare class Compass extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 更新 外部圆环区域的SVG图片
@@ -1768,6 +1974,280 @@ declare class Compass extends BaseControl {
      * @returns 无
      */
     _removedHook(): void;
+}
+
+/**
+ * 时钟仪表控制 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.ticks = [0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0, 900.0, 1800.0, 3600.0]] - 可选的步长
+ * @param [formatTimeStr = true] - 是否格式化时间文本为普通格式 ，比如 yyyy-MM-dd 、HH:mm:ss
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.container
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class Animation extends BaseCzmControl {
+    constructor(options?: {
+        ticks?: number[];
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    }, formatTimeStr?: boolean);
+}
+
+/**
+ * Cesium原生控件封装基类
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.destroyCzm = true] - remove移除时是否销毁Cesium对象，true时销毁，false时只是DOM隐藏
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class BaseCzmControl extends BaseControl {
+    constructor(options?: {
+        id?: string | number;
+        enabled?: boolean;
+        destroyCzm?: boolean;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+}
+
+/**
+ * 底图切换 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.container
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class BaseLayerPicker extends BaseCzmControl {
+    constructor(options?: {
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 全屏按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.fullscreenElement = document.body] - 当按下全屏按钮时，要置于全屏模式的元素或id
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class FullscreenButton extends BaseCzmControl {
+    constructor(options?: {
+        fullscreenElement?: Element | string;
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 地名查找按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class Geocoder extends BaseCzmControl {
+    constructor(options?: {
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 全屏按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.title = "初始视图"] - 提示信息
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class HomeButton extends BaseCzmControl {
+    constructor(options?: {
+        title?: string;
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 帮助按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class NavigationHelpButton extends BaseCzmControl {
+    constructor(options?: {
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 投影切换按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class ProjectionPicker extends BaseCzmControl {
+    constructor(options?: {
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 二三维切换按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.duration = 0] - 切换时动画的秒数
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class SceneModePicker extends BaseCzmControl {
+    constructor(options?: {
+        duration?: number;
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
+}
+
+/**
+ * 时间线 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.zoom = true] - 刻度面板是否可以鼠标滚轮进行缩放
+ * @param [options.maxSpan = 1] - 刻度放大的最大刻度跨度，单位：秒
+ * @param [options.formatTimeStr = true] - 是否格式化时间文本为普通格式 ，比如 yyyy-MM-dd 、HH:mm:ss
+ * @param [options.style] - 可以CSS样式，如:
+ * @param [options.style.top] - css定位top位置, 如 top: '10px'
+ * @param [options.style.bottom = 0] - css定位bottom位置
+ * @param [options.style.left = 0] - css定位left位置
+ * @param [options.style.right = 0] - css定位right位置
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.container
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class Timeline extends BaseCzmControl {
+    constructor(options?: {
+        zoom?: boolean;
+        maxSpan?: number;
+        formatTimeStr?: boolean;
+        style?: any | {
+            top?: string;
+            bottom?: string;
+            left?: string;
+            right?: string;
+        };
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * @param startTime - 开始时间
+     * @param stopTime - 结束时间
+     */
+    zoomTo(startTime: Cesium.JulianDate, stopTime: Cesium.JulianDate): void;
+}
+
+/**
+ * VR效果按钮 控件 (Cesium原生)
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.fullscreenElement = document.body] - 当按下全屏按钮时，要置于全屏模式的元素或id
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.toolbar
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class VRButton extends BaseCzmControl {
+    constructor(options?: {
+        fullscreenElement?: Element | string;
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 父容器DOM对象
+     */
+    readonly parentContainer: HTMLElement;
 }
 
 declare namespace DistanceLegend {
@@ -1808,7 +2288,7 @@ declare class DistanceLegend extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 当前比例尺值（单位：米）
@@ -1854,18 +2334,18 @@ declare namespace LocationBar {
  * @param [options] - 参数对象，包括以下：
  * @param [options.template] - 展示的内容格式化字符串, 为数组时按多语言顺序定义，如[中文、繁体、英文]
  * 支持以下模版配置：
- * 【鼠标所在位置】 经度:{lng}， 纬度:{lat}， 海拔：{alt}米，
+ * 【鼠标所在位置】 经度:{lng}， 纬度:{lat}， 海拔：{alt}米， 横{crsx}  纵{crsy}
  * 【相机的】 方向角度：{heading}， 俯仰角度：{pitch}， 视高：{cameraHeight}米，
  * 【地图的】 层级：{level}
+ * 【效率】 每秒帧率：{fps} (越高越流畅)，延迟：{ms} 毫秒 (越小越流畅)
  * @param [options.latDecimal = LngLatPoint.FormatLength] - 保留的{lat}和{lng}的小数位
- * @param [options.crs] - 按指定坐标系显示坐标值,  配置后template可以加模板：【鼠标所在位置对应的crs坐标系】 X或经度值：{crsx}， Y或纬度值：{crsy}
+ * @param [options.crs] - 按指定坐标系显示坐标值,true时取值CRS.CGCS2000_GK_Zone_3，配置后template可以加模板：【鼠标所在位置对应的crs坐标系】 X或经度值：{crsx}， Y或纬度值：{crsy}
  * @param [options.crsDecimal = 1] - 保留的{crsx}和{crsy}的小数位
  * @param [options.style] - 可以CSS样式，如:
  * @param [options.style.top] - css定位top位置, 如 top: '10px'
  * @param [options.style.bottom] - css定位bottom位置
  * @param [options.style.left] - css定位left位置
  * @param [options.style.right] - css定位right位置
- * @param [options.fps = false] - 是否显示实时FPS帧率
  * @param [options.cacheTime = 50] - 鼠标移动的缓存时间
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
@@ -1877,26 +2357,77 @@ declare class LocationBar extends BaseControl {
     constructor(options?: {
         template?: string | string[];
         latDecimal?: number;
-        crs?: string | CRS;
+        crs?: string | CRS | boolean;
         crsDecimal?: number;
-        style?: {
+        style?: any | {
             top?: string;
             bottom?: string;
             left?: string;
             right?: string;
         };
-        fps?: boolean;
         cacheTime?: number;
         id?: string | number;
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 显示的数据
      */
     readonly locationData: any;
+}
+
+/**
+ * 地图分屏对比 控件，
+ * 默认自动读取当前Map配置，也会合并传入的scene、control等参数值
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.basemaps] - 底图图层配置
+ * @param [options.layers] - 可以叠加显示的图层配置
+ * @param [options.scene] - 场景参数
+ * @param [options.control] - 添加的控件
+ * @param [options.effect] - 添加的特效
+ * @param [options.mouse] - 鼠标操作相关配置参数
+ * @param [options.terrain] - 地形服务配置
+ * @param [options.className = "mars3d-container  mars3d-mapCompare"] - 对比地图DIV的样式名称
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.container
+ * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
+ * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
+ */
+declare class MapCompare extends BaseControl {
+    constructor(options?: {
+        basemaps?: Map.basemapOptions[];
+        layers?: Map.layerOptions[];
+        scene?: Map.sceneOptions;
+        control?: Map.controlOptions;
+        effect?: Map.effectOptions;
+        mouse?: Map.mouseOptions;
+        terrain?: Map.terrainOptions;
+        className?: string;
+        id?: string | number;
+        enabled?: boolean;
+        parentContainer?: HTMLElement;
+        insertIndex?: number;
+        insertBefore?: HTMLElement | string;
+    });
+    /**
+     * 对比的地图对象
+     */
+    mapEx: Map;
+    /**
+     * 对象添加到地图前创建一些对象的钩子方法，
+     * 只会调用一次
+     * @returns 无
+     */
+    _mountedHook(): void;
+    /**
+     * 对象添加到地图上的创建钩子方法，
+     * 每次add时都会调用
+     * @returns 无
+     */
+    _addedHook(): void;
 }
 
 /**
@@ -1912,29 +2443,29 @@ declare class LocationBar extends BaseControl {
  */
 declare class MapSplit extends BaseControl {
     constructor(options?: {
-        leftLayer?: BaseTileLayer;
-        rightLayer?: BaseTileLayer;
+        leftLayer?: BaseTileLayer | BaseTileLayer[] | any;
+        rightLayer?: BaseTileLayer | BaseTileLayer[] | any;
         id?: string | number;
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 左侧区域瓦片图层
      */
-    leftLayer: BaseTileLayer;
+    leftLayer: BaseTileLayer | BaseTileLayer[] | any;
     /**
      * 右侧区域瓦片图层
      */
-    rightLayer: BaseTileLayer;
+    rightLayer: BaseTileLayer | BaseTileLayer[] | any;
     /**
      * 对瓦片图层设置卷帘方向
-     * @param layer - 图层
+     * @param layer - 图层 或图层构造参数
      * @param [splitDirection] - 图层显示的方向
-     * @returns 无
+     * @returns 图层对象
      */
-    setLayerSplitDirection(layer: BaseTileLayer | GroupLayer, splitDirection?: Cesium.SplitDirection): void;
+    setLayerSplitDirection(layer: BaseTileLayer | GroupLayer | any, splitDirection?: Cesium.SplitDirection): BaseTileLayer | GroupLayer;
     /**
      * 控件类型
      */
@@ -1960,7 +2491,7 @@ declare class MapSplit extends BaseControl {
 }
 
 /**
- * 鼠标按下指示图标，比如鼠标旋转、放大时
+ * 鼠标滚轮缩放美化样式(指示图标)控件
  * @param [options] - 参数对象，包括以下：
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
@@ -1974,7 +2505,7 @@ declare class MouseDownView extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
 }
 
@@ -1984,6 +2515,7 @@ declare class MouseDownView extends BaseControl {
  * @param options.basemap - 瓦片底图图层配置
  * @param [options.layers] - 可以叠加显示的图层配置
  * @param [options.scene] - 鹰眼地图场景参数
+ * @param [options.control] - 鹰眼地图控件参数
  * @param [options.rectangle] - 矩形区域样式信息，不配置时不显示矩形。
  * @param [options.style] - 可以CSS样式，如:
  * @param [options.style.top] - css定位top位置, 如 top: '10px'
@@ -2003,11 +2535,12 @@ declare class MouseDownView extends BaseControl {
  */
 declare class OverviewMap extends BaseControl {
     constructor(options?: {
-        basemap: Map.basemapOptions;
-        layers?: Map.layerOptions[];
+        basemap: Map.basemapOptions | any;
+        layers?: Map.layerOptions[] | any[];
         scene?: Map.sceneOptions;
+        control?: Map.controlOptions;
         rectangle?: RectangleEntity.StyleOptions | any;
-        style?: {
+        style?: any | {
             top?: string;
             bottom?: string;
             left?: string;
@@ -2023,12 +2556,16 @@ declare class OverviewMap extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 鹰眼小地图对象
      */
     smallMap: Map;
+    /**
+     * 中心点坐标 （笛卡尔坐标）
+     */
+    readonly center: Cesium.Cartesian3;
     /**
      * 对象添加到地图前创建一些对象的钩子方法，
      * 只会调用一次
@@ -2047,45 +2584,6 @@ declare class OverviewMap extends BaseControl {
      * @returns 无
      */
     _removedHook(): void;
-}
-
-/**
- * 时间线 控件
- * @param [options] - 参数对象，包括以下：
- * @param [options.style] - 可以CSS样式，如:
- * @param [options.style.top] - css定位top位置, 如 top: '10px'
- * @param [options.style.bottom = 0] - css定位bottom位置
- * @param [options.style.left = 0] - css定位left位置
- * @param [options.style.right = 0] - css定位right位置
- * @param [options.id = createGuid()] - 对象的id标识
- * @param [options.enabled = true] - 对象的启用状态
- * @param [options.parentContainer] - 控件加入的父容器，默认为map所在的DOM map.container
- * @param [options.insertIndex] - 可以自定义插入到父容器中的index顺序，默认是插入到最后面。
- * @param [options.insertBefore] - 可以自定义插入到指定兄弟容器的前面，与insertIndex二选一。
- */
-declare class Timeline extends BaseControl {
-    constructor(options?: {
-        style?: {
-            top?: string;
-            bottom?: string;
-            left?: string;
-            right?: string;
-        };
-        id?: string | number;
-        enabled?: boolean;
-        parentContainer?: HTMLElement;
-        insertIndex?: number;
-        insertBefore?: HTMLElement;
-    });
-    /**
-     * @param startTime - 开始时间
-     * @param stopTime - 结束时间
-     */
-    zoomTo(startTime: Cesium.JulianDate, stopTime: Cesium.JulianDate): void;
-    /**
-     * 父容器DOM对象
-     */
-    readonly parentContainer: HTMLElement;
 }
 
 declare namespace ToolButton {
@@ -2117,14 +2615,14 @@ declare namespace ToolButton {
  */
 declare class ToolButton extends BaseControl {
     constructor(options?: {
-        title?: string;
+        title?: string | ((...params: any[]) => any);
         icon?: string;
         click?: (...params: any[]) => any;
         id?: string | number;
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 父容器DOM对象
@@ -2153,7 +2651,7 @@ declare class Zoom extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
     });
     /**
      * 父容器DOM对象
@@ -2163,7 +2661,7 @@ declare class Zoom extends BaseControl {
 
 /**
  * 基础类，SDK中几乎所有类的基类，都是继承该基类的。
- * @param [options] - 参数名称
+ * @param [options] - 参数
  */
 declare class BaseClass {
     constructor(options?: any);
@@ -2183,7 +2681,7 @@ declare class BaseClass {
     destroy(noDel?: boolean): void;
     /**
      * 绑定指定类型事件监听器,
-     * 支持在监听中调用 event.stopPropagation(); 组织事件冒泡
+     * 支持在监听中调用 event.stopPropagation(); 阻止事件冒泡
      * @param types - 事件类型
      * @param fn - 绑定的监听器回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
@@ -2193,7 +2691,7 @@ declare class BaseClass {
     /**
      * 解除绑定指定类型事件监听器
      * @param [types] - 事件类型,未传值时解绑所有事件
-     * @param [fn] - 绑定的监听器回调方法,未传值时解绑所有指定类型对应事件
+     * @param [fn] - 绑定的监听器回调方法,未传值时解绑所有指定类型对应事件，特殊说明：map.on监听的Cesium相关原生事件时必须传入该参数
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
      * @returns 当前对象本身,可以链式调用
      */
@@ -2237,9 +2735,9 @@ declare class BaseClass {
     /**
      * 是否绑定了抛出事件到指定父类
      * @param obj - 父类对象
-     * @returns 当前对象本身,可以链式调用
+     * @returns 是否绑定了抛出事件
      */
-    hasEventParent(obj: any): BaseClass;
+    hasEventParent(obj: any): boolean;
 }
 
 /**
@@ -2313,6 +2811,10 @@ declare class BaseThing extends BaseClass {
         eventParent?: BaseClass | boolean;
     });
     /**
+     * 类型
+     */
+    readonly type: string | number;
+    /**
      * 当前对象的状态
      */
     readonly state: State;
@@ -2320,6 +2822,10 @@ declare class BaseThing extends BaseClass {
      * 是否已添加到地图
      */
     readonly isAdded: boolean;
+    /**
+     * 是否已经销毁了
+     */
+    readonly isDestroy: boolean;
     /**
      * 对象的id标识
      */
@@ -2359,6 +2865,17 @@ declare class BaseThing extends BaseClass {
      */
     _removedHook(): void;
     /**
+     * 更新图层参数
+     * @param options - 与类的构造方法参数相同
+     * @returns 当前对象本身，可以链式调用
+     */
+    setOptions(options: any): BaseThing | BaseControl | any;
+    /**
+     * 将对象转为Json简单对象，用于存储后再传参加载
+     * @returns Json简单对象
+     */
+    toJSON(): any;
+    /**
      * 当前类的构造参数
      */
     readonly options: any;
@@ -2368,6 +2885,32 @@ declare class BaseThing extends BaseClass {
      * @returns 无
      */
     destroy(noDel?: boolean): void;
+}
+
+/**
+ * 颜色色带 控制类
+ * @example
+ * const colorRamp = new mars3d.ColorRamp({
+ *   steps: [0.05, 0.15, 0.25, 0.35, 0.5, 0.8],
+ *   colors: ["rgb(0, 228, 0)", "rgb(256, 256, 0)", "rgb(256, 126, 0)", "rgb(256, 0, 0)", "rgb(153, 0, 76)", "rgb(126, 0, 35)"]
+ * })
+ * let color = colorRamp.getColor(rate)
+ * @param [options] - 参数对象，包括以下：
+ * @param options.colors - 色带的颜色数组
+ * @param options.steps - 色带对应的数值数组
+ */
+declare class ColorRamp {
+    constructor(options?: {
+        colors: string[];
+        steps: number[];
+    });
+    /**
+     * 获取对应值的色带上的颜色值
+     * @param val - 数值
+     * @param [alpha = 0.8] - 颜色的透明度
+     * @returns 该值在色带上对应的颜色值，比如 "rgba(256, 0, 0, 0.8)"
+     */
+    getColor(val: number, alpha?: number): string;
 }
 
 /**
@@ -2504,6 +3047,13 @@ declare class LngLatArray {
      * @returns 转换返回的Cartesian3数组
      */
     static toCartesians(value: string[] | any[][] | LngLatPoint[], clone?: boolean): Cesium.Cartesian3[];
+    /**
+     * 根据传入的各种对象数据数组，转换返回Cartographic数组
+     * @param value - 坐标位置数组
+     * @param [clone] - 是否重新生成拷贝
+     * @returns 转换返回的Cartesian3数组
+     */
+    static toCartographics(value: string[] | any[][] | LngLatPoint[], clone?: boolean): Cesium.Cartographic[];
     /**
      * 根据传入的各种对象数据数组，转换返回LatLngPoint数组
      * @param value - 坐标位置数组
@@ -2707,6 +3257,11 @@ declare class MarsArray {
      */
     set(key: string | number, value: any): void;
     /**
+     * 获取数组最后一个对象
+     * @returns 关联的值，如果键在集合中不存在，则为未定义。
+     */
+    getLast(): any;
+    /**
      * 检索与提供的键关联的值
      * @param key - 主键
      * @returns 关联的值，如果键在集合中不存在，则为未定义。
@@ -2729,6 +3284,12 @@ declare class MarsArray {
      */
     getListByAttr(attrValue: string | number, attrName?: string, exObj?: string): any[];
     /**
+     * 将数组按指定num个数分割为二维数组
+     * @param num - 个数
+     * @returns 数组
+     */
+    splitArr(num: number): any[];
+    /**
      * 从集合中移除键值对
      * @param key - 主键
      * @returns 是否移除
@@ -2738,8 +3299,9 @@ declare class MarsArray {
      * 遍历每一个对象并将其作为参数传递给回调函数
      * @param method - 回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @param [reverse] - 是否倒序执行
      */
-    forEach(method: (...params: any[]) => any, context?: any): void;
+    forEach(method: (...params: any[]) => any, context?: any, reverse?: boolean): void;
     /**
      * 清空集合
      */
@@ -2842,7 +3404,7 @@ declare class MultipleSkyBox extends Cesium.SkyBox {
 }
 
 /**
- * 特效 基类
+ * 特效（后处理） 基类
  * @param [options] - 参数对象，包括以下：
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
@@ -2852,10 +3414,6 @@ declare class BaseEffect extends BaseThing {
         id?: string | number;
         enabled?: boolean;
     });
-    /**
-     * 特效类型
-     */
-    readonly type: string;
     /**
      * 特效对象
      */
@@ -2886,6 +3444,44 @@ declare class BaseEffect extends BaseThing {
      * @returns 无
      */
     remove(destroy?: boolean): void;
+    /**
+     * 指定时间范围内显示该对象 [提示：仅部分子类实现，非所有对象都支持]
+     * @example
+     * // cesium原生写法,单个
+     * tilesetLayer.availability = new Cesium.TimeInterval({
+     *   start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *   stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *   isStartIncluded: true,
+     *   isStopIncluded: false
+     * })
+     *
+     * // cesium原生写法, 多个
+     * tilesetLayer.availability = new Cesium.TimeIntervalCollection([
+     *   new Cesium.TimeInterval({
+     *     start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *     stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *     isStartIncluded: true,
+     *     isStopIncluded: false
+     *   }),
+     *
+     * ])
+     *
+     * // 普通传值方式，多个
+     * tilesetLayer.availability = [
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ]
+     *
+     * // 普通传值方式，单个
+     * tilesetLayer.availability = { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false }
+     */
+    availability: Cesium.TimeIntervalCollection;
+    /**
+     * 获取指定时间下的时序对应的 显示隐藏 状态
+     * @param time - 指定时间
+     * @returns 显示隐藏 状态
+     */
+    getAvailabilityShow(time: Cesium.JulianDate): boolean;
     /**
      * 触发指定类型的事件。
      * @param type - 事件类型
@@ -2919,8 +3515,8 @@ declare class BlackAndWhiteEffect extends BaseEffect {
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.contrast = 128] - 对比度,取值范围[-255.0,255.0]
  * @param [options.brightness = -0.3] - 亮度, 将输入纹理的RGB值转换为色相、饱和度和亮度(HSB)，然后将该值添加到亮度中。
- * @param [options.delta = 1.0] - 增量
- * @param [options.sigma = 3.78] - delta和sigma用于计算高斯滤波器的权值。方程是 <code>exp((-0.5 * delta * delta) / (sigma * sigma))</code>。
+ * @param [options.delta = 1.0] - 增量权值
+ * @param [options.sigma = 3.78] - 滤波权值，delta和sigma用于计算高斯滤波器的权值。方程是 <code>exp((-0.5 * delta * delta) / (sigma * sigma))</code>。
  * @param [options.stepSize = 5.0] - 步长,是下一个texel的距离
  */
 declare class BloomEffect extends BaseEffect {
@@ -2961,13 +3557,14 @@ declare class BloomEffect extends BaseEffect {
  * @param [options.color = Cesium.Color.WHITE] - 泛光颜色
  * @param [options.contrast = 128] - 对比度,取值范围[-255.0,255.0]
  * @param [options.brightness = -0.3] - 亮度, 将输入纹理的RGB值转换为色相、饱和度和亮度(HSB)，然后将该值添加到亮度中。
- * @param [options.blurSamples = 32] - 模糊样本
- * @param [options.delta = 1.0] - 增量
- * @param [options.sigma = 3.78] - delta和sigma用于计算高斯滤波器的权值。方程是 <code>exp((-0.5 * delta * delta) / (sigma * sigma))</code>。
- * @param [options.stepSize = 5.0] - 步长,是下一个texel的距离
  * @param [options.ratio = 2.0] - 亮度增强比例
  * @param [options.threshold = 0.0] - 亮度阈值
  * @param [options.smoothWidth = 0.01] - 亮度光滑的宽度
+ * @param [options.blurSamples = 32.0] - 模糊样本
+ * @param [options.delta = 1.0] - 增量
+ * @param [options.sigma = 3.78] - delta和sigma用于计算高斯滤波器的权值。方程是 <code>exp((-0.5 * delta * delta) / (sigma * sigma))</code>。
+ * @param [options.stepSize = 5.0] - 步长,是下一个texel的距离
+ * @param [options.objectsToExclude] - 排除不拾取的对象,支持TilesetLayer或Graphic对象
  * @param [options.enabled = true] - 对象的启用状态
  */
 declare class BloomTargetEffect extends BaseEffect {
@@ -2976,31 +3573,68 @@ declare class BloomTargetEffect extends BaseEffect {
         color?: Cesium.Color;
         contrast?: number;
         brightness?: number;
+        ratio?: number;
+        threshold?: number;
+        smoothWidth?: number;
         blurSamples?: number;
         delta?: number;
         sigma?: number;
         stepSize?: number;
-        ratio?: number;
-        threshold?: number;
-        smoothWidth?: number;
+        objectsToExclude?: any[];
         enabled?: boolean;
     });
-    /**
-     * 发光颜色
-     */
-    color: Cesium.Color;
     /**
      * 高亮触发的事件类型，默认为单击。
      */
     eventType: EventType | string;
     /**
-     * 选中对象
+     * 发光颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 对比度,取值范围[-255.0,255.0]
+     */
+    contrast: number;
+    /**
+     * 亮度, 将输入纹理的RGB值转换为色相、饱和度和亮度(HSB)，然后将该值添加到亮度中。
+     */
+    brightness: number;
+    /**
+     * 模糊样本
+     */
+    blurSamples: number;
+    /**
+     * 增量
+     */
+    delta: number;
+    /**
+     * delta和sigma用于计算高斯滤波器的权值。方程是 <code>exp((-0.5 * delta * delta) / (sigma * sigma))</code>。
+     */
+    sigma: number;
+    /**
+     * 步长,是下一个texel的距离
+     */
+    stepSize: number;
+    /**
+     * 亮度增强比例
+     */
+    ratio: number;
+    /**
+     * 亮度阈值
+     */
+    threshold: number;
+    /**
+     * 亮度光滑的宽度
+     */
+    smoothWidth: number;
+    /**
+     * 选中对象 ,仅支持Primitive、3DTiles Feature等部分对象
      */
     selected: any | any | undefined;
 }
 
 /**
- * 亮度
+ * 高亮特效
  * @param [options] - 参数对象，包括以下：
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.brightness = 2.0] - 亮度值
@@ -3014,6 +3648,41 @@ declare class BrightnessEffect extends BaseEffect {
      * 亮度, 将输入纹理的RGB值转换为色相、饱和度和亮度(HSB)，然后将该值添加到亮度中
      */
     brightness: number;
+}
+
+/**
+ * 颜色校正 效果
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.brightness = 1.0] - 亮度
+ * @param [options.contrast = 1.0] - 对比度
+ * @param [options.hue = 0.0] - 色调
+ * @param [options.saturation = 1.0] - 饱和度
+ */
+declare class ColorCorrectionEffect extends BaseEffect {
+    constructor(options?: {
+        enabled?: boolean;
+        brightness?: number;
+        contrast?: number;
+        hue?: number;
+        saturation?: number;
+    });
+    /**
+     * 亮度
+     */
+    brightness: number;
+    /**
+     * 对比度
+     */
+    contrast: number;
+    /**
+     * 色调
+     */
+    hue: number;
+    /**
+     * 饱和度
+     */
+    saturation: number;
 }
 
 /**
@@ -3056,13 +3725,21 @@ declare class DepthOfFieldEffect extends BaseEffect {
  * @param [options] - 参数对象，包括以下：
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.fogByDistance = new Cesium.Cartesian4(10, 0.0, 1000, 0.9)] - 雾强度
+ * @param [options.fogByDistance_near] - 最近距离，可以与fogByDistance二选一
+ * @param [options.fogByDistance_nearValue] - 最近强度，可以与fogByDistance二选一
+ * @param [options.fogByDistance_far] - 最远距离，可以与fogByDistance二选一
+ * @param [options.fogByDistance_farValue] - 最远强度，可以与fogByDistance二选一
  * @param [options.color = Cesium.Color.WHITE] - 雾颜色
- * @param [options.maxHeight = 9000] - 最高限定高度，超出该高度不显示雾场景效果
+ * @param [options.maxHeight = 9000] - 最大高度，限定超出该高度不显示雾场景效果
  */
 declare class FogEffect extends BaseEffect {
     constructor(options?: {
         enabled?: boolean;
         fogByDistance?: Cesium.Cartesian4;
+        fogByDistance_near?: number;
+        fogByDistance_nearValue?: number;
+        fogByDistance_far?: number;
+        fogByDistance_farValue?: number;
         color?: Cesium.Color;
         maxHeight?: number;
     });
@@ -3115,11 +3792,11 @@ declare class NightVisionEffect extends BaseEffect {
 
 declare namespace OutlineEffect {
     /**
-     * 选中对象的 轮廓线描边效果 支持的参数信息
+     * 对象轮廓描边效果 支持的参数信息
      * @property [width = 6] - 线宽，单位：像素px
      * @property [color = Cesium.Color.WHITE] - 轮廓线 颜色
      * @property [colorHidden = color] - 被遮挡的轮廓线 颜色
-     * @property [showPlane = false] - 是否显示边缘同一个平面（按thresholdAngle属性定义）
+     * @property [showPlane = false] - 是否显示边缘同一个平面（按planeAngle属性定义）
      * @property [planeAngle = 10] - 如果两个三角面的法线间夹角小于该值 则标记为同一个平面。该值的单位：角度
      * @property [glow = false] - 是否显示发光
      * @property [glowPower = 1] - 发光强度
@@ -3140,7 +3817,7 @@ declare namespace OutlineEffect {
 }
 
 /**
- * 选中对象的 轮廓线描边效果。
+ * 对象轮廓描边效果
  * @param [options] - 参数对象
  * @param [options.eventType = "click"] - 高亮触发的事件类型，默认为单击。可选值：单击、鼠标移入,false时不内部控制
  * @param [options.enabled = true] - 对象的启用状态
@@ -3151,9 +3828,13 @@ declare class OutlineEffect extends BaseEffect {
         enabled?: boolean;
     });
     /**
-     * 选中对象
+     * 选中对象 ,仅支持Primitive、3DTiles Feature等部分对象
      */
     selected: any | any | undefined;
+    /**
+     * 线宽，单位：像素px
+     */
+    width: number;
     /**
      * 轮廓线 颜色
      */
@@ -3163,27 +3844,13 @@ declare class OutlineEffect extends BaseEffect {
      */
     colorHidden: string | Cesium.Color;
     /**
+     * 是否显示边缘同一个平面（按planeAngle属性定义）
+     */
+    showPlane: boolean;
+    /**
      * 如果两个三角面的法线间夹角小于该值 则标记为同一个平面。该值的单位：角度
      */
     planeAngle: number;
-    /**
-     * 重新赋值参数，同构造方法参数一致。
-     * @param options - 参数,与类的构造方法参数相同
-     * @returns 当前对象本身，可以链式调用
-     */
-    setOptions(options: any): OutlineEffect;
-    /**
-     * 高亮触发的事件类型，默认为单击。
-     */
-    eventType: EventType | string;
-    /**
-     * 轮廓线 宽度，单位：像素px
-     */
-    width: number;
-    /**
-     * 是否显示边缘同一个平面（按thresholdAngle属性定义）
-     */
-    showPlane: boolean;
     /**
      * 是否显示发光
      */
@@ -3197,24 +3864,24 @@ declare class OutlineEffect extends BaseEffect {
      */
     glowStrength: number;
     /**
-     * 只显示选中构件
+     * 高亮触发的事件类型，默认为单击。
      */
-    onlySelected: boolean;
+    eventType: EventType | string;
 }
 
 /**
- * 下雨效果
+ * 雨天气 效果
  * @param [options] - 参数对象，包括以下：
  * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.size = 20] - 粒子大小
  * @param [options.speed = 10] - 速度
- * @param [options.size = 20] - 雨粒子大小
- * @param [options.direction = -30] - 雨的方向（度），0度垂直向下
+ * @param [options.direction = -30] - 方向（度），0度垂直向下
  */
 declare class RainEffect extends BaseEffect {
     constructor(options?: {
         enabled?: boolean;
-        speed?: number;
         size?: number;
+        speed?: number;
         direction?: number;
     });
     /**
@@ -3236,12 +3903,14 @@ declare class RainEffect extends BaseEffect {
  * @param [options] - 参数对象，包括以下：
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.alpha = 1.0] - 覆盖强度  0-1
- * @param [options.maxHeight = 9000] - 最高限定高度，超出该高度不显示积雪效果
+ * @param [options.layer] - 如果传值3dtiles图层，只对该模型生效
+ * @param [options.maxHeight = 9000] - 最大高度，限定超出该高度不显示积雪效果
  */
 declare class SnowCoverEffect extends BaseEffect {
     constructor(options?: {
         enabled?: boolean;
         alpha?: number;
+        layer?: TilesetLayer;
         maxHeight?: number;
     });
     /**
@@ -3255,20 +3924,32 @@ declare class SnowCoverEffect extends BaseEffect {
 }
 
 /**
- * 下雪效果
+ * 雪天气 效果
  * @param [options] - 参数对象，包括以下：
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.speed = 10] - 速度
+ * @param [options.scale = 10.0] - 粒子大小
+ * @param [options.maxHeight = 9000] - 最大高度，限定超出该高度不显示积雪效果
  */
 declare class SnowEffect extends BaseEffect {
     constructor(options?: {
         enabled?: boolean;
         speed?: number;
+        scale?: number;
+        maxHeight?: number;
     });
+    /**
+     * 最高限定高度，超出该高度不显示积雪效果
+     */
+    maxHeight: number;
     /**
      * 速度
      */
     speed: number;
+    /**
+     * 粒子大小
+     */
+    scale: number;
 }
 
 /**
@@ -3306,10 +3987,17 @@ declare namespace BaseGraphic {
      * graphic.on(mars3d.EventType.click, function (event) {
      *   console.log('单击了矢量数据对象', event)
      * })
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
+     * @property add - 本身被添加
+     * @property remove - 本身被移除
+     * @property show - 显示了对象本身
+     * @property hide - 隐藏了对象本身
+     * @property updatePosition - 更新了坐标位置
+     * @property updateStyle - 更新了style对象
+     * @property updateAttr - 更新了attr对象
+     * @property click - 左键单击 鼠标事件 【仅支持交互的相关对象内存在】
+     * @property rightClick - 右键单击 鼠标事件
+     * @property mouseOver - 鼠标移入 鼠标事件
+     * @property mouseOut - 鼠标移出 鼠标事件
      * @property popupOpen - popup弹窗打开后
      * @property popupClose - popup弹窗关闭
      * @property tooltipOpen - tooltip弹窗打开后
@@ -3317,12 +4005,36 @@ declare namespace BaseGraphic {
      * @property contextMenuOpen - 右键菜单 打开后
      * @property contextMenuClose - 右键菜单 关闭
      * @property contextMenuClick - 右键菜单 单击某一项后
+     * @property highlightOpen - highlight高亮后
+     * @property highlightClose - highlight关闭后
+     * @property postRender - 每帧渲染  【仅DIV或Popup相关对象内存在】
+     * @property drawStart - 开始绘制 标绘事件 【仅支持标绘的相关对象内存在】
+     * @property drawMouseMove - 正在移动鼠标中，绘制过程中鼠标移动了点 标绘事件
+     * @property drawAddPoint - 绘制过程中增加了点 标绘事件
+     * @property drawRemovePoint - 绘制过程中删除了最后一个点 标绘事件
+     * @property drawCreated - 创建完成 标绘事件
+     * @property editStart - 开始编辑 标绘事件 【仅支持编辑的相关对象内存在】
+     * @property editMouseDown - 移动鼠标按下左键（LEFT_DOWN）标绘事件
+     * @property editMouseMove - 正在移动鼠标中，正在编辑拖拽修改点中（MOUSE_MOVE） 标绘事件
+     * @property editMovePoint - 编辑修改了点（LEFT_UP）标绘事件
+     * @property editRemovePoint - 编辑删除了点 标绘事件
+     * @property editStyle - 图上编辑修改了相关style属性 标绘事件
+     * @property editStop - 停止编辑 标绘事件
+     * @property load - gltf模型加载完成后【仅gltf模型相关对象存在】
+     * @property stop - 模型addDynamicPosition添加的动态点，到时时间停止后触发【仅addDynamicPosition动态点时存在】
      */
     type EventType = {
         add: string;
         remove: string;
         show: string;
         hide: string;
+        updatePosition: string;
+        updateStyle: string;
+        updateAttr: string;
+        click: string;
+        rightClick: string;
+        mouseOver: string;
+        mouseOut: string;
         popupOpen: string;
         popupClose: string;
         tooltipOpen: string;
@@ -3330,6 +4042,23 @@ declare namespace BaseGraphic {
         contextMenuOpen: string;
         contextMenuClose: string;
         contextMenuClick: string;
+        highlightOpen: string;
+        highlightClose: string;
+        postRender: string;
+        drawStart: string;
+        drawMouseMove: string;
+        drawAddPoint: string;
+        drawRemovePoint: string;
+        drawCreated: string;
+        editStart: string;
+        editMouseDown: string;
+        editMouseMove: string;
+        editMovePoint: string;
+        editRemovePoint: string;
+        editStyle: string;
+        editStop: string;
+        load: string;
+        stop: string;
     };
 }
 
@@ -3338,7 +4067,7 @@ declare namespace BaseGraphic {
  * @param options - 参数对象，包括以下：
  * @param options.position - 【点状】矢量数据时的坐标位置，具体看子类实现
  * @param options.positions - 【线面状（多点）】矢量数据时的坐标位置，具体看子类实现
- * @param options.style - 矢量数据的 样式信息，具体见各类数据的说明
+ * @param options.style - 矢量数据的 样式信息，具体见各{@link GraphicType}子类矢量数据的style参数。
  * @param [options.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
@@ -3350,6 +4079,8 @@ declare namespace BaseGraphic {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BaseGraphic extends BaseClass {
     constructor(options: {
@@ -3367,6 +4098,8 @@ declare class BaseGraphic extends BaseClass {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据类型
@@ -3401,6 +4134,44 @@ declare class BaseGraphic extends BaseClass {
      */
     show: boolean;
     /**
+     * 指定时间范围内显示该对象 [提示：仅部分子类实现，非所有对象都支持]
+     * @example
+     * // cesium原生写法,单个
+     * graphic.availability = new Cesium.TimeInterval({
+     *   start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *   stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *   isStartIncluded: true,
+     *   isStopIncluded: false
+     * })
+     *
+     * // cesium原生写法, 多个
+     * graphic.availability = new Cesium.TimeIntervalCollection([
+     *   new Cesium.TimeInterval({
+     *     start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *     stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *     isStartIncluded: true,
+     *     isStopIncluded: false
+     *   }),
+     *
+     * ])
+     *
+     * // 普通传值方式，多个
+     * graphic.availability = [
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ]
+     *
+     * // 普通传值方式，单个
+     * graphic.availability = { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false }
+     */
+    availability: Cesium.TimeIntervalCollection;
+    /**
+     * 获取指定时间下的时序对应的 显示隐藏 状态
+     * @param time - 指定时间
+     * @returns 显示隐藏 状态
+     */
+    getAvailabilityShow(time: Cesium.JulianDate): boolean;
+    /**
      * 名称
      */
     name: string;
@@ -3421,6 +4192,10 @@ declare class BaseGraphic extends BaseClass {
      */
     hasEdit: boolean;
     /**
+     * 设置事件的启用和禁用状态
+     */
+    enabledEvent: boolean;
+    /**
      * 中心点坐标（笛卡尔坐标）
      */
     readonly center: Cesium.Cartesian3 | Cesium.SampledPositionProperty;
@@ -3432,6 +4207,14 @@ declare class BaseGraphic extends BaseClass {
      * 是否可以调整透明度
      */
     readonly hasOpacity: boolean;
+    /**
+     * 当前地图的ellipsoid
+     */
+    readonly ellipsoid: Cesium.Ellipsoid;
+    /**
+     * 从参考系到所提供椭球体的固定参考系的4x4变换矩阵
+     */
+    readonly fixedFrameTransform: Cesium.Transforms.LocalFrameToFixedFrame;
     /**
      * 添加到图层上，同  layer.addGraphic
      * @param layer - 图层对象
@@ -3517,6 +4300,11 @@ declare class BaseGraphic extends BaseClass {
         isFormat?: boolean;
     }): Cesium.Rectangle | any;
     /**
+     * 获取数据的最大高度
+     * @returns 高度
+     */
+    getMaxHeight(): number;
+    /**
      * 飞行定位至 数据所在的视角
      * @param [options = {}] - 参数对象:
      * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
@@ -3524,8 +4312,8 @@ declare class BaseGraphic extends BaseClass {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -3596,12 +4384,17 @@ declare class BaseGraphic extends BaseClass {
      * @param [event] - 用于抛出事件时的相关额外属性
      * @returns 当前对象本身，可以链式调用
      */
-    openPopup(position?: LngLatPoint | Cesium.Cartesian3 | number[], event?: any): BaseGraphic | any;
+    openPopup(position?: LngLatPoint | Cesium.Cartesian3 | number[] | any, event?: any): BaseGraphic | any;
     /**
      * 关闭弹窗
      * @returns 当前对象本身，可以链式调用
      */
     closePopup(): BaseGraphic | any;
+    /**
+     * 获取当前对象打开的Popup对象
+     * @returns 当前对象打开的Popup对象
+     */
+    getPopup(): Popup;
     /**
      * 是否绑定了tooltip
      * @param [hasLayer = true] - 是否判断图层上的tooltip
@@ -3634,11 +4427,16 @@ declare class BaseGraphic extends BaseClass {
      */
     closeTooltip(): BaseGraphic | any;
     /**
+     * 获取当前对象打开的Tooltip对象
+     * @returns 当前对象打开的Tooltip对象
+     */
+    getTooltip(): Tooltip;
+    /**
      * 是否有绑定的右键菜单
      * @param [hasLayer = true] - 是否判断图层上的右键菜单
-     * @returns 当前对象本身，可以链式调用
+     * @returns 是否有绑定
      */
-    hasContextMenu(hasLayer?: boolean): BaseGraphic | any;
+    hasContextMenu(hasLayer?: boolean): boolean;
     /**
      * 获取绑定的右键菜单数组
      * @param [hasLayer = true] - 是获取图层上的右键菜单
@@ -3672,7 +4470,7 @@ declare class BaseGraphic extends BaseClass {
      * @returns 当前对象本身，可以链式调用
      */
     bindContextMenu(content: {
-        text?: string;
+        text?: string | ((...params: any[]) => any);
         icon?: string;
         show?: ((...params: any[]) => any) | boolean;
         callback?: (...params: any[]) => any;
@@ -3754,6 +4552,14 @@ declare class BaseCombine extends BasePrimitive {
         isFormat?: boolean;
     }): Cesium.Rectangle | any;
     /**
+     * 遍历所有数据集合数组并将其作为参数传递给回调函数
+     * @param method - 回调方法
+     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @param [reverse] - 是否倒序执行
+     * @returns 当前对象本身,可以链式调用。
+     */
+    eachInstances(method: (...params: any[]) => any, context?: any, reverse?: boolean): GraphicLayer;
+    /**
      * 将矢量数据的坐标、样式及属性等信息导出为对象，可以用于存储。
      * @returns 导出的坐标、样式及属性等信息
      */
@@ -3768,9 +4574,9 @@ declare class BaseCombine extends BasePrimitive {
         noAlt?: boolean;
     }): any;
     /**
-     * 更新颜色
+     * 更新颜色, 只对纯色材质有效，其他材质无法单独更新，需要setStyle方法调用(全部更新渲染)。
      * @param style - 样式信息
-     * @param [style.color = "#3388ff"] - 颜色
+     * @param [style.color = "#ffffff"] - 颜色
      * @param [style.opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @param [index] - 更新的instances对象index值，为空时更新所有对象。
      * @returns 空
@@ -3789,7 +4595,7 @@ declare class BaseCombine extends BasePrimitive {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -3811,8 +4617,11 @@ declare class BaseCombine extends BasePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePointCombine extends BasePolyCombine {
     constructor(options: {
@@ -3845,9 +4654,19 @@ declare class BasePointCombine extends BasePolyCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 打开绑定的弹窗
+     * @param index - 更新的instances对象index值
+     * @param [event] - 用于抛出事件时的相关额外属性
+     * @returns 当前对象本身，可以链式调用
+     */
+    openPopup(index: number, event?: any): BaseGraphic | any;
 }
 
 /**
@@ -3858,7 +4677,7 @@ declare class BasePointCombine extends BasePolyCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -3880,8 +4699,11 @@ declare class BasePointCombine extends BasePolyCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePolyCombine extends BaseCombine {
     constructor(options: {
@@ -3914,13 +4736,20 @@ declare class BasePolyCombine extends BaseCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 样式信息
      */
     readonly style: any;
+    /**
+     * 附加的label文本对象
+     */
+    readonly label: Cesium.Label[] | any;
     /**
      * 高亮对象。
      * @param [highlightStyle] - 高亮的样式，具体见各{@link GraphicType}矢量数据的style参数。
@@ -3934,6 +4763,20 @@ declare class BasePolyCombine extends BaseCombine {
      * @returns 无
      */
     closeHighlight(): void;
+    /**
+     * 打开绑定的弹窗
+     * @param index - 更新的instances对象index值
+     * @param [event] - 用于抛出事件时的相关额外属性
+     * @returns 当前对象本身，可以链式调用
+     */
+    openPopup(index: number, event?: any): BaseGraphic | any;
+    /**
+     * 平移指定偏移高度（相对于原始坐标值），【提示：仅部分子类支持】
+     * @param [height] - 平移的高度值（单位：米）,为空时取每个对象的offsetHeight值
+     * @param [index] - 更新的instances对象index值，为空时更新所有对象。
+     * @returns 无
+     */
+    setOffsetHeight(height?: number, index?: number | undefined): void;
 }
 
 /**
@@ -3944,7 +4787,7 @@ declare class BasePolyCombine extends BaseCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -3966,8 +4809,11 @@ declare class BasePolyCombine extends BaseCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BoxCombine extends BasePointCombine {
     constructor(options: {
@@ -4000,8 +4846,11 @@ declare class BoxCombine extends BasePointCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4013,7 +4862,7 @@ declare class BoxCombine extends BasePointCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -4035,8 +4884,11 @@ declare class BoxCombine extends BasePointCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CircleCombine extends BasePointCombine {
     constructor(options: {
@@ -4069,8 +4921,11 @@ declare class CircleCombine extends BasePointCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4082,6 +4937,8 @@ declare class CircleCombine extends BasePointCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有线的公共样式信息
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
+ * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
  * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
@@ -4102,8 +4959,11 @@ declare class CircleCombine extends BasePointCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取*
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CorridorCombine extends BasePolyCombine {
     constructor(options: {
@@ -4113,6 +4973,9 @@ declare class CorridorCombine extends BasePolyCombine {
             attr?: any;
         }[];
         style?: CorridorPrimitive.StyleOptions | any;
+        highlight?: {
+            type?: string;
+        };
         appearance?: Cesium.Appearance;
         attributes?: Cesium.Appearance;
         depthFailAppearance?: Cesium.Appearance;
@@ -4133,8 +4996,11 @@ declare class CorridorCombine extends BasePolyCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4146,7 +5012,7 @@ declare class CorridorCombine extends BasePolyCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -4168,8 +5034,11 @@ declare class CorridorCombine extends BasePolyCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CylinderCombine extends BasePointCombine {
     constructor(options: {
@@ -4202,8 +5071,11 @@ declare class CylinderCombine extends BasePointCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4215,7 +5087,7 @@ declare class CylinderCombine extends BasePointCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -4237,8 +5109,11 @@ declare class CylinderCombine extends BasePointCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class EllipsoidCombine extends BasePointCombine {
     constructor(options: {
@@ -4271,8 +5146,11 @@ declare class EllipsoidCombine extends BasePointCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4300,13 +5178,17 @@ declare namespace FlatBillboard {
  * @param options.instances.style - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有图标的公共样式信息
- * @param [options.scale3d = 0.8] - 二维和三维模式切换后图标的缩放比例。因为二三维模式使用不同渲染方式，可能存在大小偏差，可以该参数调优。
+ * @param [options.scale3d = 1] - 二维和三维模式切换后图标的缩放比例。因为二三维模式使用不同渲染方式，可能存在大小偏差，可以该参数调优。
  * @param [options.distanceDisplayCondition = new Cesium.DistanceDisplayCondition(0, 5000000)] - 指定数据将显示在与摄像机的多大距离
+ * @param [options.translucent = false] - 当true时，将启用alpha混合。
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FlatBillboard extends BaseCombine {
     constructor(options: {
@@ -4318,11 +5200,15 @@ declare class FlatBillboard extends BaseCombine {
         style?: FlatBillboard.StyleOptions | any;
         scale3d?: number;
         distanceDisplayCondition?: Cesium.DistanceDisplayCondition;
+        translucent?: boolean;
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 指定数据将显示在与摄像机的多大距离
@@ -4355,8 +5241,9 @@ declare class FlatBillboard extends BaseCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
+ * @param [options.fixedFrameTransform = Cesium.Transforms.northEastDownToFixedFrame] - 参考系
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
  * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
@@ -4377,8 +5264,11 @@ declare class FlatBillboard extends BaseCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FrustumCombine extends BasePointCombine {
     constructor(options: {
@@ -4391,6 +5281,7 @@ declare class FrustumCombine extends BasePointCombine {
         highlight?: {
             type?: string;
         };
+        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
         appearance?: Cesium.Appearance;
         attributes?: Cesium.Appearance;
         depthFailAppearance?: Cesium.Appearance;
@@ -4411,136 +5302,12 @@ declare class FrustumCombine extends BasePointCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
-}
-
-declare namespace ModelCombine {
-    /**
-     * 当前类支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * graphic.on(mars3d.EventType.load, function (event) {
-     *   console.log('模型加载完成', event)
-     * })
-     * @property load - 完成加载，执行所有内部处理后
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     * @property highlightOpen - highlight高亮后
-     * @property highlightClose - highlight关闭后
-     * @property click - 左键单击 鼠标事件
-     * @property rightClick - 右键单击 鼠标事件
-     * @property mouseOver - 鼠标移入 鼠标事件
-     * @property mouseOut - 鼠标移出 鼠标事件
-     */
-    type EventType = {
-        load: string;
-        add: string;
-        remove: string;
-        show: string;
-        hide: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-        highlightOpen: string;
-        highlightClose: string;
-        click: string;
-        rightClick: string;
-        mouseOver: string;
-        mouseOut: string;
-    };
-}
-
-/**
- * 大数据 gltf小模型集合 (合并渲染) Primitive图元 矢量对象
- * @param options - 参数对象，包括以下：
- * @param [options.url] - glTF模型的URI的字符串或资源属性。
- * @param [options.instances] - 集合信息数组，单个对象包括：
- * @param options.instances.position - 坐标位置
- * @param [options.instances.style] - 样式信息(目前仅支持方向和比例参数)
- * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
- * @param [options.batchTable] - 实例化的3D贴图的Cesium.Cesium3DTileBatchTable批处理表。
- * @param [options.requestType] - 请求类型，用于确定请求的优先级
- * @param [options.gltf] - 一个glTF JSON对象，或者一个二进制的glTF缓冲区。
- * @param [options.basePath = ''] - glTF JSON中路径相对的基本路径。
- * @param [options.dynamic = false] - 提示实例模型矩阵是否会频繁更新。
- * @param [options.allowPicking = true] - 当true时，每个glTF和Primitive都可以用{@link Cesium.Scene#pick}来拾取。
- * @param [options.asynchronous = true] - 确定模型WebGL资源创建是否将分散在几个帧或块上，直到所有glTF文件加载完成。
- * @param [options.incrementallyLoadTextures = true] - 确定模型加载后纹理是否会继续流进来。
- * @param [options.shadows = ShadowMode.ENABLED] - 指定模型是投射还是接收来自光源的阴影。
- * @param [options.imageBasedLightingFactor = new Cartesian2(1.0, 1.0)] - 指定来自基于图像的漫反射和镜面照明的贡献。
- * @param [options.lightColor] - 光的颜色当遮光模型。当undefined场景的浅色被使用代替。
- * @param [options.backFaceCulling = true] - 是否剔除面向背面的几何图形。当为真时，背面剔除由glTF材质的双面属性决定;当为false时，禁用背面剔除。
- * @param [options.debugShowBoundingVolume = false] - 仅供调试。查看模型的包围边界球。
- * @param [options.debugWireframe = false] - 仅供调试。查看模型的三角网线框图。
- *
- * //以下是 模型动画相关
- * @param [options.startTime] - 场景时间开始播放动画。当undefined时，动画从下一帧开始。
- * @param [options.delay = 0.0] - 从startTime开始播放的延迟，以秒为单位。
- * @param [options.stopTime] - 场景时间停止播放动画。当这是undefined，动画播放它的整个持续时间。
- * @param [options.removeOnStop = false] - 当true时，动画在停止播放后被删除。
- * @param [options.multiplier = 1.0] - 大于1.0的值增加动画播放的速度相对于场景时钟的速度;小于1.0会降低速度。
- * @param [options.reverse = false] - 当true时，动画会反向播放。
- * @param [options.loop = Cesium.ModelAnimationLoop.REPEAT] - 决定动画是否循环以及如何循环。
- * @param [options.id = createGuid()] - 矢量数据id标识
- * @param [options.name = ''] - 矢量数据名称
- * @param [options.show = true] - 矢量数据是否显示
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
- */
-declare class ModelCombine extends BaseCombine {
-    constructor(options: {
-        url?: Cesium.Resource | string;
-        instances?: {
-            position: LngLatPoint | Cesium.Cartesian3 | number[];
-            style?: ModelPrimitive.StyleOptions | any;
-            attr?: any;
-        }[];
-        batchTable?: any;
-        requestType?: any;
-        gltf?: any | ArrayBuffer | Uint8Array;
-        basePath?: Cesium.Resource | string;
-        dynamic?: boolean;
-        allowPicking?: boolean;
-        asynchronous?: boolean;
-        incrementallyLoadTextures?: boolean;
-        shadows?: Cesium.ShadowMode;
-        imageBasedLightingFactor?: Cesium.Cartesian2;
-        lightColor?: Cesium.Cartesian3;
-        backFaceCulling?: boolean;
-        debugShowBoundingVolume?: boolean;
-        debugWireframe?: boolean;
-        startTime?: Cesium.JulianDate;
-        delay?: number;
-        stopTime?: Cesium.JulianDate;
-        removeOnStop?: boolean;
-        multiplier?: number;
-        reverse?: boolean;
-        loop?: Cesium.ModelAnimationLoop;
-        id?: string | number;
-        name?: string;
-        show?: boolean;
-        eventParent?: BaseClass | boolean;
-        allowDrillPick?: boolean | ((...params: any[]) => any);
-    });
-    /**
-     * 是否可以调整透明度
-     */
-    readonly hasOpacity: boolean;
 }
 
 /**
@@ -4551,7 +5318,7 @@ declare class ModelCombine extends BaseCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -4573,8 +5340,11 @@ declare class ModelCombine extends BaseCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PlaneCombine extends BasePointCombine {
     constructor(options: {
@@ -4607,8 +5377,11 @@ declare class PlaneCombine extends BasePointCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4617,11 +5390,11 @@ declare class PlaneCombine extends BasePointCombine {
  * @param options - 参数对象，包括以下：
  * @param [options.instances] - 面信息数组，单个对象包括：
  * @param options.instances.positions - 坐标位置
- * @param [options.instances.style] - 样式信息
+ * @param [options.instances.style] - 样式信息,【仅支持同属性同材质，纯色支持多颜色】
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
- * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
- * //  * @param {String} [options.highlight.type] 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
+ * @param [options.style] - 所有面的公共样式信息, 【仅支持同属性同材质，纯色支持多颜色】
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
+ * //  * @param {string} [options.highlight.type] 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
  * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
@@ -4642,8 +5415,11 @@ declare class PlaneCombine extends BasePointCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。 @extends {BasePolyCombine}
  */
 declare class PolygonCombine extends BasePolyCombine {
     constructor(options: {
@@ -4674,8 +5450,11 @@ declare class PolygonCombine extends BasePolyCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4687,6 +5466,8 @@ declare class PolygonCombine extends BasePolyCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有线的公共样式信息
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
+ * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
  * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
@@ -4707,8 +5488,11 @@ declare class PolygonCombine extends BasePolyCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取*
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolylineCombine extends BasePolyCombine {
     constructor(options: {
@@ -4718,6 +5502,9 @@ declare class PolylineCombine extends BasePolyCombine {
             attr?: any;
         }[];
         style?: PolylinePrimitive.StyleOptions | any;
+        highlight?: {
+            type?: string;
+        };
         appearance?: Cesium.Appearance;
         attributes?: Cesium.Appearance;
         depthFailAppearance?: Cesium.Appearance;
@@ -4738,8 +5525,11 @@ declare class PolylineCombine extends BasePolyCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4751,6 +5541,8 @@ declare class PolylineCombine extends BasePolyCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有线的公共样式信息
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
+ * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
  * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
@@ -4771,8 +5563,11 @@ declare class PolylineCombine extends BasePolyCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取*
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolylineVolumeCombine extends BasePolyCombine {
     constructor(options: {
@@ -4782,6 +5577,9 @@ declare class PolylineVolumeCombine extends BasePolyCombine {
             attr?: any;
         }[];
         style?: PolylineVolumePrimitive.StyleOptions | any;
+        highlight?: {
+            type?: string;
+        };
         appearance?: Cesium.Appearance;
         attributes?: Cesium.Appearance;
         depthFailAppearance?: Cesium.Appearance;
@@ -4802,8 +5600,11 @@ declare class PolylineVolumeCombine extends BasePolyCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4815,7 +5616,7 @@ declare class PolylineVolumeCombine extends BasePolyCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -4837,8 +5638,11 @@ declare class PolylineVolumeCombine extends BasePolyCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class RectangleCombine extends BasePolyCombine {
     constructor(options: {
@@ -4871,8 +5675,11 @@ declare class RectangleCombine extends BasePolyCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -4884,71 +5691,7 @@ declare class RectangleCombine extends BasePolyCombine {
  * @param [options.instances.style] - 样式信息
  * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.style] - 所有线的公共样式信息
- * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
- * @param [options.attributes] - [cesium原生]每个实例的属性。
- * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
- * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
- * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
- * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
- * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
- * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
- * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
- * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
- * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
- * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
- * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
- * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
- * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
- * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
- * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
- * @param [options.id = createGuid()] - 矢量数据id标识
- * @param [options.name = ''] - 矢量数据名称
- * @param [options.show = true] - 矢量数据是否显示
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取*
- */
-declare class WallCombine extends BasePolyCombine {
-    constructor(options: {
-        instances?: {
-            positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
-            style?: WallPrimitive.StyleOptions | any;
-            attr?: any;
-        }[];
-        style?: WallPrimitive.StyleOptions | any;
-        appearance?: Cesium.Appearance;
-        attributes?: Cesium.Appearance;
-        depthFailAppearance?: Cesium.Appearance;
-        vertexCacheOptimize?: boolean;
-        interleave?: boolean;
-        compressVertices?: boolean;
-        releaseGeometryInstances?: boolean;
-        allowPicking?: boolean;
-        cull?: boolean;
-        asynchronous?: boolean;
-        debugShowBoundingVolume?: boolean;
-        debugShowShadowVolume?: boolean;
-        popup?: string | any[] | ((...params: any[]) => any);
-        popupOptions?: Popup.StyleOptions | any;
-        tooltip?: string | any[] | ((...params: any[]) => any);
-        tooltipOptions?: Tooltip.StyleOptions | any;
-        contextmenuItems?: any;
-        id?: string | number;
-        name?: string;
-        show?: boolean;
-        eventParent?: BaseClass | boolean;
-        allowDrillPick?: boolean | ((...params: any[]) => any);
-    });
-}
-
-/**
- * 大数据 水面集合 (合并渲染) Primitive图元 矢量对象
- * @param options - 参数对象，包括以下：
- * @param [options.instances] - 面信息数组，单个对象包括：
- * @param options.instances.positions - 坐标位置
- * @param [options.instances.style] - 样式信息
- * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
- * @param [options.style] - 所有面的公共样式信息
- * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式
+ * @param [options.highlight] - 鼠标移入或单击后的对应高亮的部分样式(仅支持Color纯色材质)
  * @param [options.highlight.type] - 触发高亮的方式，默认鼠标移入，可以指定为type:'click'为单击后高亮
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
@@ -4970,17 +5713,20 @@ declare class WallCombine extends BasePolyCombine {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取*
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
-declare class WaterCombine extends PolygonCombine {
+declare class WallCombine extends BasePolyCombine {
     constructor(options: {
         instances?: {
             positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
-            style?: PolygonPrimitive.StyleOptions | any;
+            style?: WallPrimitive.StyleOptions | any;
             attr?: any;
         }[];
-        style?: PolygonPrimitive.StyleOptions | any;
+        style?: WallPrimitive.StyleOptions | any;
         highlight?: {
             type?: string;
         };
@@ -5004,8 +5750,81 @@ declare class WaterCombine extends PolygonCombine {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+}
+
+/**
+ * 大数据 水面集合 (合并渲染) Primitive图元 矢量对象
+ * @param options - 参数对象，包括以下：
+ * @param [options.instances] - 面信息数组，单个对象包括：
+ * @param options.instances.positions - 坐标位置
+ * @param [options.instances.style] - 样式信息
+ * @param [options.instances.attr] - 矢量数据的 属性信息，可以任意附加属性。
+ * @param [options.style] - 所有面的公共样式信息
+ * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
+ * @param [options.attributes] - [cesium原生]每个实例的属性。
+ * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
+ * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
+ * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
+ * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
+ * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
+ * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
+ * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
+ * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
+ * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
+ * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class WaterCombine extends PolygonCombine {
+    constructor(options: {
+        instances?: {
+            positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+            style?: Water.StyleOptions | any;
+            attr?: any;
+        }[];
+        style?: Water.StyleOptions | any;
+        appearance?: Cesium.Appearance;
+        attributes?: Cesium.Appearance;
+        depthFailAppearance?: Cesium.Appearance;
+        vertexCacheOptimize?: boolean;
+        interleave?: boolean;
+        compressVertices?: boolean;
+        releaseGeometryInstances?: boolean;
+        allowPicking?: boolean;
+        cull?: boolean;
+        asynchronous?: boolean;
+        debugShowBoundingVolume?: boolean;
+        debugShowShadowVolume?: boolean;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -5043,6 +5862,8 @@ declare namespace ArcFrustum {
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ArcFrustum extends BasePointPrimitive {
     constructor(options: {
@@ -5054,6 +5875,8 @@ declare class ArcFrustum extends BasePointPrimitive {
         name?: string;
         show?: boolean;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 颜色
@@ -5073,15 +5896,78 @@ declare class ArcFrustum extends BasePointPrimitive {
     readonly modelMatrix: Cesium.Matrix4;
 }
 
+declare namespace ConeVisibility {
+    /**
+     * 扇形可视域区域 分析矢量对象 支持的样式信息
+     * @property [radius = 1] - 扇形区域半径
+     * @property [angle = 60] - 水平张角，半场角度
+     * @property [angle2 = 45] - 垂直张角，半场角度
+     * @property [heading = 0] - 方向角 （度数值，0-360度）
+     * @property [pitch = 0] - 俯仰角（度数值，0-360度）
+     * @property [roll = 0] - 翻滚角（度数值，0-360度）
+     * @property [addHeight] - 在坐标点增加的高度值，规避遮挡，效果更友好
+     * @property [showFrustum = false] - 是否显示视椎体框线
+     */
+    type StyleOptions = any | {
+        radius?: number;
+        angle?: number;
+        angle2?: number;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        addHeight?: number;
+        showFrustum?: boolean;
+    };
+}
+
+/**
+ * 扇形可视域区域分析 矢量对象，该对象暂不支持鼠标交互和拾取
+ * @param options - 参数对象，包括以下：
+ * @param options.position - 位置
+ * @param [options.targetPosition] - 目标视点位置,可以替代style中的相机heading\pitch\roll方向和distance距离参数
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ */
+declare class ConeVisibility extends PointVisibility {
+    constructor(options: {
+        position: LngLatPoint | Cesium.Cartesian3 | number[];
+        targetPosition?: LngLatPoint | Cesium.Cartesian3 | number[];
+        style: ConeVisibility.StyleOptions | any;
+        attr?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+    /**
+     * 水平张角，半场角度
+     */
+    angle: number;
+    /**
+     * 垂直张角，半场角度
+     */
+    angle2: number;
+    /**
+     * 目标点位置(笛卡尔坐标)
+     */
+    targetPosition: Cesium.Cartesian3 | LngLatPoint;
+}
+
 /**
  * 固定轨迹路线/历史轨迹路线，是由多个其他类型Graphic组合而成，方便一起控制和管理。<br />
  * 路线坐标是一次性postions参数或属性传入的，有开始和结束的概念。
  * @param options - 参数对象，包括以下：
  * @param options.positions - 轨迹的 坐标数组
  * @param [options.offsetHeight = 0] - 轨迹偏移增加的高度
- * @param [options.interpolation] - 是否LagrangePolynomialApproximation插值，对轨迹进行圆弧状插值
+ * @param [options.interpolation] - 是否使用插值算法
+ * @param [options.interpolationAlgorithm = Cesium.HermitePolynomialApproximation] - 当interpolation为true时，使用的插值算法，如：Cesium.HermitePolynomialApproximation、Cesium.LagrangePolynomialApproximation、Cesium.LinearApproximation
  * @param [options.interpolationDegree = 2] - 当interpolation为true时，使用的插值程度。
  * @param [options.showStop = true] - 是否在start前或stop后显示矢量对象
+ * @param [options.updateClock = true] - 是否自动更新时钟，多个FixedRoute时或外部手动控制时钟时建议关闭
  * @param options.speed - 轨迹的 速度( 单位：千米/小时)
  * @param [options.timeField] - 当points数组中已有时间值，请传入该值的字段名称，同时speed将失效，已实际传入时间字段为准。
  * @param [options.startTime] - 轨迹的开始时间，默认当前时间
@@ -5099,20 +5985,39 @@ declare class ArcFrustum extends BasePointPrimitive {
  * @param [options.path] - 使用 path轨迹 对象，及其对应的样式
  * @param [options.polyline] - 使用 polyline路线 对象，及其对应的样式 <br/>
  * //  * @param {number} [options.polyline.maxDistance] 设置保留的轨迹长度值（单位：米），不设置时保留所有的轨迹
- * //  * @param {Boolean} [options.polyline.showAll] 是否一直显示展示所有坐标
+ * //  * @param {boolean} [options.polyline.showAll] 是否一直显示展示所有坐标
  * @param [options.wall] - 使用 墙体 对象，及其对应的样式 <br/>
  * //  * @param {number} [options.wall.maxDistance] 设置保留的轨迹长度值（单位：米），不设置时保留所有的轨迹<br/>
  * //  * @param {number} [options.wall.surface] 设置墙底部高度是否贴地
+ * @param [options.highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+ * @param [options.highlight.label] - 使用 文本 对象，及其对应的样式
+ * @param [options.highlight.billboard] - 使用 图标 对象，及其对应的样式
+ * @param [options.highlight.point] - 使用 图标 对象，及其对应的样式
+ * @param [options.highlight.model] - 使用 gltf模型 对象，及其对应的样式
+ * @param [options.highlight.circle] - 使用 圆 对象，及其对应的样式
+ * @param [options.highlight.coneTrack] - 使用 圆锥体 对象，及其对应的样式
+ * @param [options.highlight.path] - 使用 path轨迹 对象，及其对应的样式
+ * @param [options.highlight.polyline] - 使用 polyline路线 对象，及其对应的样式
+ * @param [options.highlight.wall] - 使用 墙体 对象，及其对应的样式
+ * @param [options.orientation] - 自定义实体方向, 默认内部根据轨迹自动的
+ * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
  * @param [options.frameRate = 1] - 多少帧获取一次数据。用于控制效率，如果卡顿就把该数值调大一些。
+ * @param [options.maxCacheCount = 100] - 保留的坐标点数量, 当为-1时保留所有
  * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
  * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
- * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
- * @param [options.orientation] - 自定义实体方向, 默认内部根据轨迹自动的
+ * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
+ * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
+ * @param [options.clampToTileset] - 是否进行贴模型。
+ * @param [options.frameRateHeight = 30] - clampToTileset：true时，多少帧计算一次贴模型高度
+ * @param [options.objectsToExclude] - clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+ * @param [options.maxHeight] - 限定最高高度，避免计算异常数据
+ * @param [options.minHeight] - 限定最低高度，避免计算异常数据
  * @param [options.camera] - 视角模式设置，包括：
  * @param [options.camera.type] - 视角模式类型，包括：'':无、'gs':跟随视角、'dy':第一视角、'sd':上帝视角
  * @param [options.camera.radius] - 'gs'跟随视角时的 初始俯仰距离值（单位：米）
  * @param [options.camera.heading] - 'gs'跟随视角时的 初始方向角度值，绕垂直于地心的轴旋转角度, 0至360
- * @param [options.camera.pitch] - 'gs'跟随视角时的 初始俯仰角度值，绕纬度线旋转角度, 0至360
+ * @param [options.camera.pitch] - 'gs'跟随视角时的 初始俯仰角度值，绕纬度线旋转角度, -90至90
  * @param [options.camera.followedX = 50] - 'dy'锁定第一视角时，距离运动点的距离（后方）
  * @param [options.camera.followedZ = 10] - 'dy'锁定第一视角或'sd'上帝视角时，距离运动点的高度（上方）
  * @param [options.camera.offsetX = 0] - 'dy'锁定第一视角时，锁定点的本身的X轴方向（前后）偏移值
@@ -5128,14 +6033,18 @@ declare class ArcFrustum extends BasePointPrimitive {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FixedRoute extends Route {
     constructor(options: {
         positions: any[][] | LngLatPoint[];
         offsetHeight?: number;
         interpolation?: boolean;
-        interpolationDegree?: boolean;
+        interpolationAlgorithm?: number;
+        interpolationDegree?: Cesium.InterpolationAlgorithm | number;
         showStop?: boolean;
+        updateClock?: boolean;
         speed: any[][] | number;
         timeField?: string;
         startTime?: string | Date | Cesium.JulianDate;
@@ -5144,7 +6053,7 @@ declare class FixedRoute extends Route {
         clockLoop?: boolean;
         clockRange?: Cesium.ClockRange;
         attr?: any;
-        label?: LabelPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
         billboard?: BillboardEntity.StyleOptions | any;
         point?: PointPrimitive.StyleOptions | any;
         model?: ModelPrimitive.StyleOptions | any;
@@ -5153,11 +6062,31 @@ declare class FixedRoute extends Route {
         path?: PathEntity.StyleOptions | any;
         polyline?: PolylineEntity.StyleOptions | any;
         wall?: WallEntity.StyleOptions | any;
+        highlight?: {
+            label?: LabelEntity.StyleOptions | any;
+            billboard?: BillboardEntity.StyleOptions | any;
+            point?: PointPrimitive.StyleOptions | any;
+            model?: ModelPrimitive.StyleOptions | any;
+            circle?: CircleEntity.StyleOptions | any;
+            coneTrack?: ConeTrack.StyleOptions | any;
+            path?: PathEntity.StyleOptions | any;
+            polyline?: PolylineEntity.StyleOptions | any;
+            wall?: WallEntity.StyleOptions | any;
+        };
+        orientation?: Cesium.Property | any;
+        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
         frameRate?: number;
+        maxCacheCount?: number;
         forwardExtrapolationType?: Cesium.ExtrapolationType;
         backwardExtrapolationType?: Cesium.ExtrapolationType;
-        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
-        orientation?: Cesium.Property | any;
+        referenceFrame?: Cesium.ReferenceFrame;
+        numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
+        clampToTileset?: boolean;
+        frameRateHeight?: number;
+        objectsToExclude?: any;
+        maxHeight?: number;
+        minHeight?: number;
         camera?: {
             type?: string;
             radius?: number;
@@ -5179,6 +6108,8 @@ declare class FixedRoute extends Route {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 开始时间
@@ -5217,7 +6148,7 @@ declare class FixedRoute extends Route {
     /**
      * 计算贴地线
      * @param [options] - 控制参数
-     * @param [options.splitNum = 100] - 插值数，等比分割的个数
+     * @param [options.splitNum = 100] - 插值数，等比分割的个数(概略值，有经纬网网格来插值)
      * @param [options.minDistance] - 插值最小间隔(单位：米)，优先级高于splitNum
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
@@ -5234,7 +6165,7 @@ declare class FixedRoute extends Route {
     /**
      * 获取剖面数据
      * @param [options] - 控制参数
-     * @param [options.splitNum = 100] - 插值数，等比分割的个数
+     * @param [options.splitNum = 100] - 插值数，等比分割的个数(概略值，有经纬网网格来插值)
      * @param [options.minDistance] - 插值最小间隔(单位：米)，优先级高于splitNum
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
@@ -5248,6 +6179,105 @@ declare class FixedRoute extends Route {
         objectsToExclude?: any;
         offset?: number;
     }): Promise<any>;
+}
+
+/**
+ * group组对象,可用于矢量数据树结构的虚拟节点
+ * @param options - 参数对象，包括以下：
+ * @param [options.graphics] - 子矢量对象数组，每个矢量对象的配置见按各类型API即可。
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class GroupGraphic extends BaseGraphic {
+    constructor(options: {
+        graphics?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 是否空组 ，空组目前就图层管理用于图层分组节点（虚拟节点）。
+     */
+    readonly hasEmptyGroup: boolean;
+    /**
+     * 是否有子图层
+     */
+    readonly hasChildGraphic: boolean;
+    /**
+     * 子图层的个数
+     */
+    readonly length: number;
+    /**
+     * 添加所有子图层到map上
+     * @returns 当前对象本身，可以链式调用
+     */
+    addChildsToMap(): GroupGraphic;
+    /**
+     * 将所有子图层从map中移除
+     * @returns 当前对象本身，可以链式调用
+     */
+    removeMapChilds(): GroupGraphic;
+    /**
+     * 添加子图层，并绑定关联关系。
+     * @param childgraphic - 子图层对象
+     * @returns 当前对象本身，可以链式调用
+     */
+    addGraphic(childgraphic: BaseGraphic | any): GroupGraphic;
+    /**
+     * 移除子图层，并解除关联关系。
+     * @param childgraphic - 子图层对象
+     * @returns 当前对象本身，可以链式调用
+     */
+    removeGraphic(childgraphic: BaseGraphic | any): GroupGraphic;
+    /**
+     * 移除所有子图层
+     */
+    removeAllGraphic(): void;
+    /**
+     * 遍历每一个子图层并将其作为参数传递给回调函数
+     * @param method - 回调方法
+     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @returns 当前对象本身,可以链式调用
+     */
+    eachGraphic(method: (...params: any[]) => any, context?: any): GroupGraphic;
+    /**
+     * 获取所有内置子图层对象
+     * @returns 所有子图层对象
+     */
+    getGraphics(): BaseGraphic[] | any;
+    /**
+     * 获取地图所有的子图层对象(包括pid和id关联的图层)
+     * @returns 所有子图层对象
+     */
+    getInMapChilds(): BaseGraphic[] | any;
+    /**
+     * 根据ID或取图层
+     * @param id - 图层id或uuid
+     * @returns 图层对象
+     */
+    getGraphicById(id: string | number): BaseGraphic | any | any;
+    /**
+     * 根据id或name属性获取图层
+     * @param name - 图层id或uuid或name值
+     * @returns 图层对象
+     */
+    getGraphic(name: string | number): BaseGraphic | any;
+    /**
+     * 是否有同名的子图层，一般用于新增时判断
+     * @param name - 图层名称
+     * @param [excludedGraphic] - 可以指定不进行判断的图层，比如当前图层本身
+     * @returns 是否同名
+     */
+    hasGraphic(name: string, excludedGraphic?: BaseGraphic): boolean;
 }
 
 declare namespace ParticleSystem {
@@ -5339,6 +6369,8 @@ declare namespace ParticleSystem {
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ParticleSystem extends BasePointPrimitive {
     constructor(options: {
@@ -5352,6 +6384,8 @@ declare class ParticleSystem extends BasePointPrimitive {
         name?: string;
         show?: boolean;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 最大视角高度（单位：米），超出该高度不显示粒子效果
@@ -5385,6 +6419,127 @@ declare class ParticleSystem extends BasePointPrimitive {
      * 动态位置坐标
      */
     property: Cesium.SampledPositionProperty | Cesium.CallbackProperty;
+}
+
+declare namespace PointLight {
+    /**
+     * 点光源矢量对象 支持的样式信息
+     * @property [color = Cesium.Color.WHITE] - 光颜色
+     * @property [intensity = 10] - 光强度
+     * @property [radius = 1000] - 点光源半径,单位米，需要一定强度才能覆盖到半径范围内
+     * @property [addHeight] - 偏移高度，在现有坐标基础上增加的高度值,也支持字符串模版配置
+     */
+    type StyleOptions = any | {
+        color?: string | Cesium.Color;
+        intensity?: number;
+        radius?: number;
+        addHeight?: number | string;
+    };
+}
+
+/**
+ * 点光源 矢量对象，该对象暂不支持鼠标交互和拾取
+ * @param options - 参数对象，包括以下：
+ * @param options.position - 位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ */
+declare class PointLight extends BasePointPrimitive {
+    constructor(options: {
+        position: LngLatPoint | Cesium.Cartesian3 | number[];
+        style: PointLight.StyleOptions | any;
+        attr?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+    /**
+     * 光强度
+     */
+    intensity: number;
+    /**
+     * 颜色
+     */
+    color: string | Cesium.Color;
+    /**
+     * 场景的ShadowMap阴影图
+     */
+    readonly shadowMap: Cesium.ShadowMap;
+    /**
+     * 相机对象
+     */
+    readonly camera: Cesium.Camera;
+}
+
+declare namespace PointVisibility {
+    /**
+     * 圆形可视域区域 矢量对象 支持的样式信息
+     * @property [radius = 1] - 区域半径,单位米
+     * @property [addHeight] - 在坐标点增加的高度值，规避遮挡，效果更友好
+     * @property [showFrustum = false] - 是否显示视椎体框线
+     */
+    type StyleOptions = any | {
+        radius?: number;
+        addHeight?: number;
+        showFrustum?: boolean;
+    };
+}
+
+/**
+ * 圆形可视域区域分析 矢量对象，该对象暂不支持鼠标交互和拾取
+ * @param options - 参数对象，包括以下：
+ * @param options.position - 位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.terrain = true] - 是否启用地形分析，会自动开启深度检测
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ */
+declare class PointVisibility extends BasePointPrimitive {
+    constructor(options: {
+        position: LngLatPoint | Cesium.Cartesian3 | number[];
+        style: PointVisibility.StyleOptions | any;
+        attr?: any;
+        terrain?: boolean;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+    /**
+     * 混合系数0-1
+     */
+    opacity: number;
+    /**
+     * 场景的ShadowMap阴影图
+     */
+    readonly shadowMap: Cesium.ShadowMap;
+    /**
+     * 相机对象
+     */
+    readonly camera: Cesium.Camera;
+    /**
+     * 开始绘制矢量数据，绘制的数据会加载在layer图层。
+     * @param layer - 图层
+     * @returns 无
+     */
+    startDraw(layer: GraphicLayer): void;
+    /**
+     * 停止绘制
+     * @returns 无
+     */
+    stopDraw(): void;
+    /**
+     * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
+     */
+    position: Cesium.Cartesian3 | LngLatPoint;
 }
 
 declare namespace Route {
@@ -5445,9 +6600,11 @@ declare namespace Route {
  * 使用 {@link Route#addDynamicPosition} 方法来添加动画轨迹点位置。
  * 如果只是显示单个模型等对象，建议直接使用对应的矢量对象，效率更高。
  * @param options - 参数对象，包括以下：
+ * @param [options.position] - 自定义外部构造好的传入动态坐标位置（含时序的点集合）
  * @param [options.attr] - 矢量数据的 属性信息，可以任意附加属性。
  * @param [options.label] - 使用 文本 对象，及其对应的样式
  * @param [options.billboard] - 使用 图标 对象，及其对应的样式
+ * //  * @param {Cesium.Cartesian3|boolean} [options.billboard.alignedAxis]  为true时自动使用VelocityVectorProperty
  * @param [options.point] - 使用 图标 对象，及其对应的样式
  * @param [options.model] - 使用 gltf模型 对象，及其对应的样式
  * @param [options.circle] - 使用 圆 对象，及其对应的样式
@@ -5458,17 +6615,35 @@ declare namespace Route {
  * @param [options.wall] - 使用 墙体 对象，及其对应的样式 <br/>
  * //  * @param {number} [options.wall.maxDistance] 设置保留的轨迹长度值（单位：米），不设置时保留所有的轨迹<br/>
  * //  * @param {number} [options.wall.surface] 设置墙底部高度是否贴地
+ * @param [options.highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+ * @param [options.highlight.label] - 使用 文本 对象，及其对应的样式
+ * @param [options.highlight.billboard] - 使用 图标 对象，及其对应的样式
+ * @param [options.highlight.point] - 使用 图标 对象，及其对应的样式
+ * @param [options.highlight.model] - 使用 gltf模型 对象，及其对应的样式
+ * @param [options.highlight.circle] - 使用 圆 对象，及其对应的样式
+ * @param [options.highlight.coneTrack] - 使用 圆锥体 对象，及其对应的样式
+ * @param [options.highlight.path] - 使用 path轨迹 对象，及其对应的样式
+ * @param [options.highlight.polyline] - 使用 polyline路线 对象，及其对应的样式
+ * @param [options.highlight.wall] - 使用 墙体 对象，及其对应的样式
+ * @param [options.orientation] - 自定义实体方向, 默认内部根据轨迹自动的
+ * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
  * @param [options.frameRate = 1] - 多少帧获取一次数据。用于控制效率，如果卡顿就把该数值调大一些。
- * @param [options.maxCacheCount = 100] - 保留的坐标点数量,当为-1时保留所有
+ * @param [options.maxCacheCount = 100] - 保留的坐标点数量, 当为-1时保留所有
  * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
  * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
- * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
- * @param [options.orientation] - 自定义实体方向, 默认内部根据轨迹自动的
+ * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
+ * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
+ * @param [options.clampToTileset] - 是否进行贴模型。
+ * @param [options.frameRateHeight = 30] - clampToTileset：true时，多少帧计算一次贴模型高度
+ * @param [options.objectsToExclude] - clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+ * @param [options.maxHeight] - 限定最高高度，避免计算异常数据
+ * @param [options.minHeight] - 限定最低高度，避免计算异常数据
  * @param [options.camera] - 视角模式设置，包括：
  * @param [options.camera.type] - 视角模式类型，包括：'':无、'gs':跟随视角、'dy':第一视角、'sd':上帝视角
  * @param [options.camera.radius] - 'gs'跟随视角时的 初始俯仰距离值（单位：米）
  * @param [options.camera.heading] - 'gs'跟随视角时的 初始方向角度值，绕垂直于地心的轴旋转角度, 0至360
- * @param [options.camera.pitch] - 'gs'跟随视角时的 初始俯仰角度值，绕纬度线旋转角度, 0至360
+ * @param [options.camera.pitch] - 'gs'跟随视角时的 初始俯仰角度值，绕纬度线旋转角度, -90至90
  * @param [options.camera.followedX = 50] - 'dy'锁定第一视角时，距离运动点的距离（后方）
  * @param [options.camera.followedZ = 10] - 'dy'锁定第一视角或'sd'上帝视角时，距离运动点的高度（上方）
  * @param [options.camera.offsetX = 0] - 'dy'锁定第一视角时，锁定点的本身的X轴方向（前后）偏移值
@@ -5484,11 +6659,14 @@ declare namespace Route {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Route extends BasePointPrimitive {
     constructor(options: {
+        position?: Cesium.SampledPositionProperty;
         attr?: any;
-        label?: LabelPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
         billboard?: BillboardEntity.StyleOptions | any;
         point?: PointPrimitive.StyleOptions | any;
         model?: ModelPrimitive.StyleOptions | any;
@@ -5497,12 +6675,31 @@ declare class Route extends BasePointPrimitive {
         path?: PathEntity.StyleOptions | any;
         polyline?: PolylineEntity.StyleOptions | any;
         wall?: WallEntity.StyleOptions | any;
+        highlight?: {
+            label?: LabelEntity.StyleOptions | any;
+            billboard?: BillboardEntity.StyleOptions | any;
+            point?: PointPrimitive.StyleOptions | any;
+            model?: ModelPrimitive.StyleOptions | any;
+            circle?: CircleEntity.StyleOptions | any;
+            coneTrack?: ConeTrack.StyleOptions | any;
+            path?: PathEntity.StyleOptions | any;
+            polyline?: PolylineEntity.StyleOptions | any;
+            wall?: WallEntity.StyleOptions | any;
+        };
+        orientation?: Cesium.Property | any;
+        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
         frameRate?: number;
         maxCacheCount?: number;
         forwardExtrapolationType?: Cesium.ExtrapolationType;
         backwardExtrapolationType?: Cesium.ExtrapolationType;
-        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
-        orientation?: Cesium.Property | any;
+        referenceFrame?: Cesium.ReferenceFrame;
+        numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
+        clampToTileset?: boolean;
+        frameRateHeight?: number;
+        objectsToExclude?: any;
+        maxHeight?: number;
+        minHeight?: number;
         camera?: {
             type?: string;
             radius?: number;
@@ -5524,7 +6721,13 @@ declare class Route extends BasePointPrimitive {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 时序动态坐标对象
+     */
+    readonly property: Cesium.SampledPositionProperty;
     /**
      * 文本 子对象
      */
@@ -5541,6 +6744,14 @@ declare class Route extends BasePointPrimitive {
      * 模型 子对象
      */
     model: ModelPrimitive;
+    /**
+     * 获取model模型子对象完成解析加载完成的Promise承诺
+     * @example
+     * route.readyPromise.then(function(graphic) {
+     *     console.log("load完成", graphic)
+     *   })
+     */
+    readonly readyPromise: Promise<ModelEntity | any>;
     /**
      * 圆 子对象
      */
@@ -5567,6 +6778,14 @@ declare class Route extends BasePointPrimitive {
      */
     readonly modelMatrix: Cesium.Matrix4;
     /**
+     * 求当前位置射线与地球相交点
+     */
+    readonly groundPosition: Cesium.Cartesian3;
+    /**
+     * 当前海拔高度值
+     */
+    readonly alt: number;
+    /**
      * 开始时间
      */
     readonly startTime: Cesium.JulianDate;
@@ -5583,9 +6802,17 @@ declare class Route extends BasePointPrimitive {
      */
     multiplier: number;
     /**
-     * 是否暂停状态
+     * 是否暂停状态 【针对全局时钟的，即 map.clock.shouldAnimate】
      */
     isPause: boolean;
+    /**
+     * 贴模型分析时，排除的不进行贴模型计算的模型对象，默认是当前本身，可以是： primitives, entities 等
+     */
+    objectsToExclude: any | undefined;
+    /**
+     * 样式信息 【仅用于标绘，兼容其他graphic统一处理逻辑】
+     */
+    style: any;
     /**
      * 遍历所有矢量数据并将其作为参数传递给回调函数
      * @param method - 回调方法
@@ -5659,7 +6886,7 @@ declare class Route extends BasePointPrimitive {
      * 更新视角模式,传入空值代表取消。
      * @param [cameraOptions] - 参数，包括：
      * @param [cameraOptions.type] - 视角模式类型，包括：'':无、'gs':跟随视角、'dy':第一视角、'sd':上帝视角
-     * @param [cameraOptions.radius] - 'gs'跟随视角时的 初始俯仰距离值（单位：米）
+     * @param [cameraOptions.radius] - 'gs'跟随视角时的 离目标的距离值（单位：米）
      * @param [cameraOptions.heading] - 'gs'跟随视角时的 初始方向角度值，绕垂直于地心的轴旋转角度, 0至360
      * @param [cameraOptions.pitch] - 'gs'跟随视角时的 初始俯仰角度值，绕纬度线旋转角度, 0至360 *
      * @param [cameraOptions.followedX = 50] - 'dy'锁定第一视角时，距离运动点的距离（后方）
@@ -5675,19 +6902,149 @@ declare class Route extends BasePointPrimitive {
         followedZ?: number;
     }): void;
     /**
-     * 暂停
+     * 暂停 【针对全局时钟的，即 map.clock.shouldAnimate】
      * @returns 无
      */
     pause(): void;
     /**
-     * 继续
+     * 继续 【针对全局时钟的，即 map.clock.shouldAnimate】
      * @returns 无
      */
     proceed(): void;
     /**
-     * 动态位置坐标
+     * 异步计算更新坐标高度进行贴地(或贴模型)，内部自动调用{@link PointUtil#getSurfaceHeight}方法处理。
+     * @param [options = {}] - 参数对象:
+     * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @returns 异步计算完成的Promise
      */
-    property: Cesium.SampledPositionProperty | Cesium.CallbackProperty;
+    autoSurfaceHeight(options?: {
+        has3dtiles?: boolean;
+        objectsToExclude?: any;
+    }): Promise<any>;
+}
+
+/**
+ * 天际线体 矢量对象 <br>
+ * 说明：自动计算当前相机所视区域的天际线闭合区域
+ * @param options - 参数对象，包括以下：
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
+ * @param [options.attributes] - [cesium原生]每个实例的属性。
+ * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
+ * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
+ * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
+ * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
+ * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
+ * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
+ * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
+ * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
+ * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
+ * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class SkylineBody extends PolygonPrimitive {
+    constructor(options: {
+        style: PolygonPrimitive.StyleOptions | any;
+        attr?: any;
+        appearance?: Cesium.Appearance;
+        attributes?: Cesium.Appearance;
+        depthFailAppearance?: Cesium.Appearance;
+        vertexCacheOptimize?: boolean;
+        interleave?: boolean;
+        compressVertices?: boolean;
+        releaseGeometryInstances?: boolean;
+        allowPicking?: boolean;
+        cull?: boolean;
+        asynchronous?: boolean;
+        debugShowBoundingVolume?: boolean;
+        debugShowShadowVolume?: boolean;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 相机位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
+     */
+    position: Cesium.Cartesian3 | LngLatPoint;
+}
+
+declare namespace SpotLight {
+    /**
+     * 聚光灯矢量对象 支持的样式信息
+     * @property [color = Cesium.Color.WHITE] - 光颜色
+     * @property [intensity = 10] - 光强度
+     * @property [radius = 1000] - 聚光灯半径
+     * @property [heading = 0] - 方向角 （度数值，0-360度）
+     * @property [pitch = 0] - 俯仰角（度数值，0-360度）
+     * @property [roll = 0] - 翻滚角（度数值，0-360度）
+     * @property [innerCone = 10.0] - 聚光灯的内圆锥角度，半场角度，取值范围：0-45
+     * @property [outerCone = 45.0] - 聚光灯的外圆锥角度，半场角度，取值范围：0-45
+     * @property [addHeight] - 偏移高度，在现有坐标基础上增加的高度值,也支持字符串模版配置
+     */
+    type StyleOptions = any | {
+        color?: string | Cesium.Color;
+        intensity?: number;
+        radius?: number;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        innerCone?: number;
+        outerCone?: number;
+        addHeight?: number | string;
+    };
+}
+
+/**
+ * 聚光灯 矢量对象，该对象暂不支持鼠标交互和拾取
+ * @param options - 参数对象，包括以下：
+ * @param options.position - 位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ */
+declare class SpotLight extends PointLight {
+    constructor(options: {
+        position: LngLatPoint | Cesium.Cartesian3 | number[];
+        style: SpotLight.StyleOptions | any;
+        attr?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+    /**
+     * 聚光灯的外圆锥角度，半场角度，取值范围：0-45
+     */
+    outerCone: number;
+    /**
+     * 聚光灯的内圆锥角度，半场角度，取值范围：0-45
+     */
+    innerCone: number;
 }
 
 declare namespace Tetrahedron {
@@ -5700,6 +7057,8 @@ declare namespace Tetrahedron {
      * @property [moveHeight = 30] - 动画时，上下移动的单程总高度，单位：米
      * @property [moveDuration = 2] - 动画时，上下移动的单程总时长，单位：秒
      * @property [rotationAngle = 1] - 动画时，每帧旋转的角度值，单位：度
+     * @property [translucent = false] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = true] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
      */
     type StyleOptions = any | {
         width?: number;
@@ -5709,6 +7068,8 @@ declare namespace Tetrahedron {
         moveHeight?: number;
         moveDuration?: number;
         rotationAngle?: number;
+        translucent?: boolean;
+        closed?: boolean;
     };
 }
 
@@ -5723,6 +7084,8 @@ declare namespace Tetrahedron {
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Tetrahedron extends BasePointPrimitive {
     constructor(options: {
@@ -5734,6 +7097,8 @@ declare class Tetrahedron extends BasePointPrimitive {
         name?: string;
         show?: boolean;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 颜色
@@ -5764,6 +7129,8 @@ declare namespace Video3D {
      * @property [pitch = 0] - 俯仰角（度数值，0-360度）
      * @property [roll = 0] - 翻滚角（度数值，0-360度）
      * @property [opacity = 1.0] - 透明度 0.0 - 1.0
+     * @property [flipx = false] - 是否X方向翻转图片
+     * @property [flipy = false] - 是否Y方向翻转图片
      * @property [hiddenAreaColor = new Cesium.Color(0, 0, 0, 0.5)] - 无视频投影区域的颜色
      * @property [showFrustum = false] - 是否显示视椎体框线
      */
@@ -5778,6 +7145,8 @@ declare namespace Video3D {
         pitch?: number;
         roll?: number;
         opacity?: number;
+        flipx?: boolean;
+        flipy?: boolean;
         hiddenAreaColor?: Cesium.Color | string;
         showFrustum?: boolean;
     };
@@ -5790,10 +7159,13 @@ declare namespace Video3D {
  * @param [options.targetPosition] - 目标视点位置,可以替代style中的相机heading\pitch\roll方向和distance距离参数
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.play = true] - 初始化后默认是播放还是停止状态
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Video3D extends ViewShed {
     constructor(options: {
@@ -5801,10 +7173,13 @@ declare class Video3D extends ViewShed {
         targetPosition?: LngLatPoint | Cesium.Cartesian3 | number[];
         style: Video3D.StyleOptions | any;
         attr?: any;
+        play?: boolean;
         id?: string | number;
         name?: string;
         show?: boolean;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 对应的视频DOM元素
@@ -5815,9 +7190,72 @@ declare class Video3D extends ViewShed {
      */
     distance: number;
     /**
+     * 是否X方向翻转视频
+     */
+    flipx: boolean;
+    /**
      * 暂停或播放 视频
      */
     play: boolean;
+}
+
+declare namespace ViewDome {
+    /**
+     * 开敞度分析 支持的样式信息
+     * @property [radius = 20] - 半径，单位：米
+     * @property [visibleColor = 'rgba(0,183,239, 0.5)'] - 可见区域颜色
+     * @property [hiddenColor = 'rgba(227,108,9, 0.5)'] - 不可见区域颜色
+     */
+    type StyleOptions = any | {
+        radius?: number;
+        visibleColor?: string | Cesium.Color;
+        hiddenColor?: string | Cesium.Color;
+    };
+}
+
+/**
+ * 开敞度分析
+ * @param options - 参数对象，包括以下：
+ * @param options.position - 坐标位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性。
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class ViewDome extends BasePointPrimitive {
+    constructor(options: {
+        position: LngLatPoint | Cesium.Cartesian3 | number[];
+        style: ViewDome.StyleOptions | any;
+        attr?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 半径
+     */
+    radius: number;
+    /**
+     * 可见区域颜色
+     */
+    visibleColor: string | Cesium.Color;
+    /**
+     * 不可见区域颜色
+     */
+    hiddenColor: string | Cesium.Color;
+    /**
+     * 设置透明度
+     * @param value - 透明度
+     * @returns 无
+     */
+    setOpacity(value: number): void;
 }
 
 declare namespace ViewShed {
@@ -5862,6 +7300,8 @@ declare namespace ViewShed {
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ViewShed extends BasePointPrimitive {
     constructor(options: {
@@ -5874,6 +7314,8 @@ declare class ViewShed extends BasePointPrimitive {
         name?: string;
         show?: boolean;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 水平张角，半场角度
@@ -5903,6 +7345,10 @@ declare class ViewShed extends BasePointPrimitive {
      * 距离，单位：米
      */
     distance: number;
+    /**
+     * 场景的ShadowMap阴影图
+     */
+    readonly shadowMap: Cesium.ShadowMap;
     /**
      * 相机对象
      */
@@ -5939,6 +7385,67 @@ declare class ViewShed extends BasePointPrimitive {
     position: Cesium.Cartesian3 | LngLatPoint;
 }
 
+declare namespace VolumeCloud {
+    /**
+     * 体渲染气象云 data数据结构
+     * @property rows - 行网格数,X
+     * @property cols - 列网格数,Y
+     * @property heights - 高网格数,Z
+     * @property values - 3D 数据集数组, 数组长度应该是 rows*cols*heights
+     * @property xmin - 最小经度（度数，-180-180）
+     * @property xmax - 最大经度（度数，-180-180）
+     * @property ymin - 最小纬度（度数，-90-90）
+     * @property ymax - 最大纬度（度数，-90-90）
+     * @property zmin - 最小高度
+     * @property zmax - 最大高度
+     */
+    type DataOptions = {
+        rows: number;
+        cols: number;
+        heights: number;
+        values: number[];
+        xmin: number;
+        xmax: number;
+        ymin: number;
+        ymax: number;
+        zmin: number;
+        zmax: number;
+    };
+}
+
+/**
+ * 体渲染气象云 矢量对象，该对象暂不支持鼠标交互和拾取
+ * @param options - 参数对象，包括以下：
+ * @param options.data - 数据
+ * @param [options.colors] - 色带颜色数组
+ * @param [options.steps] - 色带对应的数值数组
+ * @param [options.threshold = 65/255] - 筛选值
+ * @param [options.detail = 1000] - 精细度
+ * @param [options.xCut = -0.5] - X轴裁剪,取值范围：-0.5至0.5
+ * @param [options.yCut = -0.5] - Y轴裁剪,取值范围：-0.5至0.5
+ * @param [options.zCut = 0.5] - Z轴裁剪,取值范围：-0.5至0.5
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ */
+declare class VolumeCloud extends BasePrimitive {
+    constructor(options: {
+        data: VolumeCloud.DataOptions;
+        colors?: string[];
+        steps?: number[];
+        threshold?: number;
+        detail?: number;
+        xCut?: number;
+        yCut?: number;
+        zCut?: number;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+}
+
 declare namespace DivBoderLabel {
     /**
      * 动态边框文本 支持的样式信息
@@ -5959,14 +7466,15 @@ declare namespace DivBoderLabel {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
      * @property [css_transform_origin = 'left bottom 0'] - DIV的 transform-origin css值
      * @property [timeRender] - 是否实时刷新全部HTML，此时需要绑定html需传入回调方法。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [templateEmptyStr = ""] - 当text存在模版字符串配置时，空值时显示的内容
      */
     type StyleOptions = any | {
         text: string;
@@ -5994,6 +7502,7 @@ declare namespace DivBoderLabel {
         timeRender?: boolean;
         setHeight?: number | string;
         addHeight?: number | string;
+        templateEmptyStr?: string;
     };
 }
 
@@ -6004,8 +7513,9 @@ declare namespace DivBoderLabel {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.testPoint] - 测试点 的对应样式 ，可以进行用于比较测试div的位置，方便调试CSS。
- * @param [options.pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
+ * @param [options.pointerEvents] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
  * @param [options.hasZIndex = false] - 是否自动调整DIV的层级顺序。
  * @param [options.zIndex = "auto"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
  * @param [options.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
@@ -6018,7 +7528,10 @@ declare namespace DivBoderLabel {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DivBoderLabel extends DivGraphic {
     constructor(options: {
@@ -6026,6 +7539,7 @@ declare class DivBoderLabel extends DivGraphic {
         style: DivBoderLabel.StyleOptions | any;
         attr?: any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         testPoint?: PointEntity.StyleOptions | any;
         pointerEvents?: boolean;
         hasZIndex?: boolean;
@@ -6040,8 +7554,15 @@ declare class DivBoderLabel extends DivGraphic {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 设置或获取当前对象对应的Html
+     */
+    html: string | HTMLDivElement;
 }
 
 declare namespace DivGraphic {
@@ -6060,14 +7581,14 @@ declare namespace DivGraphic {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
-     * @property [css_transform_origin = 'left bottom 0'] - DIV的 transform-origin css值
      * @property [timeRender] - 是否实时刷新全部HTML，此时需要绑定html需传入回调方法。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [templateEmptyStr = ''] - html中如果存在模版时，空值时显示的内容
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
      */
     type StyleOptions = any | {
         html: string | HTMLDivElement | ((...params: any[]) => any);
@@ -6087,68 +7608,10 @@ declare namespace DivGraphic {
         distanceDisplayCondition_near?: number;
         clampToGround?: boolean;
         heightReference?: Cesium.HeightReference;
-        css_transform_origin?: string;
         timeRender?: boolean;
+        templateEmptyStr?: string;
         setHeight?: number | string;
         addHeight?: number | string;
-    };
-    /**
-     * 当前类支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * graphic.on(mars3d.EventType.click, function (event) {
-     *   console.log('单击了矢量数据对象', event)
-     * })
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     * @property highlightOpen - highlight高亮后
-     * @property highlightClose - highlight关闭后
-     * @property change - 变化了
-     * @property click - 左键单击 鼠标事件
-     * @property rightClick - 右键单击 鼠标事件
-     * @property mouseOver - 鼠标移入 鼠标事件
-     * @property mouseOut - 鼠标移出 鼠标事件
-     * @property drawStart - 开始绘制 标绘事件
-     * @property drawMouseMove - 正在移动鼠标中，绘制过程中鼠标移动了点 标绘事件
-     * @property drawCreated - 创建完成 标绘事件
-     * @property editStart - 开始编辑 标绘事件
-     * @property editMouseMove - 正在移动鼠标中，正在编辑拖拽修改点中（MOUSE_MOVE） 标绘事件
-     * @property editStop - 停止编辑 标绘事件
-     */
-    type EventType = {
-        add: string;
-        remove: string;
-        show: string;
-        hide: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-        highlightOpen: string;
-        highlightClose: string;
-        change: string;
-        click: string;
-        rightClick: string;
-        mouseOver: string;
-        mouseOut: string;
-        drawStart: string;
-        drawMouseMove: string;
-        drawCreated: string;
-        editStart: string;
-        editMouseMove: string;
-        editStop: string;
     };
 }
 
@@ -6159,14 +7622,21 @@ declare namespace DivGraphic {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.testPoint] - 测试点 的对应样式 ，可以进行用于比较测试div的位置，方便调试CSS。
- * @param [options.pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
+ * @param [options.pointerEvents] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。如果传入值后，这个值优先级最高。
  * @param [options.hasZIndex = false] - 是否自动调整DIV的层级顺序。
  * @param [options.zIndex = "auto"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
  * @param [options.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
  * @param [options.hasCache = true] - 是否启用缓存机制，如为true，在视角未变化时不重新渲染。
  * @param [options.parentContainer] - 控件加入的父容器，默认为当前图层所在的DOM layer.container
  * @param [options.frameRate = 1] - 多少帧获取更新一次DIV像素位置。用于控制效率，如果卡顿就把该数值调大一些。
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
+ * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
+ * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -6175,7 +7645,10 @@ declare namespace DivGraphic {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DivGraphic extends BaseGraphic {
     constructor(options: {
@@ -6183,6 +7656,7 @@ declare class DivGraphic extends BaseGraphic {
         style: DivGraphic.StyleOptions | any;
         attr?: any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         testPoint?: PointEntity.StyleOptions | any;
         pointerEvents?: boolean;
         hasZIndex?: boolean;
@@ -6191,6 +7665,12 @@ declare class DivGraphic extends BaseGraphic {
         hasCache?: boolean;
         parentContainer?: HTMLElement;
         frameRate?: number;
+        maxCacheCount?: number;
+        forwardExtrapolationType?: Cesium.ExtrapolationType;
+        backwardExtrapolationType?: Cesium.ExtrapolationType;
+        referenceFrame?: Cesium.ReferenceFrame;
+        numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -6199,7 +7679,10 @@ declare class DivGraphic extends BaseGraphic {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
@@ -6257,6 +7740,13 @@ declare class DivGraphic extends BaseGraphic {
      * 对应的DOM元素的id
      */
     readonly containerId: string;
+    /**
+     * 公共部分外框部分html内容，需要加2处：
+     * (1)用于填充html的地方写上{content}标识；
+     * (2)关闭按钮加class样式：closeButton。
+     * 传空字符串或false时，不用内置模版。
+     */
+    template: string;
     /**
      * 设置或获取当前对象对应的Html
      */
@@ -6357,6 +7847,10 @@ declare class DivGraphic extends BaseGraphic {
      */
     stopEditing(): void;
     /**
+     * 属性信息
+     */
+    attr: any;
+    /**
      * 中心点坐标（笛卡尔坐标）
      */
     readonly center: Cesium.Cartesian3 | Cesium.SampledPositionProperty;
@@ -6370,6 +7864,7 @@ declare namespace DivLightPoint {
      * @property [label] - 文本
      * @property [label.text] - 文本内容
      * @property [label.color] - 文本颜色
+     * @property [label.templateEmptyStr = ""] - 当text存在模版字符串配置时，空值时显示的内容
      * @property [offsetX] - 用于非规则div时，横向偏移的px像素值
      * @property [offsetY] - 用于非规则div时，垂直方向偏移的px像素值
      * @property [scaleByDistance = false] - 是否按视距缩放
@@ -6378,14 +7873,14 @@ declare namespace DivLightPoint {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
      * @property [css_transform_origin = 'left bottom 0'] - DIV的 transform-origin css值
      * @property [timeRender] - 是否实时刷新全部HTML，此时需要绑定html需传入回调方法。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
      */
     type StyleOptions = any | {
         color?: string;
@@ -6393,6 +7888,7 @@ declare namespace DivLightPoint {
         label?: {
             text?: string;
             color?: string;
+            templateEmptyStr?: string;
         };
         offsetX?: number;
         offsetY?: number;
@@ -6420,8 +7916,9 @@ declare namespace DivLightPoint {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.testPoint] - 测试点 的对应样式 ，可以进行用于比较测试div的位置，方便调试CSS。
- * @param [options.pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
+ * @param [options.pointerEvents] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
  * @param [options.hasZIndex = false] - 是否自动调整DIV的层级顺序。
  * @param [options.zIndex = "auto"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
  * @param [options.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
@@ -6434,7 +7931,10 @@ declare namespace DivLightPoint {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DivLightPoint extends DivGraphic {
     constructor(options: {
@@ -6442,6 +7942,7 @@ declare class DivLightPoint extends DivGraphic {
         style: DivLightPoint.StyleOptions | any;
         attr?: any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         testPoint?: PointEntity.StyleOptions | any;
         pointerEvents?: boolean;
         hasZIndex?: boolean;
@@ -6456,8 +7957,15 @@ declare class DivLightPoint extends DivGraphic {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 设置或获取当前对象对应的Html
+     */
+    html: string | HTMLDivElement;
 }
 
 declare namespace DivUpLabel {
@@ -6479,14 +7987,14 @@ declare namespace DivUpLabel {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
      * @property [css_transform_origin = 'left bottom 0'] - DIV的 transform-origin css值
      * @property [timeRender] - 是否实时刷新全部HTML，此时需要绑定html需传入回调方法。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
      */
     type StyleOptions = any | {
         text: string;
@@ -6523,8 +8031,9 @@ declare namespace DivUpLabel {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.testPoint] - 测试点 的对应样式 ，可以进行用于比较测试div的位置，方便调试CSS。
- * @param [options.pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
+ * @param [options.pointerEvents] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
  * @param [options.hasZIndex = false] - 是否自动调整DIV的层级顺序。
  * @param [options.zIndex = "auto"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
  * @param [options.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
@@ -6537,7 +8046,10 @@ declare namespace DivUpLabel {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DivUpLabel extends DivGraphic {
     constructor(options: {
@@ -6545,6 +8057,7 @@ declare class DivUpLabel extends DivGraphic {
         style: DivUpLabel.StyleOptions | any;
         attr?: any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         testPoint?: PointEntity.StyleOptions | any;
         pointerEvents?: boolean;
         hasZIndex?: boolean;
@@ -6559,8 +8072,15 @@ declare class DivUpLabel extends DivGraphic {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 设置或获取当前对象对应的Html
+     */
+    html: string | HTMLDivElement;
 }
 
 /**
@@ -6591,6 +8111,7 @@ declare namespace Popup {
      * (1)用于填充html的地方写上{content}标识；
      * (2)关闭按钮加class样式：closeButton。
      * 传空字符串或false时，不用内置模版。
+     * @property [closeButton = true] - 是否显示关闭按钮
      * @property [horizontalOrigin] - 横向方向的定位
      * @property [verticalOrigin] - 垂直方向的定位
      * @property [offsetX] - 用于非规则div时，横向偏移的px像素值
@@ -6602,12 +8123,12 @@ declare namespace Popup {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [css_transform_origin = 'left bottom 0'] - DIV的 transform-origin css值
      * @property [timeRender] - 是否实时刷新全部HTML，此时需要绑定html需传入回调方法。
-     * @property [autoCenter] - 当气泡窗口有部分在地图之外时是否自动进行居中 （目前仅俯视时准确定位）
+     * @property [autoCenter] - 当气泡窗口有部分在地图之外时是否自动将地图进行居中 （目前仅俯视时准确定位）
      * @property [maxWidth = 700] - 弹窗的最大宽度，单位为像素
      * @property [minWidth = 50] - 弹窗的最小宽度，单位为像素
      * @property [maxHeight = 550] - 如果设置，如果内容超过此高度时，则在弹出窗口中显示滚动条。
@@ -6620,12 +8141,14 @@ declare namespace Popup {
      * @property [pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
      * @property [hasZIndex = false] - 是否自动调整DIV的层级顺序。
      * @property [zIndex = "10000000"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
-     * @property [depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
+     * @property [depthTest = false] - 是否打开深度判断（true时判断是否在球背面）
      * @property [hasCache = true] - 是否启用缓存机制，如为true，在视角未变化时不重新渲染。
+     * @property [checkData] - 在多个Popup时，校验是否相同Popup进行判断关闭
      */
     type StyleOptions = any | {
         html?: string;
         template?: string;
+        closeButton?: boolean;
         horizontalOrigin?: Cesium.HorizontalOrigin;
         verticalOrigin?: Cesium.VerticalOrigin;
         offsetX?: number;
@@ -6655,11 +8178,12 @@ declare namespace Popup {
         zIndex?: number | string;
         depthTest?: boolean;
         hasCache?: boolean;
+        checkData?: (...params: any[]) => any;
     };
 }
 
 /**
- * Popup对象div点
+ * 鼠标单击弹窗面板对象div点
  * @param options - 参数对象，包括以下：
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
@@ -6668,14 +8192,15 @@ declare namespace Popup {
  * @param [options.autoClose = true] - 在打开弹窗时，是否自动关闭之前的弹窗
  * @param [options.animation = true] - 是否执行打开时的动画效果
  * @param [options.testPoint] - 测试点 的对应样式 ，可以进行用于比较测试div的位置，方便调试CSS。
- * @param [options.pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
+ * @param [options.pointerEvents] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
  * @param [options.hasZIndex = false] - 是否自动调整DIV的层级顺序。
  * @param [options.zIndex = "10000000"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
- * @param [options.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
+ * @param [options.depthTest = false] - 是否打开深度判断（true时判断是否在球背面）
  * @param [options.hasCache = true] - 是否启用缓存机制，如为true，在视角未变化时不重新渲染。
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  */
 declare class Popup extends DivGraphic {
     constructor(options: {
@@ -6694,6 +8219,7 @@ declare class Popup extends DivGraphic {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
     });
     /**
      * 关联的触发对象
@@ -6722,7 +8248,7 @@ declare namespace Tooltip {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [css_transform_origin = 'left bottom 0'] - DIV的 transform-origin css值
@@ -6733,7 +8259,7 @@ declare namespace Tooltip {
      * @property [pointerEvents = true] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
      * @property [hasZIndex = false] - 是否自动调整DIV的层级顺序。
      * @property [zIndex = "10000000"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
-     * @property [depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
+     * @property [depthTest = false] - 是否打开深度判断（true时判断是否在球背面）
      * @property [hasCache = true] - 是否启用缓存机制，如为true，在视角未变化时不重新渲染。
      */
     type StyleOptions = any | {
@@ -6766,20 +8292,21 @@ declare namespace Tooltip {
 }
 
 /**
- * Tooltip对象div点
+ * 鼠标移入弹窗对象div点
  * @param options - 参数对象，包括以下：
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.testPoint] - 测试点 的对应样式 ，可以进行用于比较测试div的位置，方便调试CSS。
- * @param [options.pointerEvents = false] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
+ * @param [options.pointerEvents] - DIV是否可以鼠标交互，为false时可以穿透操作及缩放地图，但无法进行鼠标交互及触发相关事件。
  * @param [options.hasZIndex = false] - 是否自动调整DIV的层级顺序。
  * @param [options.zIndex = "10000000"] - 指定固定的zIndex层级属性(当hasZIndex为true时无效)
- * @param [options.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
+ * @param [options.depthTest = false] - 是否打开深度判断（true时判断是否在球背面）
  * @param [options.hasCache = true] - 是否启用缓存机制，如为true，在视角未变化时不重新渲染。
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  */
 declare class Tooltip extends Popup {
     constructor(options: {
@@ -6795,78 +8322,8 @@ declare class Tooltip extends Popup {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
     });
-}
-
-declare namespace BaseEntity {
-    /**
-     * 当前类支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * graphic.on(mars3d.EventType.click, function (event) {
-     *   console.log('单击了矢量数据对象', event)
-     * })
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     * @property highlightOpen - highlight高亮后
-     * @property highlightClose - highlight关闭后
-     * @property click - 左键单击 鼠标事件
-     * @property rightClick - 右键单击 鼠标事件
-     * @property mouseOver - 鼠标移入 鼠标事件
-     * @property mouseOut - 鼠标移出 鼠标事件
-     * @property drawStart - 开始绘制 标绘事件
-     * @property drawMouseMove - 正在移动鼠标中，绘制过程中鼠标移动了点 标绘事件
-     * @property drawAddPoint - 绘制过程中增加了点 标绘事件
-     * @property drawRemovePoint - 绘制过程中删除了最后一个点 标绘事件
-     * @property drawCreated - 创建完成 标绘事件
-     * @property editStart - 开始编辑 标绘事件
-     * @property editMouseDown - 移动鼠标按下左键（LEFT_DOWN）标绘事件
-     * @property editMouseMove - 正在移动鼠标中，正在编辑拖拽修改点中（MOUSE_MOVE） 标绘事件
-     * @property editMovePoint - 编辑修改了点（LEFT_UP）标绘事件
-     * @property editRemovePoint - 编辑删除了点 标绘事件
-     * @property editStyle - 图上编辑修改了相关style属性 标绘事件
-     * @property editStop - 停止编辑 标绘事件
-     */
-    type EventType = {
-        add: string;
-        remove: string;
-        show: string;
-        hide: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-        highlightOpen: string;
-        highlightClose: string;
-        click: string;
-        rightClick: string;
-        mouseOver: string;
-        mouseOut: string;
-        drawStart: string;
-        drawMouseMove: string;
-        drawAddPoint: string;
-        drawRemovePoint: string;
-        drawCreated: string;
-        editStart: string;
-        editMouseDown: string;
-        editMouseMove: string;
-        editMovePoint: string;
-        editRemovePoint: string;
-        editStyle: string;
-        editStop: string;
-    };
 }
 
 /**
@@ -6876,7 +8333,7 @@ declare namespace BaseEntity {
  * @param options.positions - 【线面状（多点）】矢量数据时的坐标位置，具体看子类实现
  * @param options.style - 矢量数据的 样式信息，具体见各类数据的说明
  * @param [options.attr] - 矢量数据的 属性信息，可以任意附加属性
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -6891,6 +8348,8 @@ declare namespace BaseEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BaseEntity extends BaseGraphic {
     constructor(options: {
@@ -6898,7 +8357,7 @@ declare class BaseEntity extends BaseGraphic {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
         style: any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -6913,6 +8372,8 @@ declare class BaseEntity extends BaseGraphic {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 加载Entity数据的内部Cesium容器
@@ -6935,6 +8396,15 @@ declare class BaseEntity extends BaseGraphic {
      */
     readonly isEditing: boolean;
     /**
+     * 正在绘制的最后一个正式点
+     */
+    readonly lastDrawPoint: boolean;
+    /**
+     * 重新渲染对象
+     * @returns 无
+     */
+    reload(): void;
+    /**
      * 高亮对象。
      * @param [highlightStyle] - 高亮的样式，具体见各{@link GraphicType}矢量数据的style参数。
      * @param [closeLast = true] - 是否清除地图上上一次的高亮对象
@@ -6956,14 +8426,14 @@ declare class BaseEntity extends BaseGraphic {
      * 高亮闪烁 Enity实体对象
      * @param options - 参数
      * @param [options.time] - 闪烁的时长(秒)，未设置时不自动停止。
-     * @param [options.color = Cesium.Color.YELLOW] - 高亮的颜色
+     * @param [options.color] - 高亮的颜色
      * @param [options.maxAlpha = 0.3] - 闪烁的最大透明度，从 0 到 maxAlpha 渐变
      * @param [options.onEnd] - 播放完成后的回调方法
      * @returns 高亮闪烁控制 对象
      */
     startFlicker(options: {
         time?: number;
-        color?: Cesium.Color;
+        color?: Cesium.Color | string;
         maxAlpha?: number;
         onEnd?: (...params: any[]) => any;
     }): FlickerEntity;
@@ -7008,6 +8478,10 @@ declare class BaseEntity extends BaseGraphic {
      * 矢量数据对应的 Cesium内部对象 (不同子类中实现)
      */
     readonly czmObject: Cesium.Entity | Cesium.Primitive | Cesium.GroundPrimitive | Cesium.ClassificationPrimitive | any;
+    /**
+     * 设置事件的启用和禁用状态
+     */
+    enabledEvent: boolean;
 }
 
 /**
@@ -7017,14 +8491,15 @@ declare class BaseEntity extends BaseGraphic {
  * @param [options.orientation] - 指定实体方向的属性。
  * @param options.style - 矢量数据的 样式信息，具体见各类数据的说明
  * @param [options.attr] - 矢量数据的 属性信息，可以任意附加属性。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
- * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
  * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
  * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
@@ -7032,6 +8507,7 @@ declare class BaseEntity extends BaseGraphic {
  * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
  * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -7042,6 +8518,8 @@ declare class BaseEntity extends BaseGraphic {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePointEntity extends BaseEntity {
     constructor(options: {
@@ -7049,13 +8527,14 @@ declare class BasePointEntity extends BaseEntity {
         orientation?: Cesium.Property;
         style: any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         maxCacheCount?: number;
         forwardExtrapolationType?: Cesium.ExtrapolationType;
         backwardExtrapolationType?: Cesium.ExtrapolationType;
@@ -7064,6 +8543,7 @@ declare class BasePointEntity extends BaseEntity {
         objectsToExclude?: any;
         referenceFrame?: Cesium.ReferenceFrame;
         numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -7074,6 +8554,8 @@ declare class BasePointEntity extends BaseEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 编辑处理类
@@ -7150,7 +8632,7 @@ declare class BasePointEntity extends BaseEntity {
      */
     clearDynamicPosition(): BasePointEntity;
     /**
-     * 设置并添加动画轨迹位置，按“指定时间”运动到达“指定位置”。
+     * 设置并添加动画轨迹位置，按“指定时间”运动到达“指定位置”。【仅文本、图标点、模型等部分子类支持】
      * @param point - 指定位置坐标
      * @param [currTime] - 指定时间, 默认为当前时间。当为String时，可以传入'2021-01-01 12:13:00'; 当为number时，可以传入当前时间延迟的秒数。
      * @returns 当前对象本身，可以链式调用
@@ -7175,14 +8657,46 @@ declare class BasePointEntity extends BaseEntity {
     getCoordinate(noAlt: boolean): any[];
     /**
      * 按Cesium.CallbackProperty的方式 更新坐标（更加平滑）
-     * @param position - 坐标
+     * @param [position] - 坐标
      * @returns 当前坐标
      */
-    setCallbackPosition(position: string | any[] | any | Cesium.Cartesian3 | any): Cesium.Cartesian3;
+    setCallbackPosition(position?: string | any[] | any | Cesium.Cartesian3 | any): Cesium.Cartesian3;
     /**
      * 显示隐藏状态
      */
     show: boolean;
+    /**
+     * 指定时间范围内显示该对象 [提示：仅部分子类实现，非所有对象都支持]
+     * @example
+     * // cesium原生写法,单个
+     * graphic.availability = new Cesium.TimeInterval({
+     *   start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *   stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *   isStartIncluded: true,
+     *   isStopIncluded: false
+     * })
+     *
+     * // cesium原生写法, 多个
+     * graphic.availability = new Cesium.TimeIntervalCollection([
+     *   new Cesium.TimeInterval({
+     *     start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *     stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *     isStartIncluded: true,
+     *     isStopIncluded: false
+     *   }),
+     *
+     * ])
+     *
+     * // 普通传值方式，多个
+     * graphic.availability = [
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ]
+     *
+     * // 普通传值方式，单个
+     * graphic.availability = { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false }
+     */
+    availability: Cesium.TimeIntervalCollection;
 }
 
 /**
@@ -7191,14 +8705,18 @@ declare class BasePointEntity extends BaseEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 矢量数据的 样式信息，具体见各类数据的说明
  * @param [options.attr] - 矢量数据的 属性信息，可以任意附加属性。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
+ * @param [options.hasDrawDelPoint = true] - 绘制时，是否可以右键删除点
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -7211,20 +8729,26 @@ declare class BasePointEntity extends BaseEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePolyEntity extends BaseEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
+        hasDrawDelPoint?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -7237,6 +8761,8 @@ declare class BasePolyEntity extends BaseEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 编辑时，是否可以整体平移
@@ -7308,20 +8834,22 @@ declare class BasePolyEntity extends BaseEntity {
      * @param [options = {}] - 参数对象:
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.offset = 0] - 可以按需增加偏移高度（单位：米），便于可视
      * @returns 异步计算完成的Promise
      */
     autoSurfaceHeight(options?: {
         has3dtiles?: boolean;
         objectsToExclude?: any;
+        exact?: boolean;
         offset?: number;
     }): Promise<any>;
     /**
      * 按Cesium.CallbackProperty的方式 更新坐标集合（更加平滑）
-     * @param positions - 坐标数组
+     * @param [positions] - 坐标数组
      * @returns 当前坐标集合
      */
-    setCallbackPositions(positions: string[] | any[][] | LngLatPoint[]): Cesium.Cartesian3[];
+    setCallbackPositions(positions?: string[] | any[][] | LngLatPoint[]): Cesium.Cartesian3[];
 }
 
 declare namespace BillboardEntity {
@@ -7346,8 +8874,9 @@ declare namespace BillboardEntity {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定该广告牌将显示在与摄像机的多大距离
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
+     * @property [distanceDisplayPoint] - 当视角距离超过一定距离后(distanceDisplayCondition_far定义的) 后显示为 像素点 对象的样式，仅在distanceDisplayCondition设置时有效。
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
      * @property [visibleDepth = true] - 是否被遮挡
@@ -7358,10 +8887,14 @@ declare namespace BillboardEntity {
      * @property [sizeInMeters] - 指定该广告牌的大小是否应该以米来度量。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
      * @property [pixelOffsetScaleByDistance] - 用于基于与相机的距离设置pixelOffset。
+     * @property [pixelOffsetScaleByDistance_far = 1000000] - 上限
+     * @property [pixelOffsetScaleByDistance_farValue = 0.1] - 比例值
+     * @property [pixelOffsetScaleByDistance_near = 1000] - 下限
+     * @property [pixelOffsetScaleByDistance_nearValue = 1] - 比例值
      * @property [imageSubRegion] - 定义用于广告牌的图像的子区域，而不是从左下角开始以像素为单位的整个图像。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -7386,6 +8919,7 @@ declare namespace BillboardEntity {
         distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
         distanceDisplayCondition_far?: number;
         distanceDisplayCondition_near?: number;
+        distanceDisplayPoint?: PointEntity.StyleOptions | any;
         clampToGround?: boolean;
         heightReference?: Cesium.HeightReference;
         visibleDepth?: boolean;
@@ -7395,7 +8929,11 @@ declare namespace BillboardEntity {
         alignedAxis?: Cesium.Cartesian3;
         sizeInMeters?: boolean;
         translucencyByDistance?: Cesium.NearFarScalar;
-        pixelOffsetScaleByDistance?: Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance?: boolean | Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance_far?: number;
+        pixelOffsetScaleByDistance_farValue?: number;
+        pixelOffsetScaleByDistance_near?: number;
+        pixelOffsetScaleByDistance_nearValue?: number;
         imageSubRegion?: Cesium.BoundingRectangle;
         setHeight?: number | string;
         addHeight?: number | string;
@@ -7410,12 +8948,12 @@ declare namespace BillboardEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
- * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
  * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
  * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
@@ -7423,6 +8961,7 @@ declare namespace BillboardEntity {
  * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -7437,13 +8976,15 @@ declare namespace BillboardEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BillboardEntity extends BasePointEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: BillboardEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -7456,6 +8997,7 @@ declare class BillboardEntity extends BasePointEntity {
         objectsToExclude?: any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -7470,6 +9012,8 @@ declare class BillboardEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -7521,20 +9065,21 @@ declare namespace BoxEntity {
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`material材质参数`将被覆盖。
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
      * @property [outlineWidth = 1.0] - 边框宽度
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否投射阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 是投射还是接收来自光源的阴影。
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定从实体位置到它的相对高度。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -7551,6 +9096,7 @@ declare namespace BoxEntity {
         material?: Cesium.MaterialProperty | BaseMaterialProperty | Cesium.Color;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
         outlineWidth?: string;
         outlineColor?: string | Cesium.Color;
@@ -7576,13 +9122,14 @@ declare namespace BoxEntity {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.orientation] - 实体方向
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -7593,20 +9140,23 @@ declare namespace BoxEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。 @extends {BasePointEntity}
  */
-declare class BoxEntity extends BasePointEntity {
+declare class BoxEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: BoxEntity.StyleOptions | any;
         attr?: any;
         orientation?: Cesium.Property;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -7617,6 +9167,8 @@ declare class BoxEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -7628,10 +9180,75 @@ declare class BoxEntity extends BasePointEntity {
     readonly EditClass: EditBox;
 }
 
+/**
+ * 自由绘制线
+ * @param options - 参数对象，包括以下：
+ * @param options.positions - 坐标位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
+ * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
+ * @param [options.parent] - 要与此实体关联的父实体。
+ * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
+ * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
+ * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
+ * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
+ * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
+ * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class BrushLineEntity extends PolylineEntity {
+    constructor(options: {
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
+        style: PolylineEntity.StyleOptions | any;
+        attr?: any;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        description?: Cesium.Property | string;
+        viewFrom?: Cesium.Property;
+        parent?: Cesium.Entity;
+        onBeforeCreate?: (...params: any[]) => any;
+        minPointNum?: number;
+        maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
+        hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
+        hasMoveEdit?: boolean;
+        hasHeightEdit?: boolean;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+}
+
 declare namespace CanvasLabelEntity {
     /**
      * Canvas 文本点（label转图片） 支持的样式信息
-     * @property [text = "文字"] - 文本内容，换行可以用换行符'\n'。
+     * @property [text = "文字"] - 文本内容  (提示：暂不支持换行)
      * @property [scale = 1.0] - 指定缩放比例。
      * @property [horizontalOrigin] - 横向方向的定位
      * @property [verticalOrigin] - 垂直方向的定位
@@ -7663,15 +9280,16 @@ declare namespace CanvasLabelEntity {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
      * @property [visibleDepth = true] - 是否被遮挡
      * @property [disableDepthTestDistance] - 指定从相机到禁用深度测试的距离。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      */
     type StyleOptions = any | {
         text?: string;
@@ -7715,6 +9333,7 @@ declare namespace CanvasLabelEntity {
         translucencyByDistance?: Cesium.NearFarScalar;
         setHeight?: number | string;
         addHeight?: number | string;
+        highlight?: CanvasLabelEntity.StyleOptions | any;
     };
 }
 
@@ -7724,13 +9343,14 @@ declare namespace CanvasLabelEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -7741,19 +9361,22 @@ declare namespace CanvasLabelEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。 @extends {BasePointEntity}
  */
-declare class CanvasLabelEntity extends BasePointEntity {
+declare class CanvasLabelEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: CanvasLabelEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -7764,6 +9387,8 @@ declare class CanvasLabelEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -7780,8 +9405,9 @@ declare namespace CircleEntity {
      * @property [materialType = "Color"] - 填充类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`material材质参数`将被覆盖。
-     * @property [color = "#3388ff"] - 填充颜色
+     * @property [color = "#ffffff"] - 填充颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
      * @property [outlineWidth = 1] - 边框宽度
      * @property [outlineColor = "#ffffff"] - 边框颜色
@@ -7792,7 +9418,7 @@ declare namespace CircleEntity {
      * @property [stRotation = 0] - 椭圆纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 椭圆纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定椭圆上各点之间的角距离。
      * @property [numberOfVerticalLines = 16] - 指定沿轮廓的周长绘制的垂直线的数量。
@@ -7801,8 +9427,8 @@ declare namespace CircleEntity {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [zIndex = 0] - 层级顺序。用于排序地面几何。只有在椭圆为常量且没有指定height或exturdedHeight时才有效果。
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -7818,6 +9444,7 @@ declare namespace CircleEntity {
         material?: Cesium.MaterialProperty | BaseMaterialProperty | Cesium.Color;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
         outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
@@ -7849,14 +9476,17 @@ declare namespace CircleEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShowRadius = true] - 绘制时，是否显示圆的半径。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
+ * @param [options.hasDrawDelPoint = true] - 绘制时，是否可以右键删除点
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
+ * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -7867,20 +9497,25 @@ declare namespace CircleEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CircleEntity extends BasePointEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: CircleEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShowRadius?: boolean;
         drawShow?: boolean;
+        hasDrawDelPoint?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
+        hasMoveEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -7891,6 +9526,8 @@ declare class CircleEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -7973,8 +9610,8 @@ declare class CircleEntity extends BasePointEntity {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -8024,20 +9661,20 @@ declare namespace ConeTrack {
      * @property [color = "#00FF00"] - 填充颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [numberOfVerticalLines = 16] - 指定沿轮廓的周长绘制的垂直线的数量。
      * @property [slices = 128] - 圆柱体周长周围的边数。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定圆柱是投射还是接收来自光源的阴影。
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定从实体位置到它的相对高度。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -8054,7 +9691,7 @@ declare namespace ConeTrack {
         color?: string | Cesium.Color;
         opacity?: number;
         outline?: boolean;
-        outlineWidth?: string;
+        outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         numberOfVerticalLines?: number;
@@ -8079,7 +9716,7 @@ declare namespace ConeTrack {
  * @param [options.targetPosition] - 追踪的目标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -8094,6 +9731,8 @@ declare namespace ConeTrack {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ConeTrack extends CylinderEntity {
     constructor(options: {
@@ -8101,7 +9740,7 @@ declare class ConeTrack extends CylinderEntity {
         targetPosition?: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: ConeTrack.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -8116,6 +9755,8 @@ declare class ConeTrack extends CylinderEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 追踪的目标位置(确定了方向和距离)
@@ -8144,14 +9785,14 @@ declare class FlickerEntity {
      * @param entitys - entity对象或对象数组
      * @param [opts = {}] - 控制参数
      * @param [opts.time] - 闪烁的时长(秒)，未设置时不自动停止。
-     * @param [opts.color = Cesium.Color.YELLOW] - 高亮的颜色
+     * @param [opts.color = Cesium.Color.WHITE] - 高亮的颜色
      * @param [opts.maxAlpha = 0.3] - 闪烁的最大透明度，从 0 到 maxAlpha 渐变
      * @param [opts.onEnd] - 播放完成后的回调方法
      * @returns 高亮闪烁控制 对象
      */
     startFlicker(entitys: Cesium.Entity | Cesium.Entity[], opts?: {
         time?: number;
-        color?: Cesium.Color;
+        color?: Cesium.Color | string;
         maxAlpha?: number;
         onEnd?: (...params: any[]) => any;
     }): FlickerEntity;
@@ -8176,14 +9817,15 @@ declare namespace CorridorEntity {
      * @property [materialType = "Color"] - 填充类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定每个纬度和经度之间的距离。
      * @property [hasShadows = false] - 是否投射阴影
@@ -8191,9 +9833,9 @@ declare namespace CorridorEntity {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [zIndex = 0] - 层级顺序，用于排序。只有在高度和挤压高度未定义，并且走廊是静态的情况下才有效果。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -8210,6 +9852,7 @@ declare namespace CorridorEntity {
         material?: Cesium.MaterialProperty | BaseMaterialProperty | Cesium.Color;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
         outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
@@ -8236,14 +9879,17 @@ declare namespace CorridorEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -8256,20 +9902,25 @@ declare namespace CorridorEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CorridorEntity extends BasePolyEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: CorridorEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -8282,6 +9933,8 @@ declare class CorridorEntity extends BasePolyEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -8298,15 +9951,20 @@ declare class CorridorEntity extends BasePolyEntity {
  * @param options - 参数对象，包括以下：
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
+ * //  * @param {number} [options.style.sharpness=0.85] 曲线的弯曲程度
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.getShowPositions] - 自定义计算曲线点回调方法，可以在方法内自定义计算算法。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -8319,20 +9977,26 @@ declare class CorridorEntity extends BasePolyEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CurveEntity extends PolylineEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolylineEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        getShowPositions?: (...params: any[]) => any;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -8345,6 +10009,8 @@ declare class CurveEntity extends PolylineEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -8364,20 +10030,20 @@ declare namespace CylinderEntity {
      * @property [color = "#00FF00"] - 填充颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [numberOfVerticalLines = 16] - 指定沿轮廓的周长绘制的垂直线的数量。
      * @property [slices = 128] - 圆柱体周长周围的边数。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定圆柱是投射还是接收来自光源的阴影。
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定从实体位置到它的相对高度。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -8394,7 +10060,7 @@ declare namespace CylinderEntity {
         color?: string | Cesium.Color;
         opacity?: number;
         outline?: boolean;
-        outlineWidth?: string;
+        outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         numberOfVerticalLines?: number;
@@ -8419,12 +10085,13 @@ declare namespace CylinderEntity {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.orientation] - 实体方向
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
+ * @param [options.hasDrawDelPoint = true] - 绘制时，是否可以右键删除点
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -8435,6 +10102,8 @@ declare namespace CylinderEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CylinderEntity extends BasePointEntity {
     constructor(options: {
@@ -8442,12 +10111,13 @@ declare class CylinderEntity extends BasePointEntity {
         style: CylinderEntity.StyleOptions | any;
         attr?: any;
         orientation?: Cesium.Property;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
+        hasDrawDelPoint?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -8458,6 +10128,8 @@ declare class CylinderEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -8495,7 +10167,7 @@ declare namespace DivBillboardEntity {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定该广告牌将显示在与摄像机的多大距离
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
@@ -8507,10 +10179,14 @@ declare namespace DivBillboardEntity {
      * @property [sizeInMeters] - 指定该广告牌的大小是否应该以米来度量。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
      * @property [pixelOffsetScaleByDistance] - 用于基于与相机的距离设置pixelOffset。
+     * @property [pixelOffsetScaleByDistance_far = 1000000] - 上限
+     * @property [pixelOffsetScaleByDistance_farValue = 0.1] - 比例值
+     * @property [pixelOffsetScaleByDistance_near = 1000] - 下限
+     * @property [pixelOffsetScaleByDistance_nearValue = 1] - 比例值
      * @property [imageSubRegion] - 定义用于广告牌的图像的子区域，而不是从左下角开始以像素为单位的整个图像。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -8544,7 +10220,11 @@ declare namespace DivBillboardEntity {
         alignedAxis?: Cesium.Cartesian3;
         sizeInMeters?: boolean;
         translucencyByDistance?: Cesium.NearFarScalar;
-        pixelOffsetScaleByDistance?: Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance?: boolean | Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance_far?: number;
+        pixelOffsetScaleByDistance_farValue?: number;
+        pixelOffsetScaleByDistance_near?: number;
+        pixelOffsetScaleByDistance_nearValue?: number;
         imageSubRegion?: Cesium.BoundingRectangle;
         setHeight?: number | string;
         addHeight?: number | string;
@@ -8560,13 +10240,14 @@ declare namespace DivBillboardEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -8577,19 +10258,22 @@ declare namespace DivBillboardEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DivBillboardEntity extends BillboardEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: DivBillboardEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -8600,6 +10284,8 @@ declare class DivBillboardEntity extends BillboardEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -8612,6 +10298,14 @@ declare class EditBase {
      */
     readonly entityGraphic: any;
     /**
+     * 是否已经开启 旋转矩阵
+     */
+    readonly hasRotateMatrix: boolean;
+    /**
+     * 是否已经开启 平移矩阵
+     */
+    readonly hasMoveMatrix: boolean;
+    /**
      * 激活绘制
      * @returns 当前对象本身，可以链式调用
      */
@@ -8621,6 +10315,25 @@ declare class EditBase {
      * @returns 当前对象本身，可以链式调用
      */
     disable(): EditBase;
+    /**
+     * 开启 平移矩阵
+     * @param [graphic] - 矢量对象
+     * @param [eventRM] - 事件对象，仅用于传递
+     */
+    startMoveMatrix(graphic?: BaseGraphic, eventRM?: any): void;
+    /**
+     * 停止 平移矩阵
+     */
+    stopMoveMatrix(): void;
+    /**
+     * 开启 旋转矩阵
+     * @param [graphic] - 矢量对象
+     */
+    startRotateMatrix(graphic?: BaseGraphic): void;
+    /**
+     * 停止 旋转矩阵
+     */
+    stopRotateMatrix(): void;
 }
 
 /**
@@ -8688,10 +10401,9 @@ declare class EditPolygon extends EditPoly {
 }
 
 /**
- * Polygon对象 标绘处理对应的编辑类，
- * 用于外部扩展使用，绘制的点与显示的点不一致的标号
+ * Polygon对象Grid视频编辑 标绘处理对应的编辑类
  */
-declare class EditPolygonEx extends EditPolygon {
+declare class EditPolygonGrid extends EditPoly {
 }
 
 /**
@@ -8710,6 +10422,17 @@ declare class EditRectangle extends EditPoly {
  * 3dtiles对象 标绘处理对应的编辑类
  */
 declare class EditTileset extends EditBase {
+    /**
+     * 开启 旋转矩阵
+     * @param [graphic] - 矢量对象
+     */
+    startRotateMatrix(graphic?: BaseGraphic): void;
+}
+
+/**
+ * Video2D对象 标绘处理对应的编辑类
+ */
+declare class EditVideo2D extends EditBase {
 }
 
 /**
@@ -8732,7 +10455,7 @@ declare namespace EllipseEntity {
      * @property [materialType = "Color"] - 填充类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 填充颜色
+     * @property [color = "#ffffff"] - 填充颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
      * @property [outlineWidth = 1] - 边框宽度
@@ -8744,7 +10467,7 @@ declare namespace EllipseEntity {
      * @property [stRotation = 0] - 椭圆纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 椭圆纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定椭圆上各点之间的角距离。
      * @property [numberOfVerticalLines = 16] - 指定沿轮廓的周长绘制的垂直线的数量。
@@ -8753,8 +10476,8 @@ declare namespace EllipseEntity {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [zIndex = 0] - 层级顺序。用于排序地面几何。只有在椭圆为常量且没有指定height或exturdedHeight时才有效果。
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -8802,13 +10525,14 @@ declare namespace EllipseEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -8819,19 +10543,22 @@ declare namespace EllipseEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class EllipseEntity extends CircleEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: EllipseEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -8842,6 +10569,8 @@ declare class EllipseEntity extends CircleEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -8874,7 +10603,7 @@ declare namespace EllipsoidEntity {
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [stackPartitions = 64] - 指定竖向划分数量
@@ -8882,13 +10611,13 @@ declare namespace EllipsoidEntity {
      * @property [subdivisions = 128] - 指定每个轮廓环的样本数量，确定曲率的粒度。
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定从实体位置到它的相对高度。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否投射阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定椭球是否投射或接收来自光源的阴影。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -8918,7 +10647,7 @@ declare namespace EllipsoidEntity {
         color?: string | Cesium.Color;
         opacity?: number;
         outline?: boolean;
-        outlineWidth?: string;
+        outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         stackPartitions?: number;
@@ -8940,12 +10669,16 @@ declare namespace EllipsoidEntity {
      * @property planeOptions - 扫描面构造参数
      * @property [planeOptions.type = 'heading'] - 扫描旋转的方向，可选值：'heading'，'pitch'，'roll'
      * @property [planeOptions.step = 0.5] - 旋转的步长（角度），控制速度
+     * @property [planeOptions.min] - 旋转的最小值（角度）
+     * @property [planeOptions.max] - 旋转的最大值（角度）
      * @property [planeOptions.style] - 样式信息
      */
     type ScanPlaneOptions = {
         planeOptions: {
             type?: string;
             step?: number;
+            min?: number;
+            max?: number;
             style?: EllipsoidEntity.StyleOptions | any;
         };
     };
@@ -8959,13 +10692,15 @@ declare namespace EllipsoidEntity {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.orientation] - 实体方向
  * @param [options.scanPlane] - 动态扫描面
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
+ * @param [options.hasDrawDelPoint = true] - 绘制时，是否可以右键删除点
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasEditRadii = true] - 编辑时，是否可以编辑半径
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
@@ -8977,6 +10712,8 @@ declare namespace EllipsoidEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class EllipsoidEntity extends BasePointEntity {
     constructor(options: {
@@ -8985,13 +10722,15 @@ declare class EllipsoidEntity extends BasePointEntity {
         attr?: any;
         orientation?: Cesium.Property;
         scanPlane?: EllipsoidEntity.ScanPlaneOptions | EllipsoidEntity.ScanPlaneOptions[];
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
+        hasDrawDelPoint?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasEditRadii?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
@@ -9003,6 +10742,8 @@ declare class EllipsoidEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -9039,8 +10780,9 @@ declare namespace FontBillboardEntity {
     /**
      * Font CSS字体点转图片后的图标点  Entity 支持的样式信息
      * @property [iconClass = ""] - 字体css样式
-     * @property [iconSize = 50] - 字体大小
      * @property [color = '#ff0000'] - 字体颜色
+     * @property [iconSize = 50] - 字体大小，单位：像素
+     * @property [iconPadding = 10] - 字体DIV生成时div内的padding值
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [scale = 1] - 图像大小的比例
      * @property [rotation = 0] - 旋转角度（弧度值），正北为0，逆时针旋转
@@ -9059,7 +10801,7 @@ declare namespace FontBillboardEntity {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定该广告牌将显示在与摄像机的多大距离
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
@@ -9070,16 +10812,21 @@ declare namespace FontBillboardEntity {
      * @property [sizeInMeters] - 指定该广告牌的大小是否应该以米来度量。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
      * @property [pixelOffsetScaleByDistance] - 用于基于与相机的距离设置pixelOffset。
+     * @property [pixelOffsetScaleByDistance_far = 1000000] - 上限
+     * @property [pixelOffsetScaleByDistance_farValue = 0.1] - 比例值
+     * @property [pixelOffsetScaleByDistance_near = 1000] - 下限
+     * @property [pixelOffsetScaleByDistance_nearValue = 1] - 比例值
      * @property [imageSubRegion] - 定义用于广告牌的图像的子区域，而不是从左下角开始以像素为单位的整个图像。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
         iconClass?: string;
-        iconSize?: number;
         color?: string;
+        iconSize?: number;
+        iconPadding?: number;
         opacity?: number;
         scale?: number;
         rotation?: number;
@@ -9108,7 +10855,11 @@ declare namespace FontBillboardEntity {
         alignedAxis?: Cesium.Cartesian3;
         sizeInMeters?: boolean;
         translucencyByDistance?: Cesium.NearFarScalar;
-        pixelOffsetScaleByDistance?: Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance?: boolean | Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance_far?: number;
+        pixelOffsetScaleByDistance_farValue?: number;
+        pixelOffsetScaleByDistance_near?: number;
+        pixelOffsetScaleByDistance_nearValue?: number;
         imageSubRegion?: Cesium.BoundingRectangle;
         setHeight?: number | string;
         addHeight?: number | string;
@@ -9124,13 +10875,14 @@ declare namespace FontBillboardEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -9141,19 +10893,22 @@ declare namespace FontBillboardEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FontBillboardEntity extends BasePointEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: FontBillboardEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -9164,6 +10919,8 @@ declare class FontBillboardEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -9194,7 +10951,11 @@ declare namespace LabelEntity {
      * @property [pixelOffsetX = 0] - 横向偏移像素
      * @property [pixelOffsetY = 0] - 纵向偏移像素
      * @property [pixelOffset = Cartesian2.ZERO] - A {@link Cartesian2} Property specifying the pixel offset.
-     * @property [pixelOffsetScaleByDistance] - A {@link NearFarScalar} Property used to set pixelOffset based on distance from the camera.
+     * @property [pixelOffsetScaleByDistance] - 用于基于与相机的距离设置pixelOffset。
+     * @property [pixelOffsetScaleByDistance_far = 1000000] - 上限
+     * @property [pixelOffsetScaleByDistance_farValue = 0.1] - 比例值
+     * @property [pixelOffsetScaleByDistance_near = 1000] - 下限
+     * @property [pixelOffsetScaleByDistance_nearValue = 1] - 比例值
      * @property [eyeOffset = Cartesian3.ZERO] - A {@link Cartesian3} Property specifying the eye offset.
      * @property [scaleByDistance = false] - 是否按视距缩放 或 设定基于与相机的距离设置比例。
      * @property [scaleByDistance_far = 1000000] - 上限
@@ -9202,15 +10963,17 @@ declare namespace LabelEntity {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
      * @property [visibleDepth = true] - 是否被遮挡
      * @property [disableDepthTestDistance] - 指定从相机到禁用深度测试的距离。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [templateEmptyStr = ""] - 当text存在模版字符串配置时，空值时显示的内容
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      */
     type StyleOptions = any | {
         text?: string;
@@ -9237,7 +11000,11 @@ declare namespace LabelEntity {
         pixelOffsetX?: number;
         pixelOffsetY?: number;
         pixelOffset?: Cesium.Cartesian2 | number[];
-        pixelOffsetScaleByDistance?: Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance?: boolean | Cesium.NearFarScalar;
+        pixelOffsetScaleByDistance_far?: number;
+        pixelOffsetScaleByDistance_farValue?: number;
+        pixelOffsetScaleByDistance_near?: number;
+        pixelOffsetScaleByDistance_nearValue?: number;
         eyeOffset?: Cesium.Cartesian3;
         scaleByDistance?: boolean | Cesium.NearFarScalar;
         scaleByDistance_far?: number;
@@ -9254,6 +11021,8 @@ declare namespace LabelEntity {
         translucencyByDistance?: Cesium.NearFarScalar;
         setHeight?: number | string;
         addHeight?: number | string;
+        templateEmptyStr?: string;
+        highlight?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -9263,13 +11032,14 @@ declare namespace LabelEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -9280,19 +11050,22 @@ declare namespace LabelEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。 @extends {BasePointEntity}
  */
-declare class LabelEntity extends BasePointEntity {
+declare class LabelEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: LabelEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -9303,6 +11076,8 @@ declare class LabelEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -9336,26 +11111,22 @@ declare class LabelEntity extends BasePointEntity {
      * @returns 无
      */
     setOpacity(value: number): void;
-    /**
-     * 附加的label文本对象
-     */
-    readonly label: Cesium.Label | Cesium.LabelGraphics;
 }
 
 declare namespace ModelEntity {
     /**
      * gltf小模型 支持的样式信息
      * @property [url] - glTF模型的URI的字符串或资源属性。
-     * @property [scale = 1] - 比例
-     * @property [heading = 0] - 方向角 （度数值，0-360度）
-     * @property [pitch = 0] - 俯仰角（度数值，0-360度）
-     * @property [roll = 0] - 翻滚角（度数值，0-360度）
-     * @property [noPitchRoll] - 当addDynamicPosition时，设置为true时，可以设置模型只动态更改方向，内部固定模型的Pitch和Roll方向值为0
+     * @property [scale = 1.0] - 缩放比例
+     * @property [minimumPixelSize = 0.0] - 指定模型的近似最小像素大小，而不考虑scale缩放，内部会计算像素对应的实际scale值。
+     * @property [maximumScale] - 内部计算minimumPixelSize对应的实际scale值时，限定的最大的scale缩放比例。
+     * @property [heading = 0] - 方向角 （度数值，0-360度），优先级高于orientation
+     * @property [pitch = 0] - 俯仰角（度数值，0-360度），优先级高于orientation
+     * @property [roll = 0] - 翻滚角（度数值，0-360度），优先级高于orientation
+     * @property [mergeOrientation = false] - 当存在orientation时（如addDynamicPosition等），设置为true时，是在orientation基础的方式值上加上设置是heading、pitch、roll值，比如用于设置模型不是标准的方向时的纠偏处理
      * @property [radius] - 编辑时，半径圆圈的半径，默认自动
-     * @property [minimumPixelSize = 0.0] - 指定模型的近似最小像素大小，而不考虑缩放。
-     * @property [maximumScale] - 模型的最大比例尺寸。minimumPixelSize的上限。
      * @property [fill = false] - 是否填充，指定与模型渲染颜色混合
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [colorBlendMode = ColorBlendMode.HIGHLIGHT] - 指定颜色如何与模型混合。
      * @property [colorBlendAmount = 0.5] - 当colorBlendMode为MIX时指定颜色强度的数字属性。0.0的值表示模型渲染的颜色，1.0的值表示纯色，任何介于两者之间的值表示两者的混合。
@@ -9365,7 +11136,7 @@ declare namespace ModelEntity {
      * @property [silhouetteAlpha = 0.8] - 轮廓透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
      * @property [distanceDisplayCondition_near = 0] - 最小距离
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayPoint] - 当视角距离超过一定距离后(distanceDisplayCondition_far定义的) 后显示为 像素点 对象的样式，仅在distanceDisplayCondition设置时有效。
      * @property [distanceDisplayBillboard] - 当视角距离超过一定距离后(distanceDisplayCondition_far定义的) 后显示为 图标 对象的样式，仅在distanceDisplayCondition设置时有效。
      * @property [hasShadows = true] - 是否阴影
@@ -9379,21 +11150,22 @@ declare namespace ModelEntity {
      * @property [nodeTransformations] - 一个对象，其中键是节点的名称，值是{@link TranslationRotationScale}属性，描述要应用到该节点的转换。该转换是在节点的现有转换之后(如glTF中指定的那样)应用的，并且不会替换节点的现有转换。
      * @property [articulations] - An object, where keys are composed of an articulation name, a single space, and a stage name, and the values are numeric properties.
      * @property [clippingPlanes] - 用于裁剪模型的Plane平面集合
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [customShader] - A property specifying the {@link CustomShader} to apply to this model.
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
         url?: string | Cesium.Resource;
         scale?: number;
+        minimumPixelSize?: number;
+        maximumScale?: number;
         heading?: number;
         pitch?: number;
         roll?: number;
-        noPitchRoll?: boolean;
+        mergeOrientation?: boolean;
         radius?: number;
-        minimumPixelSize?: number;
-        maximumScale?: number;
         fill?: boolean;
         color?: string | Cesium.Color;
         opacity?: number;
@@ -9423,46 +11195,11 @@ declare namespace ModelEntity {
             [key: string]: number;
         };
         clippingPlanes?: Cesium.ClippingPlaneCollection;
+        customShader?: Cesium.CustomShader;
         setHeight?: number | string;
         addHeight?: number | string;
         highlight?: ModelEntity.StyleOptions | any;
         label?: LabelEntity.StyleOptions | any;
-    };
-    /**
-     * 当前类支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * thing.on(mars3d.EventType.change, function (event) {
-     *   console.log('发送了变化', event)
-     * })
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     * @property load - 模型加载完成后
-     * @property stop - 模型addDynamicPosition添加的动态点，到时时间停止后触发
-     */
-    type EventType = {
-        add: string;
-        remove: string;
-        show: string;
-        hide: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-        load: string;
-        stop: string;
     };
 }
 
@@ -9473,13 +11210,12 @@ declare namespace ModelEntity {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.orientation] - 实体方向
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
- * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量
- * @param [options.fixedHeading] - 当使用addDynamicPosition设置为动画轨迹位置时，是否使用固定的heading角度，而不用路线的自动方向角度。
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
  * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
  * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
@@ -9487,8 +11223,10 @@ declare namespace ModelEntity {
  * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
  * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasEditScale = false] - 编辑时，是否自动启用调整缩放比例
  * @param [options.hasEditRotate = false] - 编辑时，是否自动启用调整方向
@@ -9506,6 +11244,8 @@ declare namespace ModelEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ModelEntity extends BasePointEntity {
     constructor(options: {
@@ -9513,13 +11253,12 @@ declare class ModelEntity extends BasePointEntity {
         style: ModelEntity.StyleOptions | any;
         attr?: any;
         orientation?: Cesium.Property;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         maxCacheCount?: number;
-        fixedHeading?: boolean;
         forwardExtrapolationType?: Cesium.ExtrapolationType;
         backwardExtrapolationType?: Cesium.ExtrapolationType;
         clampToTileset?: boolean;
@@ -9527,8 +11266,10 @@ declare class ModelEntity extends BasePointEntity {
         objectsToExclude?: any;
         referenceFrame?: Cesium.ReferenceFrame;
         numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasEditScale?: number;
         hasEditRotate?: number;
@@ -9546,6 +11287,8 @@ declare class ModelEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -9559,6 +11302,14 @@ declare class ModelEntity extends BasePointEntity {
      * 模型整体的缩放比例
      */
     scale: number;
+    /**
+     * 获取模型完成解析加载完成的Promise承诺, 等价于load事件(区别在于load事件必须在load完成前绑定才能监听)。
+     * @example
+     * modelEntity.readyPromise.then(function(layer) {
+     *     console.log("load完成", layer)
+     *   })
+     */
+    readonly readyPromise: Promise<ModelEntity | any>;
     /**
      * 获取模型的当前时间的实际hpr角度(如动态模型)
      * @returns Heading Pitch Roll方向
@@ -9587,14 +11338,20 @@ declare class ModelEntity extends BasePointEntity {
      * @param [options = {}] - 参数包括：
      * @param options.position - 指定目标位置的坐标
      * @param [options.time = 5] - 移动的时长(单位 秒)，控制速度
+     * @param [options.orientation] - 是否设置为路线方向的角度
      * @param [options.onEnd] - 移动完成的回调方法
-     * @returns 无
+     * @returns 绘制创建完成的Promise,等价于onEnd参数
      */
     moveTo(options?: {
         position: LngLatPoint | Cesium.Cartesian3 | number[];
         time?: number;
+        orientation?: boolean;
         onEnd?: (...params: any[]) => any;
-    }): void;
+    }): Promise<ModelEntity | any>;
+    /**
+     * 停止执行moveTo
+     */
+    cancelMoveTo(): void;
     /**
      * 飞行定位至数据所在的视角
      * @param [options = {}] - 参数对象:
@@ -9603,8 +11360,8 @@ declare class ModelEntity extends BasePointEntity {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -9650,6 +11407,38 @@ declare class ModelEntity extends BasePointEntity {
      * 四周方向角，0-360度角度值
      */
     heading: number;
+    /**
+     * 指定时间范围内显示该对象 [提示：仅部分子类实现，非所有对象都支持]
+     * @example
+     * // cesium原生写法,单个
+     * graphic.availability = new Cesium.TimeInterval({
+     *   start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *   stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *   isStartIncluded: true,
+     *   isStopIncluded: false
+     * })
+     *
+     * // cesium原生写法, 多个
+     * graphic.availability = new Cesium.TimeIntervalCollection([
+     *   new Cesium.TimeInterval({
+     *     start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *     stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *     isStartIncluded: true,
+     *     isStopIncluded: false
+     *   }),
+     *
+     * ])
+     *
+     * // 普通传值方式，多个
+     * graphic.availability = [
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ]
+     *
+     * // 普通传值方式，单个
+     * graphic.availability = { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false }
+     */
+    availability: Cesium.TimeIntervalCollection;
 }
 
 declare namespace PathEntity {
@@ -9663,10 +11452,9 @@ declare namespace PathEntity {
      * @property [trailTime] - 保留历史轨迹的时间长度（单位：秒）
      * @property [resolution = 60] - 指定在对位置进行采样时步进的最大秒数。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      */
     type StyleOptions = any | {
         width?: number;
@@ -9679,8 +11467,7 @@ declare namespace PathEntity {
         distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
         distanceDisplayCondition_far?: number;
         distanceDisplayCondition_near?: number;
-        setHeight?: number | string;
-        addHeight?: number | string;
+        highlight?: PathEntity.StyleOptions | any;
     };
 }
 
@@ -9691,11 +11478,14 @@ declare namespace PathEntity {
  * @param [options.orientation] - 实体方向
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -9703,6 +11493,7 @@ declare namespace PathEntity {
  * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
  * @param [options.label] - 设置是否显示 文本 和对应的样式
  * @param [options.model] - 设置附加的 gltf模型 和对应的样式
+ * //  * @param {boolean} [options.model.mergeOrientation=false] 设置为true时，是在orientation基础的方式值上加上设置是heading、pitch、roll值，比如用于设置模型不是标准的方向时的纠偏处理
  * @param [options.billboard] - 设置附加的 图标 和对应的样式。
  * @param [options.point] - 设置附加的 像素点 和对应的样式
  * @param [options.circle] - 设置附加的 圆 和对应的样式
@@ -9711,6 +11502,8 @@ declare namespace PathEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PathEntity extends BasePointEntity {
     constructor(options: {
@@ -9718,11 +11511,14 @@ declare class PathEntity extends BasePointEntity {
         orientation?: Cesium.Property;
         style: PathEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
+        maxCacheCount?: number;
+        forwardExtrapolationType?: Cesium.ExtrapolationType;
+        backwardExtrapolationType?: Cesium.ExtrapolationType;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -9738,6 +11534,8 @@ declare class PathEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -9793,8 +11591,8 @@ declare class PathEntity extends BasePointEntity {
      * @param [options = {}] - 具有以下属性的对象:
      * @param [options.radius] - 相机距离目标点的距离（单位：米）
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [options.duration] - 飞行持续时间（秒）。如果省略，内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.endTransform] - 表示飞行完成后摄像机将位于的参考帧的变换矩阵。
      * @param [options.maximumHeight] - 飞行高峰时的最大高度。
@@ -9821,6 +11619,110 @@ declare class PathEntity extends BasePointEntity {
      * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
      */
     position: Cesium.Cartesian3 | LngLatPoint;
+    /**
+     * 指定时间范围内显示该对象 [提示：仅部分子类实现，非所有对象都支持]
+     * @example
+     * // cesium原生写法,单个
+     * graphic.availability = new Cesium.TimeInterval({
+     *   start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *   stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *   isStartIncluded: true,
+     *   isStopIncluded: false
+     * })
+     *
+     * // cesium原生写法, 多个
+     * graphic.availability = new Cesium.TimeIntervalCollection([
+     *   new Cesium.TimeInterval({
+     *     start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *     stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *     isStartIncluded: true,
+     *     isStopIncluded: false
+     *   }),
+     *
+     * ])
+     *
+     * // 普通传值方式，多个
+     * graphic.availability = [
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ]
+     *
+     * // 普通传值方式，单个
+     * graphic.availability = { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false }
+     */
+    availability: Cesium.TimeIntervalCollection;
+}
+
+declare namespace PitEntity {
+    /**
+     * 井(Entity方式)  支持的样式信息，
+     * @property image - 井墙面贴图URL
+     * @property imageBottom - 井底面贴图URL
+     * @property diffHeight - 井下深度（单位：米）
+     * @property [splitNum = 50] - 井墙面每两点之间插值个数(概略值，有经纬网网格来插值)
+     * @property [label] - 支持附带文字的显示
+     */
+    type StyleOptions = any | {
+        image: string;
+        imageBottom: string;
+        diffHeight: number;
+        splitNum?: number;
+        label?: LabelEntity.StyleOptions | any;
+    };
+}
+
+/**
+ * 井(Entity方式) 矢量对象
+ * 用于显示地形开挖后的开挖效果。
+ * @param options - 参数对象，包括以下：
+ * @param options.positions - 坐标位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
+ * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
+ * @param [options.parent] - 要与此实体关联的父实体。
+ * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class PitEntity extends BasePolyEntity {
+    constructor(options: {
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+        style: PitEntity.StyleOptions | any;
+        attr?: any;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        description?: Cesium.Property | string;
+        viewFrom?: Cesium.Property;
+        parent?: Cesium.Entity;
+        onBeforeCreate?: (...params: any[]) => any;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 井下深度（单位：米）
+     */
+    diffHeight: number;
 }
 
 declare namespace PlaneEntity {
@@ -9842,18 +11744,19 @@ declare namespace PlaneEntity {
      * @property [randomColor = false] - 是否随机颜色
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定平面是投射还是接收来自光源的阴影。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -9873,8 +11776,9 @@ declare namespace PlaneEntity {
         randomColor?: boolean;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
-        outlineWidth?: string;
+        outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
@@ -9896,13 +11800,14 @@ declare namespace PlaneEntity {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.orientation] - 实体方向
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -9913,20 +11818,23 @@ declare namespace PlaneEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。 @extends {BasePointEntity}
  */
-declare class PlaneEntity extends BasePointEntity {
+declare class PlaneEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: PlaneEntity.StyleOptions | any;
         attr?: any;
         orientation?: Cesium.Property;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -9937,6 +11845,8 @@ declare class PlaneEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -9952,7 +11862,7 @@ declare namespace PointEntity {
     /**
      * 像素点 支持的样式信息
      * @property [pixelSize = 10] - 像素大小
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
@@ -9964,16 +11874,16 @@ declare namespace PointEntity {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [visibleDepth = true] - 是否被遮挡
      * @property [disableDepthTestDistance] - 指定从相机到禁用深度测试的距离。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
      * @property [clampToGround = false] - 是否贴地
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -10010,12 +11920,12 @@ declare namespace PointEntity {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
- * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
  * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
  * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
@@ -10023,6 +11933,7 @@ declare namespace PointEntity {
  * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -10037,13 +11948,15 @@ declare namespace PointEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PointEntity extends BasePointEntity {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: PointEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -10056,6 +11969,7 @@ declare class PointEntity extends BasePointEntity {
         objectsToExclude?: any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -10070,6 +11984,8 @@ declare class PointEntity extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -10084,9 +12000,10 @@ declare namespace PolygonEntity {
      * @property [materialType = "Color"] - 填充类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
      * @property [randomColor = false] - 是否随机颜色
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [stRotation = 0] - 多边形纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 多边形纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [outline = false] - 是否边框
@@ -10094,8 +12011,10 @@ declare namespace PolygonEntity {
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [outlineStyle] - 边框的完整自定义样式，会覆盖outlineWidth、outlineColor等参数。
+     * //  * @property {boolean} [outlineStyle.closure = true] 边线是否闭合
+     * @property [textureCoordinates] - 纹理坐标，是Cartesian2的UV坐标数组的多边形层次结构。对贴地对象无效。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [height = 0] - 高程，圆相对于椭球面的高度。
      * @property [heightReference = Cesium.HeightReference.NONE] - 指定高度相对于什么的属性。
@@ -10113,12 +12032,12 @@ declare namespace PolygonEntity {
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [zIndex = 0] - 层级顺序，指定用于排序地面几何的zIndex。只有当多边形是常数且没有指定高度或挤压高度时才有效果。
      * @property [buffer] - 对坐标进行缓冲扩大buffer指定的半径范围，单位：米。如用于单体化建筑物扩大点方便鼠标拾取。
-     * @property [setHeight = 0] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight = 0] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示，额外支持：<br />
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         fill?: boolean;
@@ -10128,6 +12047,7 @@ declare namespace PolygonEntity {
         color?: string | Cesium.Color;
         opacity?: number;
         randomColor?: boolean;
+        image?: string;
         stRotation?: number;
         stRotationDegree?: number;
         outline?: boolean;
@@ -10135,6 +12055,7 @@ declare namespace PolygonEntity {
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         outlineStyle?: PolylineEntity.StyleOptions | any;
+        textureCoordinates?: Cesium.PolygonHierarchy;
         distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
         distanceDisplayCondition_far?: number;
         distanceDisplayCondition_near?: number;
@@ -10154,8 +12075,8 @@ declare namespace PolygonEntity {
         classificationType?: Cesium.ClassificationType;
         zIndex?: number;
         buffer?: number;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
+        setHeight?: number | string;
+        addHeight?: number | string;
         highlight?: PolygonEntity.StyleOptions | any;
         label?: LabelEntity.StyleOptions | any | any;
     };
@@ -10167,16 +12088,21 @@ declare namespace PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
+ * @param [options.hasDrawDelPoint = true] - 绘制时，是否可以右键删除点
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
+ * @param [options.midPointFraction = 0.5] - 编辑时，中间点的位置比例
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -10187,22 +12113,29 @@ declare namespace PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolygonEntity extends BasePolyEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
+        hasDrawDelPoint?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
+        midPointFraction?: number;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -10213,6 +12146,8 @@ declare class PolygonEntity extends BasePolyEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -10268,10 +12203,15 @@ declare class PolygonEntity extends BasePolyEntity {
     readonly center: Cesium.Cartesian3;
     /**
      * 按Cesium.CallbackProperty的方式 更新坐标集合（更加平滑）
-     * @param positions - 坐标数组
+     * @param [positions] - 坐标数组
      * @returns 当前坐标集合
      */
-    setCallbackPositions(positions: string[] | any[][] | LngLatPoint[]): Cesium.Cartesian3[];
+    setCallbackPositions(positions?: string[] | any[][] | LngLatPoint[]): Cesium.Cartesian3[];
+    /**
+     * 获取数据的最大高度
+     * @returns 高度
+     */
+    getMaxHeight(): number;
 }
 
 declare namespace PolylineEntity {
@@ -10281,7 +12221,7 @@ declare namespace PolylineEntity {
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
      * @property [width = 4] - 线宽
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [randomColor = false] - 是否随机颜色
      * @property [depthFailMaterial] - 指定当折线位于地形之下时用于绘制折线的材质。
@@ -10293,7 +12233,7 @@ declare namespace PolylineEntity {
      * @property [depthFailColor] - 遮挡处颜色
      * @property [depthFailOpacity] - 遮挡处透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [arcType = Cesium.ArcType.GEODESIC] - 折线段必须遵循的线的类型。
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 如果arcType不是arcType.none，则指定每个纬度和经度之间的角距离的数字属性。
@@ -10302,13 +12242,13 @@ declare namespace PolylineEntity {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [zIndex = 0] - 层级顺序,指定用于排序地面几何的zIndex。只有当' clampToGround '为真且支持地形上的折线时才会有效果。
-     * @property [setHeight = 0] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight = 0] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示，额外支持：<br />
-     * //  * @property {String} [label.text = "文字"] 文本内容，换行可以用换行符'\n'。
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string} [label.text = "文字"] 文本内容，换行可以用换行符'\n'。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         materialType?: string;
@@ -10336,8 +12276,8 @@ declare namespace PolylineEntity {
         clampToGround?: boolean;
         classificationType?: Cesium.ClassificationType;
         zIndex?: number;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
+        setHeight?: number | string;
+        addHeight?: number | string;
         highlight?: PolylineEntity.StyleOptions | any;
         label?: LabelEntity.StyleOptions | any | any;
     };
@@ -10349,16 +12289,21 @@ declare namespace PolylineEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
+ * @param [options.hasDrawDelPoint = true] - 绘制时，是否可以右键删除点
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
+ * @param [options.midPointFraction = 0.5] - 编辑时，中间点的位置比例
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -10369,22 +12314,29 @@ declare namespace PolylineEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolylineEntity extends BasePolyEntity {
     constructor(options: {
-        positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[] | Cesium.PositionProperty | any;
         style: PolylineEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
+        hasDrawDelPoint?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
+        midPointFraction?: number;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -10395,6 +12347,8 @@ declare class PolylineEntity extends BasePolyEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -10409,8 +12363,14 @@ declare class PolylineEntity extends BasePolyEntity {
 declare namespace PolylineVolumeEntity {
     /**
      * 管道线 支持的样式信息
-     * @property [radius = 10] - 半径
      * @property [shape = "pipeline"] - 形状类型 或 定义要挤压的形状。类型可选项：pipeline (解释：空心管),circle (解释：实心管),star (解释：星状管),
+     * @property [radius = 10] - 半径(单位：米)
+     * @property [thicknes = radius/3] - 厚度(单位：米)，空心管/星状管 的外层厚度
+     * @property [slices] - 边数，比如为4时是矩形管；星状管代表角的个数；
+     * @property [startAngle = 0] - 开始角度，取值范围0-360
+     * @property [endAngle = 360] - 结束角度，取值范围0-360，比如endAngle=180的空心管是拱形半圆管道
+     * @property [vscale = 1] - 垂直缩放比例
+     * @property [hscale = 1] - 水平缩放比例
      * @property [fill = true] - 是否填充
      * @property [color = "#FFFF00"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
@@ -10422,18 +12382,24 @@ declare namespace PolylineVolumeEntity {
      * @property [cornerType = CornerType.ROUNDED] - 指定边角的样式。
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定每个纬度点和经度点之间的角距离。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否投射阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定管道是否投射或接收来自光源的阴影。
-     * @property [setHeight = 0] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight = 0] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
-        radius?: number;
         shape?: string | Cesium.Cartesian2[];
+        radius?: number;
+        thicknes?: number;
+        slices?: number;
+        startAngle?: number;
+        endAngle?: number;
+        vscale?: number;
+        hscale?: number;
         fill?: boolean;
         color?: string | Cesium.Color;
         opacity?: number;
@@ -10449,8 +12415,8 @@ declare namespace PolylineVolumeEntity {
         distanceDisplayCondition_near?: number;
         hasShadows?: boolean;
         shadows?: Cesium.ShadowMode;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
+        setHeight?: number | string;
+        addHeight?: number | string;
         highlight?: PolylineVolumeEntity.StyleOptions | any;
         label?: LabelEntity.StyleOptions | any;
     };
@@ -10462,14 +12428,17 @@ declare namespace PolylineVolumeEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -10482,20 +12451,25 @@ declare namespace PolylineVolumeEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolylineVolumeEntity extends BasePolyEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolylineVolumeEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -10508,6 +12482,8 @@ declare class PolylineVolumeEntity extends BasePolyEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -10526,8 +12502,9 @@ declare namespace RectangleEntity {
      * @property [materialType = "Color"] - 填充类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
      * @property [outlineWidth = 1] - 边框宽度
      * @property [outlineColor = "#ffffff"] - 边框颜色
@@ -10543,7 +12520,7 @@ declare namespace RectangleEntity {
      * @property [stRotation = 0] - 矩形纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 矩形纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定矩形是投射还是接收来自光源的阴影。
@@ -10551,9 +12528,9 @@ declare namespace RectangleEntity {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [zIndex = 0] - 层级顺序，指定用于排序地面几何的zIndex。只有当矩形为常量且没有指定height或extrdedheight时才有效果。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -10563,6 +12540,7 @@ declare namespace RectangleEntity {
         material?: Cesium.MaterialProperty | BaseMaterialProperty | Cesium.Color;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
         outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
@@ -10600,14 +12578,17 @@ declare namespace RectangleEntity {
  * @param [options.rectangle] - 矩形范围，与positions二选一。
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -10620,6 +12601,8 @@ declare namespace RectangleEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class RectangleEntity extends BasePolyEntity {
     constructor(options: {
@@ -10627,14 +12610,17 @@ declare class RectangleEntity extends BasePolyEntity {
         rectangle?: Cesium.Rectangle | Cesium.PositionProperty | Cesium.CallbackProperty;
         style: RectangleEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -10647,6 +12633,8 @@ declare class RectangleEntity extends BasePolyEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -10733,8 +12721,8 @@ declare class RectangleEntity extends BasePolyEntity {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -10843,13 +12831,14 @@ declare namespace RectangularSensor {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.orientation] - 实体方向
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -10860,20 +12849,23 @@ declare namespace RectangularSensor {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。 @extends {BasePointEntity}
  */
-declare class RectangularSensor extends BasePointEntity {
+declare class RectangularSensor {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: RectangularSensor.StyleOptions | any;
         attr?: any;
         orientation?: Cesium.Property;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -10884,6 +12876,8 @@ declare class RectangularSensor extends BasePointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -10898,30 +12892,34 @@ declare class RectangularSensor extends BasePointEntity {
 declare namespace Video2D {
     /**
      * 视频融合（投射2D平面） 支持的样式信息
-     * @property options.container - 视频对应的video标签
+     * @property [url] - 视频对应url地址
+     * @property [container] - 视频对应的video标签,与url二选一
      * @property angle - 水平张角(度数)
      * @property angle2 - 垂直张角(度数)
      * @property distance - 投射距离
-     * @property [heading = 0] - 方向角 （度数值，0-360度）
+     * @property [heading = 0] - 方向角 （度数值，0-360度），正东方向为0,顺时针到360度
      * @property [pitch = 0] - 俯仰角（度数值，0-360度）
      * @property [roll = 0] - 翻滚角（度数值，0-360度）
      * @property [opacity = 1.0] - 透明度
-     * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后。
+     * @property [flipx = false] - 是否X方向翻转视频
+     * @property [flipy = false] - 是否Y方向翻转视频
      * @property [stRotation = 0] - 多边形纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 多边形纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [outlineStyle] - 边框的完整自定义样式，会覆盖outlineWidth、outlineColor等参数。
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定多边形是投射还是接收来自光源的阴影。
      * @property [showFrustum = false] - 是否显示视椎体框线
      */
     type StyleOptions = any | {
+        url?: string;
+        container?: HTMLVideoElement;
         angle: number;
         angle2: number;
         distance: number;
@@ -10929,7 +12927,8 @@ declare namespace Video2D {
         pitch?: number;
         roll?: number;
         opacity?: number;
-        material?: Cesium.MaterialProperty | BaseMaterialProperty | Cesium.Color;
+        flipx?: boolean;
+        flipy?: boolean;
         stRotation?: number;
         stRotationDegree?: number;
         outline?: boolean;
@@ -10964,6 +12963,8 @@ declare namespace Video2D {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Video2D extends PolygonEntity {
     constructor(options: {
@@ -10981,7 +12982,13 @@ declare class Video2D extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 编辑处理类
+     */
+    readonly EditClass: EditVideo2D;
     /**
      * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
      */
@@ -11030,6 +13037,10 @@ declare class Video2D extends PolygonEntity {
      */
     opacity: number;
     /**
+     * 是否X方向翻转视频
+     */
+    flipx: boolean;
+    /**
      * 是否显示视椎体框线
      */
     showFrustum: boolean;
@@ -11037,6 +13048,12 @@ declare class Video2D extends PolygonEntity {
      * 暂停或播放 视频
      */
     play: boolean;
+    /**
+     * 设置透明度
+     * @param value - 透明度
+     * @returns 无
+     */
+    setOpacity(value: number): void;
     /**
      * 位置坐标(数组对象)，示例[113.123456,31.123456,30.1]
      * @param noAlt - true时不导出高度值
@@ -11064,7 +13081,8 @@ declare class Video2D extends PolygonEntity {
 declare namespace WallEntity {
     /**
      * 墙 支持的样式信息
-     * @property [diffHeight = 100] - 墙高
+     * @property [diffHeight = 100] - 墙高，
+     * @property [fixedTop = false] - 墙顶部是否使用统一的水平高度值
      * @property [minimumHeights] - 没有指定diffHeight时，可以指定用于墙壁底部而不是球体表面的高度数组。
      * @property [maximumHeights] - 没有指定diffHeight时，可以指定用于墙顶的高度数组，而不是每个位置的高度。
      * @property [fill = true] - 是否填充
@@ -11073,26 +13091,28 @@ declare namespace WallEntity {
      * @property [material = Cesium.Color.WHITE] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [closure = false] - 是否闭合, 在positions是属性机制的回调对象时无效
      * @property [outline = false] - 是否边框
-     * @property [outlineWidth = 1] - 边框宽度
+     * @property [outlineWidth = 1] - 边框宽度，outlineWidth只适用于非Windows系统，如Android、iOS、Linux和OS X。这是由于WebGL是如何在Windows上的所有三个主要浏览器引擎中实现所限制的，目前只能显示1px。
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定墙壁是投射还是接收来自光源的阴影。
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定每个纬度点和经度点之间的角距离。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示，额外支持：<br />
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         diffHeight?: number;
+        fixedTop?: boolean;
         minimumHeights?: number[];
         maximumHeights?: number[];
         fill?: boolean;
@@ -11101,9 +13121,10 @@ declare namespace WallEntity {
         material?: Cesium.MaterialProperty | BaseMaterialProperty | Cesium.Color;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         closure?: boolean;
         outline?: boolean;
-        outlineWidth?: string;
+        outlineWidth?: number;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
@@ -11125,14 +13146,17 @@ declare namespace WallEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -11145,20 +13169,25 @@ declare namespace WallEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class WallEntity extends BasePolyEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: WallEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -11171,6 +13200,8 @@ declare class WallEntity extends BasePolyEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 矢量数据对应的 Cesium内部对象的具体类型对象
@@ -11188,7 +13219,7 @@ declare class WallEntity extends BasePolyEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11204,13 +13235,15 @@ declare class WallEntity extends BasePolyEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class AttackArrow extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11226,6 +13259,8 @@ declare class AttackArrow extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -11235,7 +13270,7 @@ declare class AttackArrow extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11251,13 +13286,15 @@ declare class AttackArrow extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class AttackArrowPW extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11273,6 +13310,8 @@ declare class AttackArrowPW extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11289,7 +13328,7 @@ declare class AttackArrowPW extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11305,13 +13344,15 @@ declare class AttackArrowPW extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class AttackArrowYW extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11327,6 +13368,8 @@ declare class AttackArrowYW extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11343,7 +13386,7 @@ declare class AttackArrowYW extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11359,13 +13402,15 @@ declare class AttackArrowYW extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CloseVurve extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11381,6 +13426,8 @@ declare class CloseVurve extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11397,7 +13444,7 @@ declare class CloseVurve extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11413,13 +13460,15 @@ declare class CloseVurve extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DoubleArrow extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11435,6 +13484,8 @@ declare class DoubleArrow extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11463,7 +13514,7 @@ declare class EditSector extends EditPolygon {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11479,13 +13530,15 @@ declare class EditSector extends EditPolygon {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FineArrow extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11501,6 +13554,8 @@ declare class FineArrow extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11517,7 +13572,7 @@ declare class FineArrow extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11533,13 +13588,15 @@ declare class FineArrow extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FineArrowYW extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11555,6 +13612,8 @@ declare class FineArrowYW extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11571,7 +13630,7 @@ declare class FineArrowYW extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11587,13 +13646,15 @@ declare class FineArrowYW extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class GatheringPlace extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11609,6 +13670,8 @@ declare class GatheringPlace extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11625,7 +13688,7 @@ declare class GatheringPlace extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11641,13 +13704,15 @@ declare class GatheringPlace extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class IsosTriangle extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11663,6 +13728,8 @@ declare class IsosTriangle extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前矢量对象的边界坐标点
@@ -11679,7 +13746,7 @@ declare class IsosTriangle extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11695,13 +13762,15 @@ declare class IsosTriangle extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Lune extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11717,6 +13786,8 @@ declare class Lune extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11730,13 +13801,14 @@ declare class Lune extends PolygonEntity {
 /**
  * 正多边形  Entity矢量数据
  * @param options - 参数对象，包括以下：
- * @param options.positions - 坐标位置
+ * @param options.position - 中心点坐标位置
+ * @param [options.positions] - 坐标位置
  * @param options.style - 样式信息,还包括：
  * @param [options.style.border = 3] - 边数量
  * @param options.style.radius - 区域的半径（单位：米）
  * @param [options.style.startAngle = 0] - 区域的开始角度(正东方向为0,顺时针到360度)
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11752,17 +13824,20 @@ declare class Lune extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Regular extends PolygonEntity {
     constructor(options: {
-        positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
+        position: LngLatPoint | Cesium.Cartesian3 | any[];
+        positions?: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: {
             border?: number;
             radius: number;
             startAngle?: number;
         };
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11778,6 +13853,8 @@ declare class Regular extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 编辑处理类
@@ -11785,14 +13862,14 @@ declare class Regular extends PolygonEntity {
     readonly EditClass: EditRegular;
     /**
      * 计算当前矢量对象的边界坐标点
-     * @param positions - 坐标位置
+     * @param center - 坐标位置
      * @param options - 控制参数
      * @param [options.border = 3] - 边数量
      * @param options.radius - 区域的半径（单位：米）
      * @param [options.startAngle = 0] - 区域的开始角度(正东方向为0,顺时针到360度)
      * @returns 边界坐标点
      */
-    static getOutlinePositions(positions: Cesium.Cartesian3[], options: {
+    static getOutlinePositions(center: Cesium.Cartesian3, options: {
         border?: number;
         radius: number;
         startAngle?: number;
@@ -11806,13 +13883,15 @@ declare class Regular extends PolygonEntity {
 /**
  * 扇形(3个点)  Entity矢量数据
  * @param options - 参数对象，包括以下：
- * @param options.positions - 坐标位置
+ * @param options.position - 中心点坐标位置
+ * @param [options.positions] - 坐标位置
  * @param options.style - 样式信息,还包括：
  * @param options.style.radius - 扇形区域的半径（单位：米）
  * @param options.style.startAngle - 扇形区域的开始角度(正东方向为0,顺时针到360度)
  * @param options.style.endAngle - 扇形区域的结束角度(正东方向为0,顺时针到360度)
+ * @param [options.style.noCenter] - 不连中心点
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11828,17 +13907,21 @@ declare class Regular extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Sector extends PolygonEntity {
     constructor(options: {
-        positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
+        position: LngLatPoint | Cesium.Cartesian3 | any[];
+        positions?: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: {
             radius: number;
             startAngle: number;
             endAngle: number;
+            noCenter?: boolean;
         };
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11854,6 +13937,8 @@ declare class Sector extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 编辑处理类
@@ -11861,22 +13946,39 @@ declare class Sector extends PolygonEntity {
     readonly EditClass: EditSector;
     /**
      * 计算当前矢量对象的边界坐标点
-     * @param positions - 坐标位置
+     * @param center - 中心点坐标位置
      * @param options - 控制参数
      * @param options.radius - 扇形区域的半径（单位：米）
      * @param options.startAngle - 扇形区域的开始角度(正东方向为0,顺时针到360度)
      * @param options.endAngle - 扇形区域的结束角度(正东方向为0,顺时针到360度)
+     * @param [options.noCenter] - 不连中心点
      * @returns 边界坐标点
      */
-    static getOutlinePositions(positions: Cesium.Cartesian3[], options: {
+    static getOutlinePositions(center: Cesium.Cartesian3, options: {
         radius: number;
         startAngle: number;
         endAngle: number;
+        noCenter?: boolean;
     }): Cesium.Cartesian3[];
     /**
      * 位置坐标数组 （笛卡尔坐标）, 赋值时可以传入LatLngPoint数组对象 或 Cesium.PolygonHierarchy
      */
     positions: Cesium.Cartesian3[];
+    /**
+     * 异步计算更新坐标高度进行贴地(或贴模型)，内部自动调用{@link PolyUtil#computeSurfacePoints}方法处理。
+     * @param [options = {}] - 参数对象:
+     * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
+     * @param [options.offset = 0] - 可以按需增加偏移高度（单位：米），便于可视
+     * @returns 异步计算完成的Promise
+     */
+    autoSurfaceHeight(options?: {
+        has3dtiles?: boolean;
+        objectsToExclude?: any;
+        exact?: boolean;
+        offset?: number;
+    }): Promise<any>;
 }
 
 /**
@@ -11885,7 +13987,7 @@ declare class Sector extends PolygonEntity {
  * @param options.positions - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
@@ -11901,13 +14003,15 @@ declare class Sector extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class StraightArrow extends PolygonEntity {
     constructor(options: {
         positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
@@ -11923,6 +14027,8 @@ declare class StraightArrow extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 计算当前军标对象的边界坐标点
@@ -11943,14 +14049,17 @@ declare class StraightArrow extends PolygonEntity {
  * @param [options.label] - 测量结果文本的样式
  * @param [options.angleDecimal = 1] - 显示的 角度值 文本中保留的小数位
  * @param [options.decimal = 2] - 显示的 距离值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -11963,6 +14072,8 @@ declare class StraightArrow extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class AngleMeasure extends PolylineEntity {
     constructor(options: {
@@ -11972,14 +14083,17 @@ declare class AngleMeasure extends PolylineEntity {
         label?: LabelEntity.StyleOptions | any;
         angleDecimal?: number;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -11992,6 +14106,8 @@ declare class AngleMeasure extends PolylineEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 测量结果
@@ -11999,7 +14115,7 @@ declare class AngleMeasure extends PolylineEntity {
     readonly measured: any;
     /**
      * 更新测量结果的文本
-     * @param unit - 计量单位,{@link MeasureUtil#formatDistance} 可选值：auto、m、km、mile、zhang 等。auto时根据距离值自动选用k或km
+     * @param unit - 计量单位,{@link MeasureUtil#formatDistance} 可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @returns 无
      */
     updateText(unit: string): void;
@@ -12014,14 +14130,17 @@ declare class AngleMeasure extends PolylineEntity {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 面积值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -12034,6 +14153,8 @@ declare class AngleMeasure extends PolylineEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class AreaMeasure extends PolygonEntity {
     constructor(options: {
@@ -12042,14 +14163,17 @@ declare class AreaMeasure extends PolygonEntity {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -12062,6 +14186,8 @@ declare class AreaMeasure extends PolygonEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 测量结果
@@ -12090,16 +14216,20 @@ declare class AreaMeasure extends PolygonEntity {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 面积值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
+ * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -12110,6 +14240,8 @@ declare class AreaMeasure extends PolygonEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class AreaSurfaceMeasure extends AreaMeasure {
     constructor(options: {
@@ -12118,16 +14250,20 @@ declare class AreaSurfaceMeasure extends AreaMeasure {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
+        exact?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -12138,6 +14274,8 @@ declare class AreaSurfaceMeasure extends AreaMeasure {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -12150,14 +14288,17 @@ declare class AreaSurfaceMeasure extends AreaMeasure {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 距离值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -12170,6 +14311,8 @@ declare class AreaSurfaceMeasure extends AreaMeasure {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DistanceMeasure extends PolylineEntity {
     constructor(options: {
@@ -12178,14 +14321,17 @@ declare class DistanceMeasure extends PolylineEntity {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -12198,6 +14344,8 @@ declare class DistanceMeasure extends PolylineEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 测量结果
@@ -12220,16 +14368,20 @@ declare class DistanceMeasure extends PolylineEntity {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 距离值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
+ * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -12240,6 +14392,8 @@ declare class DistanceMeasure extends PolylineEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DistanceSurfaceMeasure extends DistanceMeasure {
     constructor(options: {
@@ -12248,16 +14402,20 @@ declare class DistanceSurfaceMeasure extends DistanceMeasure {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
+        exact?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -12268,6 +14426,8 @@ declare class DistanceSurfaceMeasure extends DistanceMeasure {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -12280,14 +14440,17 @@ declare class DistanceSurfaceMeasure extends DistanceMeasure {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 距离和高度值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -12300,6 +14463,8 @@ declare class DistanceSurfaceMeasure extends DistanceMeasure {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class HeightMeasure extends PolylineEntity {
     constructor(options: {
@@ -12308,14 +14473,17 @@ declare class HeightMeasure extends PolylineEntity {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -12328,6 +14496,8 @@ declare class HeightMeasure extends PolylineEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 测量结果
@@ -12335,7 +14505,7 @@ declare class HeightMeasure extends PolylineEntity {
     readonly measured: any;
     /**
      * 更新测量结果的文本
-     * @param unit - 计量单位,{@link MeasureUtil#formatDistance} 可选值：auto、m、km、mile、zhang 等。auto时根据距离值自动选用k或km
+     * @param unit - 计量单位,{@link MeasureUtil#formatDistance} 可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @returns 无
      */
     updateText(unit: string): void;
@@ -12350,14 +14520,17 @@ declare class HeightMeasure extends PolylineEntity {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 距离和高度值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
@@ -12370,6 +14543,8 @@ declare class HeightMeasure extends PolylineEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class HeightTriangleMeasure extends HeightMeasure {
     constructor(options: {
@@ -12378,14 +14553,17 @@ declare class HeightTriangleMeasure extends HeightMeasure {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
@@ -12398,10 +14576,12 @@ declare class HeightTriangleMeasure extends HeightMeasure {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 更新测量结果的文本
-     * @param unit - 计量单位,{@link MeasureUtil#formatDistance} 可选值：auto、m、km、mile、zhang 等。auto时根据距离值自动选用k或km
+     * @param unit - 计量单位,{@link MeasureUtil#formatDistance} 可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @returns 无
      */
     updateText(unit: string): void;
@@ -12411,16 +14591,18 @@ declare class HeightTriangleMeasure extends HeightMeasure {
  * 坐标量算对象，
  * 非直接调用，由 Measure 类统一创建及管理
  * @param options - 参数对象，包括以下：
+ * @param [options.crs = CRS.CGCS2000_GK_Zone_3] - 按指定坐标系显示坐标值,false不显示
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -12431,19 +14613,23 @@ declare class HeightTriangleMeasure extends HeightMeasure {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PointMeasure extends PointEntity {
     constructor(options: {
+        crs?: string | CRS | boolean;
         position: LngLatPoint | Cesium.Cartesian3 | Cesium.PositionProperty | number[] | string;
         style: PointEntity.StyleOptions | any;
         attr?: any;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         drawShow?: boolean;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -12454,6 +14640,8 @@ declare class PointMeasure extends PointEntity {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -12466,17 +14654,21 @@ declare class PointMeasure extends PointEntity {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.label] - 测量结果文本的样式
  * @param [options.decimal = 2] - 显示的 距离值 文本中保留的小数位
- * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
  * @param [options.viewFrom] - 观察这个物体时建议的初始偏移量。
  * @param [options.parent] - 要与此实体关联的父实体。
  * @param [options.onBeforeCreate] - 在 new Cesium.Entity(addattr) 前的回调方法，可以对addattr做额外个性化处理。
  * @param [options.minPointNum = 2] - 绘制时，至少需要点的个数
  * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
+ * @param [options.updateDrawPosition] - 绘制时，外部自定义更新坐标,可以自定义处理特殊业务返回修改后的新坐标。
+ * @param [options.validDrawPosition] - 绘制时，外部自定义校验坐标,比如判断限定在指定区域内绘制。
  * @param [options.addHeight] - 在绘制时，在绘制点的基础上增加的高度值
  * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单
  * @param [options.hasMoveEdit = true] - 编辑时，是否可以整体平移
  * @param [options.hasHeightEdit = true] - 编辑时，当有diffHeight时，是否可以编辑高度
+ * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -12487,6 +14679,8 @@ declare class PointMeasure extends PointEntity {
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class SectionMeasure extends DistanceMeasure {
     constructor(options: {
@@ -12495,17 +14689,21 @@ declare class SectionMeasure extends DistanceMeasure {
         attr?: any;
         label?: LabelEntity.StyleOptions | any;
         decimal?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
         viewFrom?: Cesium.Property;
         parent?: Cesium.Entity;
         onBeforeCreate?: (...params: any[]) => any;
         minPointNum?: number;
         maxPointNum?: number;
+        updateDrawPosition?: (...params: any[]) => any;
+        validDrawPosition?: (...params: any[]) => any;
         addHeight?: number;
         hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
         hasMoveEdit?: boolean;
         hasHeightEdit?: boolean;
+        exact?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -12516,19 +14714,32 @@ declare class SectionMeasure extends DistanceMeasure {
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
 /**
- * 体积量算对象（方量），
+ * 基于深度图的 体积量算对象（方量分析），
  * 非直接调用，由 Measure 类统一创建及管理。<br />
  *
+ * 注意：<br />
+ * 1. 需要地形和模型等需要分析区域对应的数据加载完成后才能分析。<br />
+ * 2. 如果有遮挡了分析区域的任何矢量对象，都需要分析前隐藏下，分析结束后再改回显示。<br />
+ *
+ * 说明：<br />
  * 1. 挖方量: 计算“基准面”到地表之间的凸出部分进行挖掉的体积。<br />
  * 2. 填方量：计算“基准面”与“墙底部”之间的缺少部分进行填平的体积。
  * @param options - 参数对象，包括以下：
  * @param options.style - 基准面样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.showPoly = true] - 是否显示基准面
+ * @param [options.showWall = false] - 是否显示围墙面
  * @param [options.polygonWallStyle] - 围墙面的样式
+ * @param [options.showBox = true] - 是否显示填挖盒子
+ * @param [options.fillColor = Cesium.Color.YELLOW.withAlpha(0.5)] - 填方盒子的颜色
+ * @param [options.cutColor = Cesium.Color.RED.withAlpha(0.5)] - 挖方盒子的颜色
+ * @param [options.offsetHeight = 0] - 盒子偏移显示的高度值，可以将盒子显示在空中来展示
  * @param [options.label] - 测量结果文本的样式
  * @param [options.showFillVolume = true] - 是否显示填方体积结果文本
  * @param [options.fillVolumeName = '填方体积'] - 填方体积结果的名称
@@ -12541,17 +14752,26 @@ declare class SectionMeasure extends DistanceMeasure {
  * @param [options.labelHeight] - 各边界点高度结果文本的样式
  * @param [options.decimal = 2] - 显示的 数值 文本中保留的小数位
  * @param [options.has3dtiles] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+ * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
-declare class VolumeMeasure extends AreaMeasure {
+declare class VolumeDepthMeasure extends AreaMeasure {
     constructor(options: {
         style: PolygonEntity.StyleOptions | any;
         attr?: any;
+        showPoly?: boolean;
+        showWall?: boolean;
         polygonWallStyle?: PolygonEntity.StyleOptions | any;
+        showBox?: boolean;
+        fillColor?: string | Cesium.Color;
+        cutColor?: string | Cesium.Color;
+        offsetHeight?: number;
         label?: LabelEntity.StyleOptions | any;
         showFillVolume?: boolean;
         fillVolumeName?: string;
@@ -12564,11 +14784,119 @@ declare class VolumeMeasure extends AreaMeasure {
         labelHeight?: LabelEntity.StyleOptions | any;
         decimal?: number;
         has3dtiles?: boolean;
+        exact?: boolean;
         id?: string | number;
         name?: string;
         show?: boolean;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 面内的最高地表高度
+     */
+    readonly polygonMaxHeight: number;
+    /**
+     * 基准面 高度，
+     * 1. 挖方量: 计算“基准面”到地表之间的凸出部分进行挖掉的体积。<br />
+     * 2. 填方量：计算“基准面”与“墙底部”之间的缺少部分进行填平的体积。
+     */
+    height: number;
+    /**
+     * 底部高度，
+     * 会影响 填方量：计算“基准面高度”与“底部高度”之间的缺少部分进行填平的体积。
+     */
+    minHeight: number;
+    /**
+     * 最高高度，对应墙的高度，
+     * 不影响测量结果，只是显示效果的区别。
+     */
+    maxHeight: number;
+    /**
+     * 是否显示填挖盒子
+     */
+    showBox: boolean;
+    /**
+     * 更新测量结果的文本
+     * @param unit - 计量单位,{@link MeasureUtil#formatArea} 可选值：计量单位，可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用m或km
+     * @returns 无
+     */
+    updateText(unit: string): void;
+    /**
+     * 是否可以编辑
+     */
+    hasEdit: boolean;
+}
+
+/**
+ * 体积量算对象（方量分析），
+ * 非直接调用，由 Measure 类统一创建及管理。<br />
+ *
+ * 1. 挖方量: 计算“基准面”到地表之间的凸出部分进行挖掉的体积。<br />
+ * 2. 填方量：计算“基准面”与“墙底部”之间的缺少部分进行填平的体积。
+ * @param options - 参数对象，包括以下：
+ * @param options.positions - 坐标位置
+ * @param options.style - 基准面样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.polygonWall] - 围墙面的样式
+ * @param [options.label] - 测量结果文本的样式
+ * @param [options.showFillVolume = true] - 是否显示填方体积结果文本
+ * @param [options.fillVolumeName = '填方体积'] - 填方体积结果的名称
+ * @param [options.showDigVolume = true] - 是否显示挖方体积结果文本
+ * @param [options.digVolumeName = '挖方体积'] - 挖方体积结果的名称
+ * @param [options.showArea = true] - 是否显示横切面积结果文本
+ * @param [options.areaName = '横切面积'] - 横切面积结果的名称
+ * @param [options.heightLabel = true] - 是否显示各边界点高度值文本
+ * @param [options.offsetLabel = false] - 是否显示各边界点高度差文本
+ * @param [options.labelHeight] - 各边界点高度结果文本的样式
+ * @param [options.decimal = 2] - 显示的 数值 文本中保留的小数位
+ * @param [options.has3dtiles] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+ * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
+ * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatArea}可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用k或km
+ * @param [options.splitNum = 10] - 插值数，将面分割的网格数(概略值，有经纬网网格来插值)
+ * @param [options.minHeight] - 可以指定最低高度（单位：米）
+ * @param [options.maxHeight] - 可以指定最高高度（单位：米）
+ * @param [options.height] - 可以指定基准面高度（单位：米），默认是绘制后的最低高度值
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class VolumeMeasure extends AreaMeasure {
+    constructor(options: {
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | Cesium.PositionProperty | any[];
+        style: PolygonEntity.StyleOptions | any;
+        attr?: any;
+        polygonWall?: PolygonEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
+        showFillVolume?: boolean;
+        fillVolumeName?: string;
+        showDigVolume?: boolean;
+        digVolumeName?: string;
+        showArea?: boolean;
+        areaName?: string;
+        heightLabel?: boolean;
+        offsetLabel?: boolean;
+        labelHeight?: LabelEntity.StyleOptions | any;
+        decimal?: number;
+        has3dtiles?: boolean;
+        exact?: boolean;
+        unit?: string;
+        splitNum?: number;
+        minHeight?: number;
+        maxHeight?: number;
+        height?: number;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 面内的最高地表高度
@@ -12622,12 +14950,16 @@ declare class VolumeMeasure extends AreaMeasure {
  * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
  * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
  * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
- * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量
- * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
- * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
+ * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
  * @param [options.frameRateHeight = 30] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，多少帧计算一次贴模型高度
  * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+ * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
+ * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -12636,8 +14968,11 @@ declare class VolumeMeasure extends AreaMeasure {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePointPrimitive extends BasePrimitive {
     constructor(options: {
@@ -12658,12 +14993,16 @@ declare class BasePointPrimitive extends BasePrimitive {
         asynchronous?: boolean;
         debugShowBoundingVolume?: boolean;
         debugShowShadowVolume?: boolean;
+        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
         maxCacheCount?: number;
         forwardExtrapolationType?: Cesium.ExtrapolationType;
         backwardExtrapolationType?: Cesium.ExtrapolationType;
         clampToTileset?: boolean;
         frameRateHeight?: number;
         objectsToExclude?: any;
+        referenceFrame?: Cesium.ReferenceFrame;
+        numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -12672,8 +15011,11 @@ declare class BasePointPrimitive extends BasePrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
@@ -12708,6 +15050,10 @@ declare class BasePointPrimitive extends BasePrimitive {
      */
     height: number;
     /**
+     * 三维空间中的旋转 【仅部分对象支持】
+     */
+    readonly orientation: Cesium.Quaternion;
+    /**
      * 将图元(所有几何实例)从模型转换为世界坐标的4x4变换矩阵。
      * <br/>提示：父类属性，非所有子类都具备
      */
@@ -12736,13 +15082,22 @@ declare class BasePointPrimitive extends BasePrimitive {
      */
     readonly trackedEntity: Cesium.Entity | any;
     /**
+     * 是否显示3个方向轴，用于对比测试
+     */
+    debugAxis: boolean;
+    /**
+     * 显示3个方向轴时的对应轴长度，用于对比测试
+     */
+    debugAxisLength: number;
+    /**
      * 动态位置坐标
      */
     property: Cesium.SampledPositionProperty | Cesium.CallbackProperty;
     /**
      * 设置并添加动画轨迹位置，按“指定时间”运动到达“指定位置”。
+     * 【仅LabelPrimitive、PointPrimitive、BillboardPrimitive、ModelPrimitive 等部分子类支持】
      * @param point - 指定位置坐标
-     * @param [currTime = Cesium.JulianDate.now()] - 指定时间, 默认为当前时间5秒后。当为String时，可以传入'2021-01-01 12:13:00'; 当为number时，可以传入当前时间延迟的秒数。
+     * @param [currTime = Cesium.JulianDate.now()] - 指定时间。当为String时，可以传入'2021-01-01 12:13:00'; 当为number时，可以传入当前时间延迟的秒数。
      * @returns 当前对象本身，可以链式调用
      */
     addDynamicPosition(point: LngLatPoint | Cesium.Cartesian3 | number[], currTime?: Cesium.JulianDate | Date | string | number): BasePointPrimitive;
@@ -12791,8 +15146,11 @@ declare class BasePointPrimitive extends BasePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePolyPrimitive extends BasePrimitive {
     constructor(options: {
@@ -12819,8 +15177,11 @@ declare class BasePolyPrimitive extends BasePrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 中心点坐标 （笛卡尔坐标）
@@ -12879,61 +15240,16 @@ declare class BasePolyPrimitive extends BasePrimitive {
      * @param [options = {}] - 参数对象:
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.offset = 0] - 可以按需增加偏移高度（单位：米），便于可视
      * @returns 异步计算完成的Promise
      */
     autoSurfaceHeight(options?: {
         has3dtiles?: boolean;
         objectsToExclude?: any;
+        exact?: boolean;
         offset?: number;
     }): Promise<any>;
-}
-
-declare namespace BasePrimitive {
-    /**
-     * 当前类支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * graphic.on(mars3d.EventType.click, function (event) {
-     *   console.log('单击了矢量数据对象', event)
-     * })
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     * @property highlightOpen - highlight高亮后
-     * @property highlightClose - highlight关闭后
-     * @property click - 左键单击 鼠标事件
-     * @property rightClick - 右键单击 鼠标事件
-     * @property mouseOver - 鼠标移入 鼠标事件
-     * @property mouseOut - 鼠标移出 鼠标事件
-     */
-    type EventType = {
-        add: string;
-        remove: string;
-        show: string;
-        hide: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-        highlightOpen: string;
-        highlightClose: string;
-        click: string;
-        rightClick: string;
-        mouseOver: string;
-        mouseOut: string;
-    };
 }
 
 /**
@@ -12963,8 +15279,11 @@ declare namespace BasePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BasePrimitive extends BaseGraphic {
     constructor(options: {
@@ -12992,17 +15311,28 @@ declare class BasePrimitive extends BaseGraphic {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 当加载primitive数据的内部Cesium容器
      */
-    primitiveCollection: Cesium.PrimitiveCollection | Cesium.LabelCollection | Cesium.BillboardCollection | Cesium.PointPrimitiveCollection | Cesium.CloudCollection;
+    readonly primitiveCollection: Cesium.PrimitiveCollection | Cesium.LabelCollection | Cesium.BillboardCollection | Cesium.PointPrimitiveCollection | Cesium.CloudCollection;
     /**
      * 矢量数据对应的 Cesium内部对象
      */
     readonly primitive: Cesium.Primitive | Cesium.GroundPrimitive | Cesium.ClassificationPrimitive | any;
+    /**
+     * 矢量数据对应的渲染是否完成
+     */
+    readonly ready: boolean;
+    /**
+     * 获取Primitive对象渲染完成的Promise承诺(仅部分支持,不支持对象会打印log)
+     */
+    readonly readyPromise: Promise<any>;
     /**
      * 返回实例可修改的属性。{@link Cesium.GeometryInstance}
      * @example
@@ -13030,6 +15360,17 @@ declare class BasePrimitive extends BaseGraphic {
      * 是否正在编辑状态，不是所有子类均支持编辑
      */
     readonly isEditing: boolean;
+    /**
+     * 平移指定偏移高度（相对于原始坐标值），【提示：仅部分子类支持,如 {@link PolygonPrimitive}、{@link RectanglePrimitive}、{@link BoxPrimitive}、{@link CylinderPrimitive}、{@link EllipsoidPrimitive}、{@link CorridorPrimitive}】
+     */
+    offsetHeight: number;
+    /**
+     * 平移指定偏移高度（相对于原始坐标值），【提示：仅部分子类支持】
+     * @param [height] - 平移的高度值（单位：米）,为空时取每个对象的offsetHeight值
+     * @param [index] - Combine大数据对象中，更新的instances对象index值，为空时更新所有对象。
+     * @returns 无
+     */
+    setOffsetHeight(height?: number, index?: number | undefined): void;
     /**
      * 设置透明度, 不是所有类型均支持调整透明度，主要看数据类型和材质类型决定。
      * @param value - 透明度
@@ -13097,6 +15438,11 @@ declare class BasePrimitive extends BaseGraphic {
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
+ * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
+ * @param [options.frameRateHeight = 30] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，多少帧计算一次贴模型高度
+ * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -13105,14 +15451,22 @@ declare class BasePrimitive extends BaseGraphic {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BillboardPrimitive extends BasePointPrimitive {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | number[];
         style: BillboardEntity.StyleOptions | any;
         attr?: any;
+        forwardExtrapolationType?: Cesium.ExtrapolationType;
+        backwardExtrapolationType?: Cesium.ExtrapolationType;
+        clampToTileset?: boolean;
+        frameRateHeight?: number;
+        objectsToExclude?: any;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -13121,8 +15475,11 @@ declare class BillboardPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 当加载primitive数据的内部Cesium容器
@@ -13155,10 +15512,13 @@ declare namespace BoxPrimitive {
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [materialSupport = MaterialAppearance.MaterialSupport.TEXTURED] - 将被支持的材质类型。
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
      *
      * //以下是 这是MaterialAppearance的参数
      * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
@@ -13168,9 +15528,9 @@ declare namespace BoxPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -13186,10 +15546,13 @@ declare namespace BoxPrimitive {
         material?: Cesium.Material;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         materialSupport?: Cesium.MaterialAppearance.MaterialSupportType;
+        offsetHeight?: number;
+        offsetAttribute?: number;
         flat?: boolean;
         faceForward?: boolean;
         translucent?: boolean;
@@ -13231,8 +15594,11 @@ declare namespace BoxPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class BoxPrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -13260,8 +15626,11 @@ declare class BoxPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -13275,11 +15644,13 @@ declare namespace CirclePrimitive {
      * @property [stRotation = 0] - 椭圆纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 椭圆纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定椭圆上各点之间的角距离。
+     * @property [fill = true] - 是否填充
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
@@ -13297,9 +15668,9 @@ declare namespace CirclePrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -13310,11 +15681,13 @@ declare namespace CirclePrimitive {
         stRotation?: number;
         stRotationDegree?: number;
         granularity?: number;
+        fill?: boolean;
         materialType?: string;
         materialOptions?: any;
         material?: Cesium.Material;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         outline?: boolean;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
@@ -13364,8 +15737,11 @@ declare namespace CirclePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CirclePrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -13393,8 +15769,11 @@ declare class CirclePrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 圆的半径（单位：米）
@@ -13442,8 +15821,8 @@ declare class CirclePrimitive extends BasePointPrimitive {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -13511,7 +15890,10 @@ declare namespace CloudPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.stopPropagation = false] - 当前类中事件是否停止冒泡, false时：事件冒泡到layer中。
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CloudPrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -13526,7 +15908,10 @@ declare class CloudPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         stopPropagation?: boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 当加载primitive数据的内部Cesium容器
@@ -13663,7 +16048,7 @@ declare namespace ConeTrackPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -13723,8 +16108,11 @@ declare namespace ConeTrackPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ConeTrackPrimitive extends CylinderPrimitive {
     constructor(options: {
@@ -13752,8 +16140,11 @@ declare class ConeTrackPrimitive extends CylinderPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 追踪的目标位置(确定了方向和距离)
@@ -13781,11 +16172,12 @@ declare namespace CorridorPrimitive {
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [height = 0] - 高程，圆相对于椭球面的高度。
      * @property [diffHeight = 100] - 高度差（走廊本身的高度），与extrudedHeight二选一。
      * @property [extrudedHeight] - 指定走廊挤压面相对于椭球面的高度。
@@ -13794,6 +16186,8 @@ declare namespace CorridorPrimitive {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [classification = false] - 是否为ClassificationPrimitive ，分类基元 表示Scene要高亮显示的包围几何的体积
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
      *
      *
      * //以下是 这是MaterialAppearance的参数
@@ -13804,8 +16198,9 @@ declare namespace CorridorPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -13819,6 +16214,7 @@ declare namespace CorridorPrimitive {
         outline?: boolean;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
+        image?: string;
         height?: number;
         diffHeight?: number;
         extrudedHeight?: number;
@@ -13827,6 +16223,8 @@ declare namespace CorridorPrimitive {
         clampToGround?: boolean;
         classificationType?: Cesium.ClassificationType;
         classification?: boolean;
+        offsetHeight?: number;
+        offsetAttribute?: number;
         flat?: boolean;
         faceForward?: boolean;
         translucent?: boolean;
@@ -13836,7 +16234,8 @@ declare namespace CorridorPrimitive {
         renderState?: any;
         setHeight?: number | string;
         addHeight?: number | string;
-        label?: LabelPrimitive.StyleOptions | any;
+        highlight?: CorridorPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -13866,8 +16265,11 @@ declare namespace CorridorPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CorridorPrimitive extends BasePolyPrimitive {
     constructor(options: {
@@ -13894,8 +16296,11 @@ declare class CorridorPrimitive extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -13918,6 +16323,10 @@ declare namespace CylinderPrimitive {
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
      * @property [materialSupport = MaterialAppearance.MaterialSupport.TEXTURED] - 将被支持的材质类型。
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
+     *
+     * //以下是 这是MaterialAppearance的参数
      * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
      * @property [faceForward = !closed] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
      * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
@@ -13925,7 +16334,7 @@ declare namespace CylinderPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -13945,6 +16354,8 @@ declare namespace CylinderPrimitive {
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
         materialSupport?: Cesium.MaterialAppearance.MaterialSupportType;
+        offsetHeight?: number;
+        offsetAttribute?: number;
         flat?: boolean;
         faceForward?: boolean;
         translucent?: boolean;
@@ -13984,8 +16395,11 @@ declare namespace CylinderPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class CylinderPrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -14013,8 +16427,11 @@ declare class CylinderPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -14022,7 +16439,7 @@ declare namespace DiffuseWall {
     /**
      * 立体面(或圆)散射效果  支持的样式信息
      * @property [diffHeight = 100] - 墙高
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [speed = 10] - 扩散的速度，值越大越快
      * @property [maxScale = 1] - 扩散的最大比例
@@ -14053,8 +16470,11 @@ declare namespace DiffuseWall {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DiffuseWall extends BasePolyPrimitive {
     constructor(options: {
@@ -14070,8 +16490,11 @@ declare class DiffuseWall extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 圆形时，位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
@@ -14093,6 +16516,123 @@ declare class DiffuseWall extends BasePolyPrimitive {
      * 矢量数据对应的 Cesium内部对象 (不同子类中实现)
      */
     readonly czmObject: Cesium.Entity | Cesium.Primitive | Cesium.GroundPrimitive | Cesium.ClassificationPrimitive | any;
+}
+
+declare namespace DoubleSidedPlane {
+    /**
+     * 双面渲染图片平面 支持的样式信息
+     * @property [dimensions_x = 100] - 长度
+     * @property [dimensions_y = 100] - 宽度
+     * @property [image] - 填充的图片
+     * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [color = Cesium.Color.WHITE] - 颜色
+     * @property [speed = 0] - 不为0时呈现图片滚动效果，数字代表滚动速度
+     * @property [flipx = false] - 是否X方向翻转图片
+     * @property [flipy = false] - 是否Y方向翻转图片
+     * @property [noWhite = true] - 是否不显示白色，true时没有加载完成前的白色闪烁，但也不支持纯白色的图片
+     * @property [heading = 0] - 方向角 （度数值，0-360度）
+     * @property [pitch = 0] - 俯仰角（度数值，0-360度）
+     * @property [roll = 0] - 翻滚角（度数值，0-360度）
+     *
+     * //以下是 这是MaterialAppearance的参数
+     * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
+     * @property [faceForward = !closed] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = false] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
+     * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
+     * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
+     * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
+     * @property [label] - 支持附带文字的显示
+     */
+    type StyleOptions = any | {
+        dimensions_x?: number;
+        dimensions_y?: number;
+        image?: string;
+        opacity?: number;
+        color?: string | Cesium.Color;
+        speed?: number;
+        flipx?: boolean;
+        flipy?: boolean;
+        noWhite?: boolean;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        flat?: boolean;
+        faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
+        vertexShaderSource?: string;
+        fragmentShaderSource?: string;
+        renderState?: any;
+        label?: LabelEntity.StyleOptions | any;
+    };
+}
+
+/**
+ * 双面渲染图片平面 Primitive图元矢量对象
+ * @param options - 参数对象，包括以下：
+ * @param options.position - 坐标位置
+ * @param [options.modelMatrix] - 将图元(所有几何实例)从模型转换为世界坐标的4x4变换矩阵,可以替代position。
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
+ * @param [options.attributes] - [cesium原生]每个实例的属性。
+ * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
+ * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
+ * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
+ * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
+ * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
+ * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
+ * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
+ * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
+ * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
+ * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class DoubleSidedPlane extends BasePointPrimitive {
+    constructor(options: {
+        position: LngLatPoint | Cesium.Cartesian3 | number[];
+        modelMatrix?: Cesium.Matrix4;
+        style: DoubleSidedPlane.StyleOptions | any;
+        attr?: any;
+        appearance?: Cesium.Appearance;
+        attributes?: Cesium.Appearance;
+        depthFailAppearance?: Cesium.Appearance;
+        vertexCacheOptimize?: boolean;
+        interleave?: boolean;
+        compressVertices?: boolean;
+        releaseGeometryInstances?: boolean;
+        allowPicking?: boolean;
+        cull?: boolean;
+        asynchronous?: boolean;
+        debugShowBoundingVolume?: boolean;
+        debugShowShadowVolume?: boolean;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
 }
 
 declare namespace DynamicRiver {
@@ -14128,8 +16668,11 @@ declare namespace DynamicRiver {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class DynamicRiver extends BasePolyPrimitive {
     constructor(options: {
@@ -14139,8 +16682,11 @@ declare class DynamicRiver extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 图片材质URL
@@ -14180,7 +16726,7 @@ declare class DynamicRiver extends BasePolyPrimitive {
      * @param time - 动画时长（单位：秒）
      * @returns 无
      */
-    offsetHeight(height: number, time: number): void;
+    setOffsetHeight(height: number, time: number): void;
     /**
      * 设置透明度
      * @param value - 透明度
@@ -14223,6 +16769,8 @@ declare namespace EllipsoidPrimitive {
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
      *
      * //以下是 这是MaterialAppearance的参数
      * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
@@ -14232,7 +16780,7 @@ declare namespace EllipsoidPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -14263,6 +16811,8 @@ declare namespace EllipsoidPrimitive {
         outline?: boolean;
         outlineColor?: string | Cesium.Color;
         outlineOpacity?: number;
+        offsetHeight?: number;
+        offsetAttribute?: number;
         flat?: boolean;
         faceForward?: boolean;
         translucent?: boolean;
@@ -14302,8 +16852,11 @@ declare namespace EllipsoidPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class EllipsoidPrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -14331,8 +16884,11 @@ declare class EllipsoidPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -14361,7 +16917,7 @@ declare namespace FrustumPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -14396,9 +16952,10 @@ declare namespace FrustumPrimitive {
  * 四棱锥体  Primitive图元矢量对象
  * @param options - 参数对象，包括以下：
  * @param options.position - 坐标位置
- * @param [options.targetPosition] - 追踪的目标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.targetPosition] - 追踪的目标位置
+ * @param [options.camera] - 支持直接传入相机对象，替代style中的方向参数
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
  * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
@@ -14419,15 +16976,19 @@ declare namespace FrustumPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class FrustumPrimitive extends BasePointPrimitive {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | number[];
-        targetPosition?: LngLatPoint | Cesium.Cartesian3 | number[];
         style: FrustumPrimitive.StyleOptions | any;
         attr?: any;
+        targetPosition?: LngLatPoint | Cesium.Cartesian3 | number[];
+        camera?: Cesium.Camera;
         appearance?: Cesium.Appearance;
         attributes?: Cesium.Appearance;
         depthFailAppearance?: Cesium.Appearance;
@@ -14448,8 +17009,11 @@ declare class FrustumPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 圆锥追踪的目标(确定了方向和距离)
@@ -14494,22 +17058,17 @@ declare class FrustumPrimitive extends BasePointPrimitive {
     roll: number;
 }
 
-declare namespace LabelPrimitive {
-    /**
-     * 文字 支持的样式信息（与LabelEntity相同）
-     * @property [所有] - 与LabelEntity相同
-     */
-    type StyleOptions = any | {
-        所有?: LabelEntity.StyleOptions | any;
-    };
-}
-
 /**
  * 文字 Primitive矢量数据
  * @param options - 参数对象，包括以下：
  * @param options.position - 坐标位置
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
+ * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
+ * @param [options.frameRateHeight = 30] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，多少帧计算一次贴模型高度
+ * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -14518,14 +17077,22 @@ declare namespace LabelPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class LabelPrimitive extends BasePointPrimitive {
     constructor(options: {
         position: LngLatPoint | Cesium.Cartesian3 | number[];
-        style: LabelPrimitive.StyleOptions | any;
+        style: LabelEntity.StyleOptions | any;
         attr?: any;
+        forwardExtrapolationType?: Cesium.ExtrapolationType;
+        backwardExtrapolationType?: Cesium.ExtrapolationType;
+        clampToTileset?: boolean;
+        frameRateHeight?: number;
+        objectsToExclude?: any;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -14534,8 +17101,11 @@ declare class LabelPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 当加载primitive数据的内部Cesium容器
@@ -14559,11 +17129,15 @@ declare namespace LightCone {
      * @property [color = '#00ffff'] - 颜色
      * @property [radius = 100] - 锥体底部半径。(单位：米)
      * @property [height = 1000] - 锥体高度，相对于椭球面的高度。(单位：米)
+     * @property [distanceDisplayCondition] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      */
     type StyleOptions = any | {
         color?: string | Cesium.Color;
         radius?: number;
         height?: number;
+        distanceDisplayCondition?: Cesium.DistanceDisplayConditionGeometryInstanceAttribute;
+        highlight?: LightCone.StyleOptions | any;
     };
 }
 
@@ -14581,8 +17155,11 @@ declare namespace LightCone {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class LightCone extends BasePointPrimitive {
     constructor(options: {
@@ -14597,8 +17174,11 @@ declare class LightCone extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 颜色
@@ -14620,18 +17200,18 @@ declare namespace ModelPrimitive {
     /**
      * gltf小模型 支持的样式信息
      * @property [url] - glTF模型的URI的字符串或资源属性。
-     * @property [scale = 1] - 整体缩放比例
+     * @property [scale = 1.0] - 缩放比例
+     * @property [minimumPixelSize = 0.0] - 指定模型的近似最小像素大小，而不考虑scale缩放，内部会计算像素对应的实际scale值。
+     * @property [maximumScale] - 内部计算minimumPixelSize对应的实际scale值时，限定的最大的scale缩放比例。
      * @property [scaleX = 1] - X轴方向缩放比例
      * @property [scaleY = 1] - Y轴方向缩放比例
      * @property [scaleZ = 1] - Z轴方向缩放比例
-     * @property [heading = 0] - 方向角 （度数值，0-360度）
-     * @property [pitch = 0] - 俯仰角（度数值，0-360度）
-     * @property [roll = 0] - 翻滚角（度数值，0-360度）
-     * @property [noPitchRoll] - 当addDynamicPosition时，设置为true时，可以设置模型只动态更改方向，内部固定模型的Pitch和Roll方向值为0
-     * @property [minimumPixelSize = 0.0] - 指定模型的近似最小像素大小，而不考虑缩放。
-     * @property [maximumScale] - 模型的最大比例尺寸。minimumPixelSize的上限。
+     * @property [heading = 0] - 方向角 （度数值，0-360度），优先级高于orientation
+     * @property [pitch = 0] - 俯仰角（度数值，0-360度），优先级高于orientation
+     * @property [roll = 0] - 翻滚角（度数值，0-360度），优先级高于orientation
+     * @property [mergeOrientation = false] - 当存在orientation时（如addDynamicPosition等），设置为true时，可以在orientation基础的方式值上叠加设置是heading、pitch、roll值，比如用于设置模型不是标准的方向时的处理
      * @property [fill = false] - 是否填充，指定与模型渲染颜色混合
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [colorBlendMode = ColorBlendMode.HIGHLIGHT] - 指定颜色如何与模型混合。
      * @property [colorBlendAmount = 0.5] - 当colorBlendMode为MIX时指定颜色强度的数字属性。0.0的值表示模型渲染的颜色，1.0的值表示纯色，任何介于两者之间的值表示两者的混合。
@@ -14639,12 +17219,14 @@ declare namespace ModelPrimitive {
      * @property [silhouetteColor = "#ff0000"] - 轮廓颜色
      * @property [silhouetteSize = 2] - 轮廓宽度
      * @property [silhouetteAlpha = 0.8] - 轮廓透明度
+     * @property [enableShowOutline = true] - Whether to enable outlines for models using the {@link https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/CESIUM_primitive_outline|CESIUM_primitive_outline} extension. This can be set false to avoid post-processing geometry at load time. When false, the showOutlines and outlineColor options are ignored.
+     * @property [showOutline = true] - Whether to display the outline for models using the {@link https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/CESIUM_primitive_outline|CESIUM_primitive_outline} extension. When true, outlines are displayed. When false, outlines are not displayed.
+     * @property [outlineColor = Cesium.Color.BLACK] - The color to use when rendering outlines.
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
      * @property [distanceDisplayCondition_near = 0] - 最小距离
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayPoint] - 当视角距离超过一定距离后(distanceDisplayCondition_far定义的) 后显示为 像素点 对象的样式，仅在distanceDisplayCondition设置时有效。
      * @property [distanceDisplayBillboard] - 当视角距离超过一定距离后(distanceDisplayCondition_far定义的) 后显示为 图标 对象的样式，仅在distanceDisplayCondition设置时有效。
-     * @property [customShader] - 自定义shader效果
      * @property [hasShadows = true] - 是否阴影
      * @property [shadows = ShadowMode.ENABLED] - 指定模型是投射还是接收来自光源的阴影。
      * @property [clampToGround = false] - 是否贴地
@@ -14652,7 +17234,9 @@ declare namespace ModelPrimitive {
      * @property [incrementallyLoadTextures = true] - 确定模型加载后纹理是否会继续流进来。
      * @property [runAnimations = true] - 指定模型中指定的glTF动画是否应该启动。
      * @property [clampAnimations = true] - 指定在没有关键帧的情况下，glTF动画是否应该保持最后一个姿势。
+     * @property [releaseGltfJson = false] - When true, the glTF JSON is released once the glTF is loaded. This is is especially useful for cases like 3D Tiles, where each .gltf model is unique and caching the glTF JSON is not effective.
      * @property [lightColor] - 在为模型着色时指定光的颜色的属性。当undefined场景的浅色被使用代替。
+     * @property [imageBasedLighting] - The properties for managing image-based lighting on this model.
      * @property [nodeTransformations] - 一个对象，其中键是节点的名称，值是{@link TranslationRotationScale}属性，描述要应用到该节点的转换。该转换是在节点的现有转换之后(如glTF中指定的那样)应用的，并且不会替换节点的现有转换。
      * @property [articulations] - An object, where keys are composed of an articulation name, a single space, and a stage name, and the values are numeric properties.
      * @property [clippingPlanes] - 用于裁剪模型的Plane平面集合
@@ -14661,7 +17245,22 @@ declare namespace ModelPrimitive {
      * @property [dequantizeInShader = true] - 确定一个{@link https://github.com/google/draco|Draco}编码的模型是否在GPU上被去量化。这减少了编码模型的总内存使用量。
      * @property [backFaceCulling = true] - 是否剔除面向背面的几何图形。当为真时，背面剔除是由材料的双面属性决定的;当为false时，禁用背面剔除。如果{@link Model#color}是半透明的，或者{@link Model#silhouette}大于0.0，则背面不会被剔除。
      * @property [debugShowBoundingVolume = false] - 仅供调试。查看模型的包围边界球。
-     * @property [debugWireframe = false] - 仅供调试。查看模型的三角网线框图。
+     * @property [enableDebugWireframe = false] - 仅供调试。是否可以通过debugWireframe来切换查看模型的三角网线框图。
+     * @property [debugWireframe = false] - 仅供调试。是否打开模型的三角网线框图。
+     * @property [cull = true] - Whether or not to cull the model using frustum/horizon culling. If the model is part of a 3D Tiles tileset, this property will always be false, since the 3D Tiles culling system is used.
+     * @property [opaquePass = Cesium.Pass.OPAQUE] - The pass to use in the {@link DrawCommand} for the opaque portions of the model.
+     * @property [upAxis = Cesium.Axis.Y] - The up-axis of the glTF model.
+     * @property [forwardAxis = Cesium.Axis.Z] - The forward-axis of the glTF model.
+     * @property [customShader] - A custom shader. This will add user-defined GLSL code to the vertex and fragment shaders. Using custom shaders with a {@link Cesium3DTileStyle} may lead to undefined behavior.
+     * @property [content] - The tile content this model belongs to. This property will be undefined if model is not loaded as part of a tileset.
+     * @property [showCreditsOnScreen = false] - Whether to display the credits of this model on screen.
+     * @property [splitDirection = Cesium.SplitDirection.NONE] - The {@link SplitDirection} split to apply to this model.
+     * @property [projectTo2D = false] - Whether to accurately project the model's positions in 2D. If this is true, the model will be projected accurately to 2D, but it will use more memory to do so. If this is false, the model will use less memory and will still render in 2D / CV mode, but its positions may be inaccurate. This disables minimumPixelSize and prevents future modification to the model matrix. This also cannot be set after the model has loaded.
+     * @property [featureIdLabel = "featureId_0"] - Label of the feature ID set to use for picking and styling. For EXT_mesh_features, this is the feature ID's label property, or "featureId_N" (where N is the index in the featureIds array) when not specified. EXT_feature_metadata did not have a label field, so such feature ID sets are always labeled "featureId_N" where N is the index in the list of all feature Ids, where feature ID attributes are listed before feature ID textures. If featureIdLabel is an integer N, it is converted to the string "featureId_N" automatically. If both per-primitive and per-instance feature IDs are present, the instance feature IDs take priority.
+     * @property [instanceFeatureIdLabel = "instanceFeatureId_0"] - Label of the instance feature ID set used for picking and styling. If instanceFeatureIdLabel is set to an integer N, it is converted to the string "instanceFeatureId_N" automatically. If both per-primitive and per-instance feature IDs are present, the instance feature IDs take priority.
+     * @property [pointCloudShading] - Options for constructing a {@link PointCloudShading} object to control point attenuation and lighting.
+     * @property [classificationType] - Determines whether terrain, 3D Tiles or both will be classified by this model. This cannot be set after the model has loaded.
+     * @property [gltfCallback] - A function that is called with the loaded gltf object once loaded.
      *
      * //以下是 以下是 模型动画相关
      * @property [startTime] - 场景时间开始播放动画。当undefined时，动画从下一帧开始。
@@ -14671,23 +17270,23 @@ declare namespace ModelPrimitive {
      * @property [multiplier = 1.0] - 大于1.0的值增加动画播放的速度相对于场景时钟的速度;小于1.0会降低速度。
      * @property [reverse = false] - 当true时，动画会反向播放。
      * @property [loop = Cesium.ModelAnimationLoop.REPEAT] - 决定动画是否循环以及如何循环。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
         url?: string | Cesium.Resource;
         scale?: number;
+        minimumPixelSize?: number;
+        maximumScale?: number;
         scaleX?: number;
         scaleY?: number;
         scaleZ?: number;
         heading?: number;
         pitch?: number;
         roll?: number;
-        noPitchRoll?: boolean;
-        minimumPixelSize?: number;
-        maximumScale?: number;
+        mergeOrientation?: boolean;
         fill?: boolean;
         color?: string | Cesium.Color;
         opacity?: number;
@@ -14697,12 +17296,14 @@ declare namespace ModelPrimitive {
         silhouetteColor?: string | Cesium.Color;
         silhouetteSize?: number;
         silhouetteAlpha?: number;
+        enableShowOutline?: boolean;
+        showOutline?: boolean;
+        outlineColor?: Cesium.Color;
         distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
         distanceDisplayCondition_near?: number;
         distanceDisplayCondition_far?: number;
         distanceDisplayPoint?: PointEntity.StyleOptions | any;
         distanceDisplayBillboard?: BillboardEntity.StyleOptions | any;
-        customShader?: Cesium.CustomShader;
         hasShadows?: boolean;
         shadows?: Cesium.ShadowMode;
         clampToGround?: boolean;
@@ -14710,7 +17311,9 @@ declare namespace ModelPrimitive {
         incrementallyLoadTextures?: boolean;
         runAnimations?: boolean;
         clampAnimations?: boolean;
+        releaseGltfJson?: boolean;
         lightColor?: Cesium.Color;
+        imageBasedLighting?: Cesium.ImageBasedLighting;
         nodeTransformations?: Cesium.PropertyBag | {
             [key: string]: Cesium.TranslationRotationScale;
         };
@@ -14723,7 +17326,22 @@ declare namespace ModelPrimitive {
         dequantizeInShader?: boolean;
         backFaceCulling?: boolean;
         debugShowBoundingVolume?: boolean;
+        enableDebugWireframe?: boolean;
         debugWireframe?: boolean;
+        cull?: boolean;
+        opaquePass?: boolean;
+        upAxis?: Cesium.Axis;
+        forwardAxis?: Cesium.Axis;
+        customShader?: Cesium.CustomShader;
+        content?: Cesium.Cesium3DTileContent;
+        showCreditsOnScreen?: boolean;
+        splitDirection?: Cesium.SplitDirection;
+        projectTo2D?: boolean;
+        featureIdLabel?: string | number;
+        instanceFeatureIdLabel?: string | number;
+        pointCloudShading?: any;
+        classificationType?: Cesium.ClassificationType;
+        gltfCallback?: (...params: any[]) => any;
         startTime?: Cesium.JulianDate;
         delay?: number;
         stopTime?: Cesium.JulianDate;
@@ -14735,52 +17353,6 @@ declare namespace ModelPrimitive {
         addHeight?: number | string;
         highlight?: ModelPrimitive.StyleOptions | any;
         label?: LabelEntity.StyleOptions | any;
-    };
-    /**
-     * 当前类支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * graphic.on(mars3d.EventType.load, function (event) {
-     *   console.log('模型加载完成', event)
-     * })
-     * @property load - 完成加载，执行所有内部处理后
-     * @property add - 添加对象
-     * @property remove - 移除对象
-     * @property show - 显示了对象
-     * @property hide - 隐藏了对象
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     * @property highlightOpen - highlight高亮后
-     * @property highlightClose - highlight关闭后
-     * @property click - 左键单击 鼠标事件
-     * @property rightClick - 右键单击 鼠标事件
-     * @property mouseOver - 鼠标移入 鼠标事件
-     * @property mouseOut - 鼠标移出 鼠标事件
-     */
-    type EventType = {
-        load: string;
-        add: string;
-        remove: string;
-        show: string;
-        hide: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-        highlightOpen: string;
-        highlightClose: string;
-        click: string;
-        rightClick: string;
-        mouseOver: string;
-        mouseOut: string;
     };
 }
 
@@ -14795,13 +17367,16 @@ declare namespace ModelPrimitive {
  * @param [options.frameRate = 1] - 当postion为CallbackProperty时，多少帧获取一次数据。用于控制效率，如果卡顿就把该数值调大一些。
  * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
  * @param [options.attributes] - [cesium原生]每个实例的属性。
- * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量
- * @param [options.fixedHeading] - 当使用addDynamicPosition设置为动画轨迹位置时，是否使用固定的heading角度，而不用路线的自动方向角度。
- * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
- * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.HOLD] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
+ * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
+ * @param [options.maxCacheCount = 50] - 当使用addDynamicPosition设置为动画轨迹位置时，保留的坐标点数量，传-1时不限制
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
  * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
  * @param [options.frameRateHeight = 30] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，多少帧计算一次贴模型高度
  * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+ * @param [options.referenceFrame = Cesium.ReferenceFrame.FIXED] - 当使用addDynamicPosition设置为动画轨迹位置时，position位置被定义的参考系。
+ * @param [options.numberOfDerivatives = 0] - 当使用addDynamicPosition设置为动画轨迹位置时，每个位置的导数的数量;即速度、加速度等。
+ * @param [options.autoMiddleDynamicPosition] - 当使用addDynamicPosition设置为动画轨迹位置时，如果中间缺少数据时是否自动添加中间点。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -14810,8 +17385,11 @@ declare namespace ModelPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ModelPrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -14823,13 +17401,16 @@ declare class ModelPrimitive extends BasePointPrimitive {
         frameRate?: number;
         appearance?: Cesium.Appearance;
         attributes?: Cesium.Appearance;
+        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
         maxCacheCount?: number;
-        fixedHeading?: boolean;
         forwardExtrapolationType?: Cesium.ExtrapolationType;
         backwardExtrapolationType?: Cesium.ExtrapolationType;
         clampToTileset?: boolean;
         frameRateHeight?: number;
         objectsToExclude?: any;
+        referenceFrame?: Cesium.ReferenceFrame;
+        numberOfDerivatives?: number;
+        autoMiddleDynamicPosition?: boolean;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -14838,8 +17419,11 @@ declare class ModelPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 模型整体的缩放比例
@@ -14858,7 +17442,7 @@ declare class ModelPrimitive extends BasePointPrimitive {
      */
     scaleZ: number;
     /**
-     * 获取图层完成解析加载完成的Promise承诺, 等价于load事件(区别在于load事件必须在load完成前绑定才能监听)。
+     * 获取模型完成解析加载完成的Promise承诺, 等价于load事件(区别在于load事件必须在load完成前绑定才能监听)。
      */
     readonly readyPromise: Promise<Cesium.Model>;
     /**
@@ -14875,7 +17459,7 @@ declare namespace Pit {
      * @property image - 井墙面贴图URL
      * @property imageBottom - 井底面贴图URL
      * @property diffHeight - 井下深度（单位：米）
-     * @property [splitNum = 50] - 井墙面每两点之间插值个数
+     * @property [splitNum = 50] - 井墙面每两点之间插值个数(概略值，有经纬网网格来插值)
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -14883,7 +17467,7 @@ declare namespace Pit {
         imageBottom: string;
         diffHeight: number;
         splitNum?: number;
-        label?: LabelPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -14914,8 +17498,11 @@ declare namespace Pit {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Pit extends BasePolyPrimitive {
     constructor(options: {
@@ -14942,8 +17529,11 @@ declare class Pit extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 井下深度（单位：米）
@@ -14967,6 +17557,7 @@ declare namespace PlanePrimitive {
      * @property [roll = 0] - 翻滚角（度数值，0-360度）
      * @property [color = "#00FF00"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
@@ -14983,7 +17574,7 @@ declare namespace PlanePrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -14996,6 +17587,7 @@ declare namespace PlanePrimitive {
         roll?: number;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         materialType?: string;
         materialOptions?: any;
         material?: Cesium.Material;
@@ -15042,8 +17634,11 @@ declare namespace PlanePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PlanePrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -15071,8 +17666,11 @@ declare class PlanePrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 用于指定位置的矩阵
@@ -15084,7 +17682,7 @@ declare namespace PointPrimitive {
     /**
      * 像素点 支持的样式信息
      * @property [pixelSize = 10] - 像素大小
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
@@ -15096,13 +17694,14 @@ declare namespace PointPrimitive {
      * @property [scaleByDistance_near = 1000] - 下限
      * @property [scaleByDistance_nearValue = 1] - 比例值
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 10000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [visibleDepth = true] - 是否被遮挡
      * @property [disableDepthTestDistance] - 指定从相机到禁用深度测试的距离。
      * @property [translucencyByDistance] - 用于基于与相机的距离设置半透明度。
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [clampToGround = false] - 是否贴地, 仅限普通坐标. 提示：Cesium默认不支持贴地，是内部计算了贴地高度值。【大量数据时可能卡死，注意大数据下不用为ture】
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -15124,9 +17723,10 @@ declare namespace PointPrimitive {
         visibleDepth?: boolean;
         disableDepthTestDistance?: number;
         translucencyByDistance?: Cesium.NearFarScalar;
+        clampToGround?: boolean;
         setHeight?: number | string;
         addHeight?: number | string;
-        label?: LabelPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -15137,6 +17737,11 @@ declare namespace PointPrimitive {
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.frameRate = 1] - 当postion为CallbackProperty时，多少帧获取一次数据。用于控制效率，如果卡顿就把该数值调大一些。
+ * @param [options.forwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时，在任何可用坐标之后一次请求值时要执行的推断类型，默认为最后一个坐标位置。
+ * @param [options.backwardExtrapolationType = Cesium.ExtrapolationType.NONE] - 当使用addDynamicPosition设置为动画轨迹位置时， 在任何可用坐标之前一次请求值时要执行的推断类型，默认为第一个坐标位置。
+ * @param [options.clampToTileset] - 当使用addDynamicPosition设置为动画轨迹位置时，是否进行贴模型。
+ * @param [options.frameRateHeight = 30] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，多少帧计算一次贴模型高度
+ * @param [options.objectsToExclude] - 当使用addDynamicPosition设置为动画轨迹位置时，并clampToTileset：true时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
  * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
@@ -15145,8 +17750,11 @@ declare namespace PointPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PointPrimitive extends BasePointPrimitive {
     constructor(options: {
@@ -15154,6 +17762,11 @@ declare class PointPrimitive extends BasePointPrimitive {
         style: PointPrimitive.StyleOptions | any;
         attr?: any;
         frameRate?: number;
+        forwardExtrapolationType?: Cesium.ExtrapolationType;
+        backwardExtrapolationType?: Cesium.ExtrapolationType;
+        clampToTileset?: boolean;
+        frameRateHeight?: number;
+        objectsToExclude?: any;
         popup?: string | any[] | ((...params: any[]) => any);
         popupOptions?: Popup.StyleOptions | any;
         tooltip?: string | any[] | ((...params: any[]) => any);
@@ -15162,13 +17775,20 @@ declare class PointPrimitive extends BasePointPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 当加载primitive数据的内部Cesium容器
      */
     readonly primitiveCollection: Cesium.PointPrimitiveCollection;
+    /**
+     * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
+     */
+    position: Cesium.Cartesian3 | LngLatPoint;
 }
 
 declare namespace PolygonPrimitive {
@@ -15177,10 +17797,10 @@ declare namespace PolygonPrimitive {
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [randomColor = false] - 是否随机颜色
-     * @property [image] - 当为贴图时，贴图的url
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [stRotation = 0] - 多边形纹理的角度（弧度值），正北为0，逆时针旋转
      * @property [stRotationDegree = 0] - 多边形纹理的角度（度数值，0-360度），与stRotation二选一
      * @property [outline = false] - 是否边框
@@ -15193,12 +17813,19 @@ declare namespace PolygonPrimitive {
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定每个纬度点和经度点之间的角距离。
      * @property [closeTop = true] - 当为false时，离开一个挤压多边形的顶部打开。
      * @property [closeBottom = true] - 当为false时，离开挤压多边形的底部打开。
+     * @property [textureCoordinates] - 纹理坐标，是Cartesian2的UV坐标数组的多边形层次结构。对贴地对象无效。
+     * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
+     * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [arcType = Cesium.ArcType.GEODESIC] - 多边形的边缘必须遵循的线条类型。
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定对象是投射还是接收来自光源的阴影。
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [classification = false] - 是否为ClassificationPrimitive ，分类基元 表示Scene要高亮显示的包围几何的体积
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
+     *
      *
      * //以下是 这是MaterialAppearance的参数
      * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
@@ -15209,12 +17836,12 @@ declare namespace PolygonPrimitive {
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
      * @property [buffer] - 对坐标进行缓冲扩大buffer指定的半径范围，单位：米。如用于单体化建筑物扩大点方便鼠标拾取。
-     * @property [setHeight] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示 ，额外支持：<br />
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         materialType?: string;
@@ -15236,12 +17863,18 @@ declare namespace PolygonPrimitive {
         granularity?: number;
         closeTop?: boolean;
         closeBottom?: boolean;
+        textureCoordinates?: Cesium.PolygonHierarchy;
+        distanceDisplayCondition?: boolean | Cesium.DistanceDisplayConditionGeometryInstanceAttribute;
+        distanceDisplayCondition_far?: number;
+        distanceDisplayCondition_near?: number;
         arcType?: Cesium.ArcType;
         hasShadows?: boolean;
         shadows?: Cesium.ShadowMode;
         clampToGround?: boolean;
         classificationType?: Cesium.ClassificationType;
         classification?: boolean;
+        offsetHeight?: number;
+        offsetAttribute?: number;
         flat?: boolean;
         faceForward?: boolean;
         translucent?: boolean;
@@ -15250,10 +17883,10 @@ declare namespace PolygonPrimitive {
         fragmentShaderSource?: string;
         renderState?: any;
         buffer?: number;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
+        setHeight?: number | string | number[];
+        addHeight?: number | string | number[];
         highlight?: PolygonPrimitive.StyleOptions | any;
-        label?: LabelPrimitive.StyleOptions | any | any;
+        label?: LabelEntity.StyleOptions | any | any;
     };
 }
 
@@ -15283,8 +17916,11 @@ declare namespace PolygonPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolygonPrimitive extends BasePolyPrimitive {
     constructor(options: {
@@ -15311,8 +17947,11 @@ declare class PolygonPrimitive extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 周长 距离（单位：米）
@@ -15335,7 +17974,7 @@ declare namespace PolylinePrimitive {
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [randomColor = false] - 是否随机颜色
      * @property [colors] - 定义每顶点或每段颜色 的数组。
@@ -15345,7 +17984,7 @@ declare namespace PolylinePrimitive {
      * @property [depthFailColor] - 遮挡处颜色
      * @property [depthFailOpacity] - 遮挡处透明度
      * @property [distanceDisplayCondition = false] - 是否按视距显示 或 指定此框将显示在与摄像机的多大距离。
-     * @property [distanceDisplayCondition_far = 100000] - 最大距离
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
      * @property [distanceDisplayCondition_near = 0] - 最小距离
      * @property [arcType = Cesium.ArcType.GEODESIC] - 折线段必须遵循的线的类型。
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 如果arcType不是arcType.none，则指定每个纬度和经度之间的角距离的数字属性。
@@ -15353,12 +17992,12 @@ declare namespace PolylinePrimitive {
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定对象是投射还是接收来自光源的阴影。
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
-     * @property [setHeight] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示 ，额外支持：<br />
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         width?: number;
@@ -15374,7 +18013,7 @@ declare namespace PolylinePrimitive {
         depthFail?: boolean;
         depthFailColor?: string;
         depthFailOpacity?: number;
-        distanceDisplayCondition?: boolean | Cesium.DistanceDisplayCondition;
+        distanceDisplayCondition?: boolean | Cesium.DistanceDisplayConditionGeometryInstanceAttribute;
         distanceDisplayCondition_far?: number;
         distanceDisplayCondition_near?: number;
         arcType?: Cesium.ArcType;
@@ -15383,10 +18022,10 @@ declare namespace PolylinePrimitive {
         shadows?: Cesium.ShadowMode;
         clampToGround?: boolean;
         classificationType?: Cesium.ClassificationType;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
+        setHeight?: number | string | number[];
+        addHeight?: number | string | number[];
         highlight?: PolylinePrimitive.StyleOptions | any;
-        label?: LabelPrimitive.StyleOptions | any | any;
+        label?: LabelEntity.StyleOptions | any | any;
     };
 }
 
@@ -15416,8 +18055,11 @@ declare namespace PolylinePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolylinePrimitive extends BasePolyPrimitive {
     constructor(options: {
@@ -15444,79 +18086,29 @@ declare class PolylinePrimitive extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
-    });
-}
-
-/**
- * 简单线 Primitive图元 矢量对象
- * @param options - 参数对象，包括以下：
- * @param options.positions - 坐标位置
- * @param options.style - 样式信息
- * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
- * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
- * @param [options.attributes] - [cesium原生]每个实例的属性。
- * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
- * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
- * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
- * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
- * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
- * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
- * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
- * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
- * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
- * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
- * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
- * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
- * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
- * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
- * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
- * @param [options.id = createGuid()] - 矢量数据id标识
- * @param [options.name = ''] - 矢量数据名称
- * @param [options.show = true] - 矢量数据是否显示
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
- */
-declare class PolylineSimplePrimitive extends BasePolyPrimitive {
-    constructor(options: {
-        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
-        style: PolylinePrimitive.StyleOptions | any;
-        attr?: any;
-        appearance?: Cesium.Appearance;
-        attributes?: Cesium.Appearance;
-        depthFailAppearance?: Cesium.Appearance;
-        vertexCacheOptimize?: boolean;
-        interleave?: boolean;
-        compressVertices?: boolean;
-        releaseGeometryInstances?: boolean;
-        allowPicking?: boolean;
-        cull?: boolean;
-        asynchronous?: boolean;
-        debugShowBoundingVolume?: boolean;
-        debugShowShadowVolume?: boolean;
-        popup?: string | any[] | ((...params: any[]) => any);
-        popupOptions?: Popup.StyleOptions | any;
-        tooltip?: string | any[] | ((...params: any[]) => any);
-        tooltipOptions?: Tooltip.StyleOptions | any;
-        contextmenuItems?: any;
-        id?: string | number;
-        name?: string;
-        show?: boolean;
-        eventParent?: BaseClass | boolean;
-        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
 declare namespace PolylineVolumePrimitive {
     /**
      * 管道线 Primitive图元 支持的样式信息
-     * @property [radius = 10] - 半径
      * @property [shape = "pipeline"] - 形状类型 或 定义要挤压的形状。类型可选项：pipeline (解释：空心管),circle (解释：实心管),star (解释：星状管),
+     * @property [radius = 10] - 半径(单位：米)
+     * @property [thicknes = radius/3] - 厚度(单位：米)，空心管/星状管 的外层厚度
+     * @property [slices] - 边数，比如为4时是矩形管；星状管代表角的个数；
+     * @property [startAngle = 0] - 开始角度，取值范围0-360
+     * @property [endAngle = 360] - 结束角度，取值范围0-360，比如endAngle=180的空心管是拱形半圆管道
+     * @property [vscale = 1] - 垂直缩放比例
+     * @property [hscale = 1] - 水平缩放比例
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [cornerType = CornerType.ROUNDED] - 指定边角的样式。
      * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定每个纬度点和经度点之间的角距离。
@@ -15531,13 +18123,19 @@ declare namespace PolylineVolumePrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [setHeight] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
-        radius?: number;
         shape?: string | Cesium.Cartesian2[];
+        radius?: number;
+        thicknes?: number;
+        slices?: number;
+        startAngle?: number;
+        endAngle?: number;
+        vscale?: number;
+        hscale?: number;
         materialType?: string;
         materialOptions?: any;
         material?: Cesium.Material;
@@ -15554,9 +18152,9 @@ declare namespace PolylineVolumePrimitive {
         vertexShaderSource?: string;
         fragmentShaderSource?: string;
         renderState?: any;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
-        label?: LabelPrimitive.StyleOptions | any;
+        setHeight?: number | string | number[];
+        addHeight?: number | string | number[];
+        label?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -15586,8 +18184,11 @@ declare namespace PolylineVolumePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class PolylineVolumePrimitive extends BasePolyPrimitive {
     constructor(options: {
@@ -15614,8 +18215,11 @@ declare class PolylineVolumePrimitive extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -15625,9 +18229,9 @@ declare namespace RectanglePrimitive {
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
-     * @property [image] - 当为贴图时，贴图的url
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
      * @property [outlineOpacity = 0.6] - 边框透明度
@@ -15644,8 +18248,19 @@ declare namespace RectanglePrimitive {
      * @property [clampToGround = false] - 是否贴地
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
      * @property [classification = false] - 是否为ClassificationPrimitive ，分类基元 表示Scene要高亮显示的包围几何的体积
-     * @property [setHeight] - 指定坐标高度值（常用于图层中配置）,也支持字符串模版配置
-     * @property [addHeight] - 在现有坐标基础上增加的高度值（常用于图层中配置）,也支持字符串模版配置
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
+     *
+     * //以下是 这是MaterialAppearance的参数
+     * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
+     * @property [faceForward = !closed] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = false] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
+     * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
+     * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
+     * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
      * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
@@ -15671,9 +18286,18 @@ declare namespace RectanglePrimitive {
         clampToGround?: boolean;
         classificationType?: Cesium.ClassificationType;
         classification?: boolean;
+        offsetHeight?: number;
+        offsetAttribute?: number;
+        flat?: boolean;
+        faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
+        vertexShaderSource?: string;
+        fragmentShaderSource?: string;
+        renderState?: any;
         setHeight?: number | string;
         addHeight?: number | string;
-        label?: LabelPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -15704,8 +18328,11 @@ declare namespace RectanglePrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class RectanglePrimitive extends BasePolyPrimitive {
     constructor(options: {
@@ -15733,8 +18360,11 @@ declare class RectanglePrimitive extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 坐标数据对应的矩形边界对象
@@ -15769,6 +18399,117 @@ declare class RectanglePrimitive extends BasePolyPrimitive {
     readonly area: number;
 }
 
+declare namespace ReflectionWater {
+    /**
+     * 反射水面(显示模型倒影)   Primitive图元 支持的样式信息
+     * @property [color = "#123e59"] - 水面的颜色
+     * @property [opacity = 0.9] - 透明度，取值范围：0.0-1.0
+     * @property [normalMap] - 水正常扰动的法线图
+     * @property [reflectivity = 0.5] - 水面反射率，取值范围：0.0-1.0
+     * @property [ripple = 50.0] - 波纹大小（数值越大，波纹越密集）
+     * @property [distortion = 3.7] - 倒影的扭曲程度
+     * @property [shiny = 100.0] - 光照强度
+     * @property [animationSpeed = 1.0] - 控制水的动画速度的数字。
+     * @property [specularIntensity = 0.3] - 控制镜面反射强度的数字。
+     * @property [lightDirection = new Cesium.Cartesian3(0, 0, 1)] - 光照方向，单位向量。原点为水面中心点，水面中心点由 options.positions 决定，X、Y、Z轴对应水面中心点的东、北、上方向。（默认为0,0,1）
+     * @property [stRotation = 0] - 水流方向的角度（弧度值），正北为0，逆时针旋转
+     * @property [stRotationDegree = 0] - 水流方向的角度（度数值，0-360度），与stRotation二选一
+     * @property [height = 0] - 高程，圆相对于椭球面的高度。
+     * @property [diffHeight = 100] - 高度差（走廊本身的高度），与extrudedHeight二选一。
+     * @property [extrudedHeight] - 指定走廊挤压面相对于椭球面的高度。
+     * @property [granularity = Cesium.Math.RADIANS_PER_DEGREE] - 指定每个纬度点和经度点之间的角距离。
+     * @property [closeTop = true] - 当为false时，离开一个挤压多边形的顶部打开。
+     * @property [closeBottom = true] - 当为false时，离开挤压多边形的底部打开。
+     * @property [arcType = Cesium.ArcType.GEODESIC] - 多边形的边缘必须遵循的线条类型。
+     */
+    type StyleOptions = any | {
+        color?: string;
+        opacity?: number;
+        normalMap?: string;
+        reflectivity?: number;
+        ripple?: number;
+        distortion?: number;
+        shiny?: number;
+        animationSpeed?: number;
+        specularIntensity?: number;
+        lightDirection?: Cesium.Cartesian3;
+        stRotation?: number;
+        stRotationDegree?: number;
+        height?: number;
+        diffHeight?: number;
+        extrudedHeight?: number;
+        granularity?: number;
+        closeTop?: boolean;
+        closeBottom?: boolean;
+        arcType?: Cesium.ArcType;
+    };
+}
+
+/**
+ * 反射水面(显示模型倒影) Primitive图元 矢量对象, 目前仅支持少量数据（多了就卡）
+ * @param options - 参数对象，包括以下：
+ * @param options.positions - 坐标位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
+ * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
+ * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
+ * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
+ * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
+ * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
+ * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
+ * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
+ * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
+ * @param [options.frameRate = 1] - 多少帧刷新渲染一次。用于控制效率，如果卡顿就把该数值调大一些。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class ReflectionWater extends PolygonPrimitive {
+    constructor(options: {
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+        style: ReflectionWater.StyleOptions | any;
+        attr?: any;
+        vertexCacheOptimize?: boolean;
+        interleave?: boolean;
+        compressVertices?: boolean;
+        releaseGeometryInstances?: boolean;
+        allowPicking?: boolean;
+        cull?: boolean;
+        asynchronous?: boolean;
+        debugShowBoundingVolume?: boolean;
+        debugShowShadowVolume?: boolean;
+        frameRate?: number;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 高度
+     */
+    height: number;
+}
+
 declare namespace Road {
     /**
      * 道路 支持的样式信息
@@ -15794,8 +18535,11 @@ declare namespace Road {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Road extends DynamicRiver {
     constructor(options: {
@@ -15805,8 +18549,11 @@ declare class Road extends DynamicRiver {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -15814,12 +18561,14 @@ declare namespace ScrollWall {
     /**
      * 走马灯围墙效果 支持的样式信息
      * @property [diffHeight = 100] - 墙高
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
      * @property [speed = 10] - 速度，值越大越快
      * @property [reverse = false] - 方向：true往上、false往下
      * @property [style = 1] - 样式，可选值：1、2
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定对象是投射还是接收来自光源的阴影。
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
+     * @property [label] - 支持附带文字的显示
      */
     type StyleOptions = any | {
         diffHeight?: number;
@@ -15829,6 +18578,8 @@ declare namespace ScrollWall {
         reverse?: boolean;
         style?: number;
         shadows?: Cesium.ShadowMode;
+        highlight?: ScrollWall.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
     };
 }
 
@@ -15846,8 +18597,11 @@ declare namespace ScrollWall {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class ScrollWall extends BasePolyPrimitive {
     constructor(options: {
@@ -15862,9 +18616,235 @@ declare class ScrollWall extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 中心点坐标 （笛卡尔坐标）
+     */
+    readonly center: Cesium.Cartesian3;
+    /**
+     * 矢量数据对应的 Cesium内部对象 (不同子类中实现)
+     */
+    readonly czmObject: Cesium.Entity | Cesium.Primitive | Cesium.GroundPrimitive | Cesium.ClassificationPrimitive | any;
+}
+
+declare namespace ThickWall {
+    /**
+     * 有厚度的围墙效果 支持的样式信息
+     * @property [diffHeight = 100] - 墙高
+     * @property [width = 10] - 墙厚度
+     * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
+     * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
+     * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
+     * @property [color = "#ffffff"] - 颜色
+     * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
+     * @property [closure = false] - 是否闭合
+     * @property [hasShadows = false] - 是否阴影
+     * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定折线是投射还是接收来自光源的阴影。
+     *
+     * //以下是 这是MaterialAppearance的参数
+     * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
+     * @property [faceForward = !closed] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = false] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
+     * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
+     * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
+     * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
+     * @property [label] - 支持附带文字的显示 ，额外支持：<br />
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     */
+    type StyleOptions = any | {
+        diffHeight?: number;
+        width?: number;
+        materialType?: string;
+        materialOptions?: any;
+        material?: Cesium.Material;
+        color?: string | Cesium.Color;
+        opacity?: number;
+        closure?: boolean;
+        hasShadows?: boolean;
+        shadows?: Cesium.ShadowMode;
+        flat?: boolean;
+        faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
+        vertexShaderSource?: string;
+        fragmentShaderSource?: string;
+        renderState?: any;
+        highlight?: WallPrimitive.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
+    };
+}
+
+/**
+ * 有厚度的围墙效果 矢量对象
+ * @param options - 参数对象，包括以下：
+ * @param options.positions - 坐标位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class ThickWall extends BasePolyPrimitive {
+    constructor(options: {
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+        style: ThickWall.StyleOptions | any;
+        attr?: any;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 矢量数据对应的 Cesium内部对象 (不同子类中实现)
+     */
+    readonly czmObject: Cesium.Entity | Cesium.Primitive | Cesium.GroundPrimitive | Cesium.ClassificationPrimitive | any;
+}
+
+declare namespace VideoPrimitive {
+    /**
+     * 视频面   Primitive图元 支持的样式信息
+     * @property [url] - 视频对应url地址
+     * @property [container] - 视频对应的video标签,与url二选一
+     * @property [opacity = 1.0] - 透明度
+     * @property [distanceDisplayCondition_far = number.MAX_VALUE] - 最大距离
+     * @property [distanceDisplayCondition_near = 0] - 最小距离
+     *
+     * //以下是 这是MaterialAppearance的参数
+     * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
+     * @property [faceForward = !closed] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = false] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
+     * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
+     * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
+     * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
+     */
+    type StyleOptions = any | {
+        url?: string;
+        container?: HTMLVideoElement;
+        opacity?: number;
+        distanceDisplayCondition_far?: number;
+        distanceDisplayCondition_near?: number;
+        flat?: boolean;
+        faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
+        vertexShaderSource?: string;
+        fragmentShaderSource?: string;
+        renderState?: any;
+    };
+}
+
+/**
+ * 视频面  Primitive图元 矢量对象
+ * @param options - 参数对象，包括以下：
+ * @param options.positions - 坐标位置
+ * @param options.style - 样式信息
+ * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
+ * @param [options.appearance] - [cesium原生]用于渲染图元的外观。
+ * @param [options.attributes] - [cesium原生]每个实例的属性。
+ * @param [options.depthFailAppearance] - 当深度测试失败时，用于为该图元着色的外观。
+ * @param [options.vertexCacheOptimize = false] - 当true，几何顶点优化前和后顶点着色缓存。
+ * @param [options.interleave = false] - 当true时，几何顶点属性被交叉，这可以略微提高渲染性能，但会增加加载时间。
+ * @param [options.compressVertices = true] - 当true时，几何顶点被压缩，这将节省内存。提升效率。
+ * @param [options.releaseGeometryInstances = true] - 当true时，图元不保留对输入geometryInstances的引用以节省内存。
+ * @param [options.allowPicking = true] - 当true时，每个几何图形实例只能通过{@link Scene#pick}进行挑选。当false时，保存GPU内存。
+ * @param [options.cull = true] - 当true时，渲染器会根据图元的边界体积来剔除它们的截锥和地平线。设置为false，如果你手动剔除图元，可以获得较小的性能提升。
+ * @param [options.asynchronous = true] - 确定该图元是异步创建还是阻塞创建，直到就绪。
+ * @param [options.debugShowBoundingVolume = false] - 仅供调试。确定该图元命令的边界球是否显示。
+ * @param [options.debugShowShadowVolume = false] - 仅供调试。贴地时，确定是否绘制了图元中每个几何图形的阴影体积。必须是true创建卷之前要释放几何图形或选项。releaseGeometryInstance必须是false。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数
+ * @param [options.contextmenuItems] - 当矢量数据支持右键菜单时，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 矢量数据id标识
+ * @param [options.name = ''] - 矢量数据名称
+ * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
+ */
+declare class VideoPrimitive extends BasePolyPrimitive {
+    constructor(options: {
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+        style: VideoPrimitive.StyleOptions | any;
+        attr?: any;
+        appearance?: Cesium.Appearance;
+        attributes?: Cesium.Appearance;
+        depthFailAppearance?: Cesium.Appearance;
+        vertexCacheOptimize?: boolean;
+        interleave?: boolean;
+        compressVertices?: boolean;
+        releaseGeometryInstances?: boolean;
+        allowPicking?: boolean;
+        cull?: boolean;
+        asynchronous?: boolean;
+        debugShowBoundingVolume?: boolean;
+        debugShowShadowVolume?: boolean;
+        popup?: string | any[] | ((...params: any[]) => any);
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: string | any[] | ((...params: any[]) => any);
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        contextmenuItems?: any;
+        id?: string | number;
+        name?: string;
+        show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
+        eventParent?: BaseClass | boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 裁切范围（用UV坐标定义）
+     */
+    rois: number[];
+    /**
+     * 是否正在编辑状态，不是所有子类均支持编辑
+     */
+    readonly isEditingGrid: boolean;
+    /**
+     * 开启编辑网格点
+     */
+    startEditingGrid(): void;
+    /**
+     * 停止编辑网格点
+     */
+    stopEditingGrid(): void;
+    /**
+     * 重新渲染
+     * @param [style] - 新的样式信息
+     * @returns 当前对象本身
+     */
+    redraw(style?: any): BasePrimitive;
     /**
      * 矢量数据对应的 Cesium内部对象 (不同子类中实现)
      */
@@ -15878,8 +18858,9 @@ declare namespace WallPrimitive {
      * @property [materialType = "Color"] - 填充材质类型 ,可选项：{@link MaterialType}
      * @property [materialOptions] - materialType对应的{@link MaterialType}中材质参数
      * @property [material] - 指定用于填充的材质，指定material后`materialType`和`materialOptions`将被覆盖。
-     * @property [color = "#3388ff"] - 颜色
+     * @property [color = "#ffffff"] - 颜色
      * @property [opacity = 1.0] - 透明度，取值范围：0.0-1.0
+     * @property [image] - 图片材质时，贴图的url，等价于 materialType:'Image'
      * @property [closure = false] - 是否闭合
      * @property [outline = false] - 是否边框
      * @property [outlineColor = "#ffffff"] - 边框颜色
@@ -15895,10 +18876,12 @@ declare namespace WallPrimitive {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示 ，额外支持：<br />
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         diffHeight?: number;
@@ -15907,6 +18890,7 @@ declare namespace WallPrimitive {
         material?: Cesium.Material;
         color?: string | Cesium.Color;
         opacity?: number;
+        image?: string;
         closure?: boolean;
         outline?: boolean;
         outlineColor?: string | Cesium.Color;
@@ -15920,8 +18904,10 @@ declare namespace WallPrimitive {
         vertexShaderSource?: string;
         fragmentShaderSource?: string;
         renderState?: any;
+        setHeight?: number | string;
+        addHeight?: number | string;
         highlight?: WallPrimitive.StyleOptions | any;
-        label?: LabelPrimitive.StyleOptions | any | any;
+        label?: LabelEntity.StyleOptions | any | any;
     };
 }
 
@@ -15951,8 +18937,11 @@ declare namespace WallPrimitive {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class WallPrimitive extends BasePolyPrimitive {
     constructor(options: {
@@ -15979,8 +18968,11 @@ declare class WallPrimitive extends BasePolyPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -16013,6 +19005,8 @@ declare namespace Water {
      * @property [hasShadows = false] - 是否阴影
      * @property [shadows = Cesium.ShadowMode.DISABLED] - 指定对象是投射还是接收来自光源的阴影。
      * @property [classificationType = Cesium.ClassificationType.BOTH] - 指定贴地时的覆盖类型，是只对地形、3dtiles 或 两者同时。
+     * @property [offsetHeight] - 平移指定偏移高度（相对于原始坐标值）
+     * @property [offsetAttribute] - offsetHeight时对应平移哪些顶点，比如：Cesium.GeometryOffsetAttribute.ALL
      *
      *
      * //以下是 这是MaterialAppearance的参数
@@ -16023,12 +19017,12 @@ declare namespace Water {
      * @property [vertexShaderSource] - 可选的GLSL顶点着色器源，覆盖默认的顶点着色器。
      * @property [fragmentShaderSource] - 可选的GLSL片段着色器源覆盖默认的片段着色器。
      * @property [renderState] - 可选渲染状态，以覆盖默认渲染状态。
-     * @property [setHeight] - 指定坐标高度值，或数组指定每个点的高度（常用于图层中配置）
-     * @property [addHeight] - 在现有坐标基础上增加的高度值，或数组指定每个点增加的高度（常用于图层中配置）
-     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，创建Graphic后也可以openHighlight、closeHighlight方法来手动调用
+     * @property [setHeight] - 指定坐标高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [addHeight] - 在现有坐标基础上增加的高度值（对编辑时无效，仅初始化传入有效，常用于图层中配置）,也支持字符串模版配置
+     * @property [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
      * @property [label] - 支持附带文字的显示 ，额外支持：<br />
-     * //  * @property {String|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
-     * //  * @property {Boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
+     * //  * @property {string|LngLatPoint} [label.position] 文字所在位置，默认是矢量对象本身的center属性值。支持配置 'center'：围合面的内部中心点坐标，'{xxxx}'配置属性字段, 或者直接指定坐标值。
+     * //  * @property {boolean} [label.showAll] MultiPolygon和MultiLineString时，是否显示所有注记，默认只在最大坐标数的面或线上显示。
      */
     type StyleOptions = any | {
         baseWaterColor?: string;
@@ -16057,6 +19051,8 @@ declare namespace Water {
         hasShadows?: boolean;
         shadows?: Cesium.ShadowMode;
         classificationType?: Cesium.ClassificationType;
+        offsetHeight?: number;
+        offsetAttribute?: number;
         flat?: boolean;
         faceForward?: boolean;
         translucent?: boolean;
@@ -16064,10 +19060,10 @@ declare namespace Water {
         vertexShaderSource?: string;
         fragmentShaderSource?: string;
         renderState?: any;
-        setHeight?: number | number[];
-        addHeight?: number | number[];
+        setHeight?: number | string | number[];
+        addHeight?: number | string | number[];
         highlight?: PolygonPrimitive.StyleOptions | any;
-        label?: LabelPrimitive.StyleOptions | any | any;
+        label?: LabelEntity.StyleOptions | any | any;
     };
 }
 
@@ -16094,8 +19090,11 @@ declare namespace Water {
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
+ * @param [options.availability] - 指定时间范围内显示该对象
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的图层对象，false时不冒泡事件
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseGraphic#flyTo}方法参数。
  */
 declare class Water extends PolygonPrimitive {
     constructor(options: {
@@ -16119,8 +19118,11 @@ declare class Water extends PolygonPrimitive {
         id?: string | number;
         name?: string;
         show?: boolean;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         eventParent?: BaseClass | boolean;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -16184,9 +19186,9 @@ declare namespace BaseGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -16194,6 +19196,7 @@ declare namespace BaseGraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class BaseGraphicLayer extends BaseLayer {
     constructor(options?: {
@@ -16231,6 +19234,7 @@ declare class BaseGraphicLayer extends BaseLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 绑定鼠标移入或单击后的 对象高亮
@@ -16248,6 +19252,18 @@ declare class BaseGraphicLayer extends BaseLayer {
      * @returns 无
      */
     unbindHighlight(): void;
+    /**
+     * 高亮对象
+     * @param graphic - 高亮的矢量对，类型支持{@link GraphicType}
+     * @param [event] - 事件对象
+     * @returns 无
+     */
+    openHighlight(graphic: BaseGraphic, event?: any): void;
+    /**
+     * 清除已高亮的矢量对象
+     * @returns 无
+     */
+    closeHighlight(): void;
     /**
      * 是否存在Popup绑定，判断图层及内部所有矢量数据
      * @returns 是否存在Popup绑定
@@ -16308,9 +19324,9 @@ declare class BaseGraphicLayer extends BaseLayer {
     closeTooltip(): BaseGraphicLayer;
     /**
      * 是否有绑定的右键菜单
-     * @returns 当前对象本身，可以链式调用
+     * @returns 是否有绑定
      */
-    hasContextMenu(): BaseGraphicLayer;
+    hasContextMenu(): boolean;
     /**
      * 获取绑定的右键菜单数组
      * @returns 右键菜单数组
@@ -16357,7 +19373,7 @@ declare class BaseGraphicLayer extends BaseLayer {
      * @returns 当前对象本身，可以链式调用
      */
     bindContextMenu(content: {
-        text?: string;
+        text?: string | ((...params: any[]) => any);
         icon?: string;
         show?: ((...params: any[]) => any) | boolean;
         callback?: (...params: any[]) => any;
@@ -16408,16 +19424,17 @@ declare class BaseGraphicLayer extends BaseLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
  * @param options.extent.ymin - 最小纬度值, -90 至 90
  * @param options.extent.ymax - 最大纬度值, -90 至 90
- * @param [options.extent.height = 0] - 矩形高度值
+ * @param [options.extent.height] - 矩形高度值, 默认取地形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为map对象，false时不冒泡
  */
 declare class BaseLayer extends BaseClass {
@@ -16442,6 +19459,7 @@ declare class BaseLayer extends BaseClass {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
         eventParent?: BaseClass | boolean;
     });
     /**
@@ -16497,6 +19515,44 @@ declare class BaseLayer extends BaseClass {
      */
     opacity: number;
     /**
+     * 指定时间范围内显示该对象 [提示：仅部分子类实现，非所有对象都支持]
+     * @example
+     * // cesium原生写法,单个
+     * tilesetLayer.availability = new Cesium.TimeInterval({
+     *   start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *   stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *   isStartIncluded: true,
+     *   isStopIncluded: false
+     * })
+     *
+     * // cesium原生写法, 多个
+     * tilesetLayer.availability = new Cesium.TimeIntervalCollection([
+     *   new Cesium.TimeInterval({
+     *     start: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:00")),
+     *     stop: Cesium.JulianDate.fromDate(new Date("2017-08-25 08:00:20")),
+     *     isStartIncluded: true,
+     *     isStopIncluded: false
+     *   }),
+     *
+     * ])
+     *
+     * // 普通传值方式，多个
+     * tilesetLayer.availability = [
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ]
+     *
+     * // 普通传值方式，单个
+     * tilesetLayer.availability = { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false }
+     */
+    availability: Cesium.TimeIntervalCollection;
+    /**
+     * 获取指定时间下的时序对应的 显示隐藏 状态
+     * @param time - 指定时间
+     * @returns 显示隐藏 状态
+     */
+    getAvailabilityShow(time: Cesium.JulianDate): boolean;
+    /**
      * 添加到地图上，同 map.addThing
      * @param map - 地图对象
      * @returns 当前对象本身，可以链式调用
@@ -16515,12 +19571,6 @@ declare class BaseLayer extends BaseClass {
      */
     _mountedHook(): void;
     /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
-    /**
      * 对象从地图上移除的创建钩子方法，
      * 每次remove时都会调用
      * @returns 无
@@ -16531,6 +19581,12 @@ declare class BaseLayer extends BaseClass {
      * @param [options = {}] - 参数对象:
      * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
      * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
+     * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+     * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
+     * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
+     * @param [options.height] - 矩形区域时的高度值, 默认取地形高度值
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -16546,6 +19602,12 @@ declare class BaseLayer extends BaseClass {
     flyTo(options?: {
         radius?: number;
         scale?: number;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        minHeight?: number;
+        maxHeight?: number;
+        height?: number;
         duration?: number;
         complete?: Cesium.Camera.FlightCompleteCallback;
         cancel?: Cesium.Camera.FlightCancelledCallback;
@@ -16662,9 +19724,9 @@ declare namespace CzmGeoJsonLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -16672,6 +19734,7 @@ declare namespace CzmGeoJsonLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class CzmGeoJsonLayer extends BaseGraphicLayer {
     constructor(options?: {
@@ -16720,6 +19783,7 @@ declare class CzmGeoJsonLayer extends BaseGraphicLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * GeoJsonDataSource 对象
@@ -16797,36 +19861,21 @@ declare class CzmGeoJsonLayer extends BaseGraphicLayer {
      */
     clear(): CzmGeoJsonLayer;
     /**
-     * 飞行定位至图层数据所在的视角
-     * @param [options = {}] - 参数对象:
-     * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
-     * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
-     * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
-     * @param [options.complete] - 飞行完成后要执行的函数。
-     * @param [options.cancel] - 飞行取消时要执行的函数。
-     * @param [options.endTransform] - 变换矩阵表示飞行结束时相机所处的参照系。
-     * @param [options.maximumHeight] - 飞行高峰时的最大高度。
-     * @param [options.pitchAdjustHeight] - 如果相机飞得比这个值高，在飞行过程中调整俯仰以向下看，并保持地球在视口。
-     * @param [options.flyOverLongitude] - 地球上的两点之间总有两条路。这个选项迫使相机选择战斗方向飞过那个经度。
-     * @param [options.flyOverLongitudeWeight] - 仅在通过flyOverLongitude指定的lon上空飞行，只要该方式的时间不超过flyOverLongitudeWeight的短途时间。
-     * @param [options.convert = true] - 是否将目的地从世界坐标转换为场景坐标（仅在不使用3D时相关）。
-     * @param [options.easingFunction] - 控制在飞行过程中如何插值时间。
-     * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
+     * 追加数据，处理提供的url或数据对象，而不清除任何现有数据。
+     * @param diejiaData - 要处理的url或对象。
+     * @param [options] - 控制参数
+     * @returns 加载完成后的回调方法的Promise
      */
-    flyTo(options?: {
-        radius?: number;
-        scale?: number;
-        duration?: number;
-        complete?: Cesium.Camera.FlightCompleteCallback;
-        cancel?: Cesium.Camera.FlightCancelledCallback;
-        endTransform?: Cesium.Matrix4;
-        maximumHeight?: number;
-        pitchAdjustHeight?: number;
-        flyOverLongitude?: number;
-        flyOverLongitudeWeight?: number;
-        convert?: boolean;
-        easingFunction?: Cesium.EasingFunction.Callback;
-    }): Promise<boolean>;
+    process(diejiaData: Cesium.Resource | string | any, options?: any): Promise<any>;
+    /**
+     * 获取图层内所有数据的 矩形边界值
+     * @param [options] - 控制参数
+     * @param [options.isFormat = false] - 是否格式化，格式化时示例： { xmin: 73.16895, xmax: 134.86816, ymin: 12.2023, ymax: 54.11485 }
+     * @returns isFormat：true时，返回格式化对象，isFormat：false时返回Cesium.Rectangle对象
+     */
+    getRectangle(options?: {
+        isFormat?: boolean;
+    }): Cesium.Rectangle | any;
 }
 
 /**
@@ -16834,6 +19883,7 @@ declare class CzmGeoJsonLayer extends BaseGraphicLayer {
  * @param [options] - 参数对象，包括以下：
  * @param [options.url] - CZML文件或服务url地址
  * @param [options.data] - CZML格式规范数据对象，与url二选一即可。
+ * @param [options.updateClock = true] - 是否自动更新时钟，多个时或外部手动控制时钟时建议关闭
  * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数,还包括：
@@ -16855,9 +19905,9 @@ declare class CzmGeoJsonLayer extends BaseGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -16865,11 +19915,13 @@ declare class CzmGeoJsonLayer extends BaseGraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class CzmlLayer extends CzmGeoJsonLayer {
     constructor(options?: {
         url?: string;
         data?: any;
+        updateClock?: boolean;
         zIndex?: number;
         popup?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any);
         popupOptions?: {
@@ -16905,7 +19957,18 @@ declare class CzmlLayer extends CzmGeoJsonLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 更新地图clock时钟 为 当前czml的起止时间
+     * @returns 无
+     */
+    setCzmlTime(): void;
+    /**
+     * 更新地图clock时钟 为 当前时间（还原时间）
+     * @returns 无
+     */
+    setNowTime(): void;
     /**
      * 加载新数据 或 刷新数据
      * @param [newOptions = {}] - 新设定的参数，会与类的构造参数合并。
@@ -16963,9 +20026,9 @@ declare class CzmlLayer extends CzmGeoJsonLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -16973,6 +20036,7 @@ declare class CzmlLayer extends CzmGeoJsonLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class KmlLayer extends CzmGeoJsonLayer {
     constructor(options?: {
@@ -17020,6 +20084,7 @@ declare class KmlLayer extends CzmGeoJsonLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 加载新数据 或 刷新数据
@@ -17062,11 +20127,11 @@ declare class KmlLayer extends CzmGeoJsonLayer {
  * @param [options.maximumLevel] - 图层所支持的最大层级,当地图大于该级别时，平台不去请求服务数据。
  * @param options.rectangle - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
- * @param options.debuggerTileInfo - 是否开启测试显示瓦片信息
+ * @param [options.debuggerTileInfo] - 是否开启测试显示瓦片信息
  * @param [options.opacity = 1.0] - 透明度（部分图层），取值范围：0.0-1.0
  * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
  * @param [options.symbol] - 矢量数据的style样式,为Function时是完全自定义的回调处理 symbol(attr, style, feature)
@@ -17079,14 +20144,20 @@ declare class KmlLayer extends CzmGeoJsonLayer {
  * @param [options.graphicOptions] - 默认的graphic的构造参数，每种不同类型数据都有不同的属性，具体见各{@link GraphicType}矢量数据的构造参数。
  * @param [options.chinaCRS] - 标识数据的国内坐标系（用于自动纠偏或加偏）
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+ * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+ * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+ * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
  * @param [options.buildings] - 标识当前图层为建筑物白膜类型数据
  * @param [options.buildings.bottomHeight] - 建筑物底部高度（如:0） 属性字段名称（如:{bottomHeight}）
  * @param [options.buildings.cloumn = 1] - 层数，楼的实际高度 = height*cloumn
  * @param [options.buildings.height = 3.5] - 层高的  固定层高数值（如:10） 或 属性字段名称（如:{height}）
- * @param options.clustering - 设置聚合相关参数[entity点类型时]：
+ * @param [options.clustering] - 设置聚合相关参数（仅对Label、Point、Billboard 3种对象有效）：
  * @param [options.clustering.enabled = false] - 是否开启聚合
  * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
  * @param [options.clustering.clampToGround = true] - 是否贴地
+ * @param [options.clustering.style] - 聚合点的样式参数
  * @param [options.clustering.radius = 28] - 圆形图标的整体半径大小（单位：像素）
  * @param [options.clustering.radiusIn = radius-5] - 圆形图标的内圆半径大小（单位：像素）
  * @param [options.clustering.fontColor = '#ffffff'] - 数字的颜色
@@ -17112,10 +20183,11 @@ declare class KmlLayer extends CzmGeoJsonLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class ArcGisWfsLayer extends LodGraphicLayer {
     constructor(options?: {
@@ -17125,7 +20197,7 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
         wkid?: number;
         parameters?: any;
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: string | Cesium.DefaultProxy;
         IdField?: string;
         minimumLevel?: number;
         maximumLevel?: number;
@@ -17136,7 +20208,7 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
             ymax: number;
         };
         bbox?: number[];
-        debuggerTileInfo: boolean;
+        debuggerTileInfo?: boolean;
         opacity?: number;
         zIndex?: number;
         symbol?: {
@@ -17150,15 +20222,22 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
         graphicOptions?: any;
         chinaCRS?: ChinaCRS;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
         buildings?: {
             bottomHeight?: string;
             cloumn?: string;
             height?: string | number;
         };
-        clustering: {
+        clustering?: {
             enabled?: boolean;
             pixelRange?: number;
+            minimumClusterSize?: number;
             clampToGround?: boolean;
+            style?: BillboardEntity.StyleOptions | any | PointEntity.StyleOptions | any | any;
             radius?: number;
             radiusIn?: number;
             fontColor?: string;
@@ -17192,6 +20271,7 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 更新where条件后 刷新数据
@@ -17209,14 +20289,21 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
  * @param [options.token] - 用于通过ArcGIS MapServer服务进行身份验证的ArcGIS令牌。
  * @param [options.where] - 用于筛选数据的where查询条件
  * @param [options.format] - 可以对加载的geojson数据进行格式化或转换操作
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
  * @param [options.opacity = 1.0] - 透明度（部分图层），取值范围：0.0-1.0
  * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
  * @param [options.symbol] - 矢量数据的style样式,为Function时是完全自定义的回调处理 symbol(attr, style, feature)
- * @param options.symbol.styleOptions - 数据的Style样式
+ * @param [options.symbol.type] - 标识数据类型，默认是根据数据生成 point、polyline、polygon
+ * @param options.symbol.styleOptions - Style样式，每种不同类型数据都有不同的样式，具体见各{@link GraphicType}矢量数据的style参数。
  * @param [options.symbol.styleField] - 按 styleField 属性设置不同样式。
  * @param [options.symbol.styleFieldOptions] - 按styleField值与对应style样式的键值对象。
- * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, entity, styleOpt){  return { color: "#ff0000" };  }
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.symbol.merge] - 是否合并并覆盖json中已有的style，默认不合并。
+ * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, styleOpt){  return { color: "#ff0000" };  }
+ * @param [options.graphicOptions] - 默认的graphic的构造参数，每种不同类型数据都有不同的属性，具体见各{@link GraphicType}矢量数据的构造参数。
+ * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+ * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+ * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+ * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
  * @param [options.buildings] - 标识当前图层为建筑物白膜类型数据
  * @param [options.buildings.bottomHeight] - 建筑物底部高度（如:0） 属性字段名称（如:{bottomHeight}）
  * @param [options.buildings.cloumn = 1] - 层数，楼的实际高度 = height*cloumn
@@ -17241,9 +20328,9 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -17251,6 +20338,7 @@ declare class ArcGisWfsLayer extends LodGraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
     constructor(options?: {
@@ -17258,15 +20346,23 @@ declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
         token?: string;
         where?: string;
         format?: (...params: any[]) => any;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
         opacity?: number;
         zIndex?: number;
         symbol?: {
-            styleOptions: BillboardEntity.StyleOptions | any | PolylineEntity.StyleOptions | any | PolygonEntity.StyleOptions | any | any;
+            type?: GraphicType | string;
+            styleOptions: any;
             styleField?: string;
             styleFieldOptions?: any;
+            merge?: boolean;
             callback?: (...params: any[]) => any;
         };
-        allowDrillPick?: boolean | ((...params: any[]) => any);
+        graphicOptions?: any;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
         buildings?: {
             bottomHeight?: string;
             cloumn?: string;
@@ -17306,6 +20402,7 @@ declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 更新where条件后 刷新数据
@@ -17329,6 +20426,175 @@ declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
 }
 
 /**
+ * 业务数据(通过API接口获取)图层, 主要是为了封装后简化使用，或直接配置到config.json，也可以自行构造Graphic矢量对象加到GraphicLayer。<br />
+ *
+ * 样式信息：通过symbol配置graphic类型和样式<br />
+ * 坐标信息：建议接口返回中有规范的坐标字段lat\lng\alt或用formatPosition方法自定义解析
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.url] - geojson文件或服务url地址
+ * @param [options.data] - geojson格式规范数据对象，与url二选一即可。
+ * @param [options.dataColumn] - 接口返回数据中，对应的业务数据数组所在的读取字段名称，支持多级(用.分割)；如果数据直接返回数组时可以不配置。
+ * @param [options.formatData] - 可以对加载的数据进行格式化或转换操作
+ * @param [options.lngColumn = "lng"] - 点坐标时，经度值对应的字段名称
+ * @param [options.latColumn = "lat"] - 点坐标时，纬度值对应的字段名称
+ * @param [options.altColumn = "alt"] - 点坐标时，高度值对应的字段名称
+ * @param [options.formatPosition] - 可以对加载的坐标进行格式化或转换操作
+ * @param [options.onCreateGraphic] - 解析geojson后，外部自定义方法来创建Graphic对象
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.opacity = 1.0] - 透明度（部分图层），取值范围：0.0-1.0
+ * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
+ * @param [options.symbol] - 矢量数据的style样式,为Function时是完全自定义的回调处理 symbol(attr, style, feature)
+ * @param [options.symbol.type] - 标识数据类型，默认是根据数据生成 point、polyline、polygon
+ * @param options.symbol.styleOptions - Style样式，每种不同类型数据都有不同的样式，具体见各{@link GraphicType}矢量数据的style参数。
+ * @param [options.symbol.styleField] - 按 styleField 属性设置不同样式。
+ * @param [options.symbol.styleFieldOptions] - 按styleField值与对应style样式的键值对象。
+ * @param [options.symbol.merge] - 是否合并并覆盖json中已有的style，默认不合并。
+ * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, styleOpt){  return { color: "#ff0000" };  }
+ * @param [options.graphicOptions] - 默认的graphic的构造参数，每种不同类型数据都有不同的属性，具体见各{@link GraphicType}矢量数据的构造参数。
+ * @param [options.clustering] - 设置聚合相关参数（仅对Label、Point、Billboard 3种对象有效）：
+ * @param [options.clustering.enabled = false] - 是否开启聚合
+ * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
+ * @param [options.clustering.clampToGround = true] - 是否贴地
+ * @param [options.clustering.style] - 聚合点的样式参数
+ * @param [options.clustering.radius = 26] - 内置样式时，圆形图标的半径大小（单位：像素）
+ * @param [options.clustering.fontColor = '#ffffff'] - 内置样式时，数字的颜色
+ * @param [options.clustering.color = 'rgba(181, 226, 140, 0.6)'] - 内置样式时，圆形图标的背景颜色
+ * @param [options.clustering.opacity = 0.5] - 内置样式时，圆形图标的透明度
+ * @param [options.clustering.borderWidth = 5] - 圆形图标的边框宽度（单位：像素），0不显示
+ * @param [options.clustering.borderColor = 'rgba(110, 204, 57, 0.5)'] - 内置样式时，圆形图标的边框颜色
+ * @param [options.clustering.borderOpacity = 0.6] - 内置样式时，圆形图标边框的透明度
+ * @param [options.clustering.getImage] - 自定义聚合的图标样式，例如：getImage:function(count) { return image}
+ * @param [options.proxy] - 加载资源时要使用的代理服务url。
+ * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
+ * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'}
+ * @param [options.headers] - 一个对象，将发送的其他HTTP标头。比如：headers: { 'X-My-Header': 'valueOfHeader' }
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数,还包括：
+ * @param [options.popupOptions.title] - 固定的标题名称
+ * @param [options.popupOptions.titleField] - 标题对应的属性字段名称
+ * @param [options.popupOptions.noTitle] - 不显示标题
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑定，参数与popup属性完全相同。
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数,还包括：
+ * @param [options.tooltipOptions.title] - 固定的标题名称
+ * @param [options.tooltipOptions.titleField] - 标题对应的属性字段名称
+ * @param [options.tooltipOptions.noTitle] - 不显示标题
+ * @param [options.contextmenuItems] - 绑定的右键菜单值，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 图层id标识
+ * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
+ * @param [options.name = ''] - 图层名称
+ * @param [options.show = true] - 图层是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为map对象，false时不冒泡
+ * @param [options.center] - 图层自定义定位视角 {@link Map#setCameraView}
+ * @param options.center.lng - 经度值, 180 - 180
+ * @param options.center.lat - 纬度值, -90 - 90
+ * @param [options.center.alt] - 高度值
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+ * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
+ * @param options.extent.xmin - 最小经度值, -180 至 180
+ * @param options.extent.xmax - 最大经度值, -180 至 180
+ * @param options.extent.ymin - 最小纬度值, -90 至 90
+ * @param options.extent.ymax - 最大纬度值, -90 至 90
+ * @param [options.extent.height = 0] - 矩形高度值
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
+ */
+declare class BusineDataLayer extends GraphicLayer {
+    constructor(options?: {
+        url?: string;
+        data?: any;
+        dataColumn?: string;
+        formatData?: (...params: any[]) => any;
+        lngColumn?: string;
+        latColumn?: string;
+        altColumn?: string;
+        formatPosition?: (...params: any[]) => any;
+        onCreateGraphic?: (...params: any[]) => any;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        opacity?: number;
+        zIndex?: number;
+        symbol?: {
+            type?: GraphicType | string;
+            styleOptions: any;
+            styleField?: string;
+            styleFieldOptions?: any;
+            merge?: boolean;
+            callback?: (...params: any[]) => any;
+        };
+        graphicOptions?: any;
+        clustering?: {
+            enabled?: boolean;
+            pixelRange?: number;
+            minimumClusterSize?: number;
+            clampToGround?: boolean;
+            style?: BillboardEntity.StyleOptions | any | PointEntity.StyleOptions | any | any;
+            radius?: number;
+            fontColor?: string;
+            color?: string;
+            opacity?: number;
+            borderWidth?: number;
+            borderColor?: string;
+            borderOpacity?: number;
+            getImage?: (...params: any[]) => any;
+        };
+        proxy?: string;
+        templateValues?: any;
+        queryParameters?: any;
+        headers?: any;
+        popup?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any);
+        popupOptions?: {
+            title?: string;
+            titleField?: string;
+            noTitle?: string;
+        };
+        tooltip?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any) | any;
+        tooltipOptions?: {
+            title?: string;
+            titleField?: string;
+            noTitle?: string;
+        };
+        contextmenuItems?: any;
+        id?: string | number;
+        pid?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        center?: {
+            lng: number;
+            lat: number;
+            alt?: number;
+            heading?: number;
+            pitch?: number;
+            roll?: number;
+        };
+        extent?: {
+            xmin: number;
+            xmax: number;
+            ymin: number;
+            ymax: number;
+            height?: number;
+        };
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 加载新数据 或 刷新数据
+     * @param [newOptions] - 新设定的参数，会与类的构造参数合并。
+     * @param [newOptions.url] - API接口url地址
+     * @param [newOptions.data] - API接口对应的数据对象，与url二选一即可。
+     * @param [newOptions.类参数] - 包含当前类支持的所有参数
+     * @returns 当前对象本身，可以链式调用
+     */
+    load(newOptions?: {
+        url?: string;
+        data?: any;
+        类参数?: any;
+    }): BusineDataLayer;
+}
+
+/**
  * 高德在线POI图层
  * @param [options] - 参数对象，包括以下：
  * @param [options.key = mars3d.Token.gaodeArr] - 高德KEY,在实际项目中请使用自己申请的高德KEY，因为我们的key不保证长期有效。
@@ -17336,21 +20602,23 @@ declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
  * @param [options.maximumLevel] - 图层所支持的最大层级,当地图大于该级别时，平台不去请求服务数据。
  * @param options.rectangle - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
- * @param options.debuggerTileInfo - 是否开启测试显示瓦片信息
+ * @param [options.debuggerTileInfo] - 是否开启测试显示瓦片信息
  * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
  * @param [options.opacity = 1.0] - 透明度（部分图层），取值范围：0.0-1.0
  * @param [options.symbol] - 矢量数据的style样式
  * @param options.symbol.styleOptions - 点的Style样式。
  * @param [options.symbol.styleField] - 按 styleField 属性设置不同样式。
  * @param [options.symbol.styleFieldOptions] - 按styleField值与对应style样式的键值对象。
- * @param options.clustering - 设置聚合相关参数：
+ * @param [options.clustering] - 设置聚合相关参数：
  * @param [options.clustering.enabled = false] - 是否开启聚合
  * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
  * @param [options.clustering.clampToGround = true] - 是否贴地
+ * @param [options.clustering.style] - 聚合点的样式参数
  * @param [options.clustering.radius = 28] - 圆形图标的整体半径大小（单位：像素）
  * @param [options.clustering.radiusIn = radius-5] - 圆形图标的内圆半径大小（单位：像素）
  * @param [options.clustering.fontColor = '#ffffff'] - 数字的颜色
@@ -17365,9 +20633,9 @@ declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -17375,6 +20643,7 @@ declare class ArcGisWfsSingleLayer extends GeoJsonLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GeodePoiLayer extends LodGraphicLayer {
     constructor(options?: {
@@ -17388,7 +20657,7 @@ declare class GeodePoiLayer extends LodGraphicLayer {
             ymax: number;
         };
         bbox?: number[];
-        debuggerTileInfo: boolean;
+        debuggerTileInfo?: boolean;
         zIndex?: number;
         opacity?: number;
         symbol?: {
@@ -17396,10 +20665,12 @@ declare class GeodePoiLayer extends LodGraphicLayer {
             styleField?: string;
             styleFieldOptions?: any;
         };
-        clustering: {
+        clustering?: {
             enabled?: boolean;
             pixelRange?: number;
+            minimumClusterSize?: number;
             clampToGround?: boolean;
+            style?: BillboardEntity.StyleOptions | any | PointEntity.StyleOptions | any | any;
             radius?: number;
             radiusIn?: number;
             fontColor?: string;
@@ -17427,6 +20698,7 @@ declare class GeodePoiLayer extends LodGraphicLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 获取配置的高德Key（多个时轮询）
@@ -17524,6 +20796,10 @@ declare namespace GeoJsonLayer {
  * @param [options.symbol.merge] - 是否合并并覆盖json中已有的style，默认不合并。
  * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, styleOpt){  return { color: "#ff0000" };  }
  * @param [options.graphicOptions] - 默认的graphic的构造参数，每种不同类型数据都有不同的属性，具体见各{@link GraphicType}矢量数据的构造参数。
+ * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+ * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+ * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+ * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
  * @param [options.buildings] - 标识当前图层为建筑物白膜类型数据
  * @param [options.buildings.bottomHeight] - 建筑物底部高度（如:0） 属性字段名称（如:{bottomHeight}）
  * @param [options.buildings.cloumn = 1] - 层数，楼的实际高度 = height*cloumn
@@ -17532,6 +20808,20 @@ declare namespace GeoJsonLayer {
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
  * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'}
  * @param [options.headers] - 一个对象，将发送的其他HTTP标头。比如：headers: { 'X-My-Header': 'valueOfHeader' }
+ * @param [options.clustering] - 设置聚合相关参数（仅对Label、Point、Billboard 3种对象有效）：
+ * @param [options.clustering.enabled = false] - 是否开启聚合
+ * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
+ * @param [options.clustering.clampToGround = true] - 是否贴地
+ * @param [options.clustering.style] - 聚合点的样式参数
+ * @param [options.clustering.radius = 26] - 内置样式时，圆形图标的半径大小（单位：像素）
+ * @param [options.clustering.fontColor = '#ffffff'] - 内置样式时，数字的颜色
+ * @param [options.clustering.color = 'rgba(181, 226, 140, 0.6)'] - 内置样式时，圆形图标的背景颜色
+ * @param [options.clustering.opacity = 0.5] - 内置样式时，圆形图标的透明度
+ * @param [options.clustering.borderWidth = 5] - 圆形图标的边框宽度（单位：像素），0不显示
+ * @param [options.clustering.borderColor = 'rgba(110, 204, 57, 0.5)'] - 内置样式时，圆形图标的边框颜色
+ * @param [options.clustering.borderOpacity = 0.6] - 内置样式时，圆形图标边框的透明度
+ * @param [options.clustering.getImage] - 自定义聚合的图标样式，例如：getImage:function(count) { return image}
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数,还包括：
  * @param [options.popupOptions.title] - 固定的标题名称
@@ -17552,9 +20842,9 @@ declare namespace GeoJsonLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -17562,6 +20852,7 @@ declare namespace GeoJsonLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GeoJsonLayer extends GraphicLayer {
     constructor(options?: {
@@ -17584,6 +20875,11 @@ declare class GeoJsonLayer extends GraphicLayer {
             callback?: (...params: any[]) => any;
         };
         graphicOptions?: any;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
         buildings?: {
             bottomHeight?: string;
             cloumn?: string;
@@ -17593,6 +20889,21 @@ declare class GeoJsonLayer extends GraphicLayer {
         templateValues?: any;
         queryParameters?: any;
         headers?: any;
+        clustering?: {
+            enabled?: boolean;
+            pixelRange?: number;
+            minimumClusterSize?: number;
+            clampToGround?: boolean;
+            style?: BillboardEntity.StyleOptions | any | PointEntity.StyleOptions | any | any;
+            radius?: number;
+            fontColor?: string;
+            color?: string;
+            opacity?: number;
+            borderWidth?: number;
+            borderColor?: string;
+            borderOpacity?: number;
+            getImage?: (...params: any[]) => any;
+        };
         popup?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any);
         popupOptions?: {
             title?: string;
@@ -17627,6 +20938,7 @@ declare class GeoJsonLayer extends GraphicLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 加载新数据 或 刷新数据
@@ -17661,10 +20973,11 @@ declare class GeoJsonLayer extends GraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GraphicGroupLayer extends GroupLayer {
     constructor(options?: {
@@ -17688,6 +21001,7 @@ declare class GraphicGroupLayer extends GroupLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 是否可以编辑
@@ -17800,7 +21114,7 @@ declare class GraphicGroupLayer extends GroupLayer {
      * @param [options.maxPointNum] - 线面数据时限定的最大坐标个数
      * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
      * @param [options.addHeight] - 在绘制时，在绘制点的基础上增加的高度值
-     * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+     * @param [options.availability] - 指定时间范围内显示该对象
      * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
      * @returns 绘制创建完成的Promise,等价于success参数
      */
@@ -17813,7 +21127,7 @@ declare class GraphicGroupLayer extends GroupLayer {
         maxPointNum?: number;
         drawShow?: boolean;
         addHeight?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
     }): Promise<BaseGraphic | any>;
     /**
@@ -17912,8 +21226,11 @@ declare namespace GraphicLayer {
  * @param [options.data] - 需要自动加载的数据，内部自动生成Graphic对象。{@link GraphicUtil#.create}
  * @param [options.hasEdit = false] - 是否自动激活编辑（true时，单击后自动激活编辑）
  * @param [options.isAutoEditing = true] - 完成标绘时是否自动启动编辑(需要hasEdit:true时)
- * @param [options.isContinued = false] - 是否连续标绘,联系标绘状态下无法编辑已有对象。
+ * @param [options.isContinued = false] - 是否连续标绘,连续标绘状态下无法编辑已有对象。
  * @param [options.isRestorePositions = false] - 在标绘和编辑结束时，是否将坐标还原为普通值，true: 停止编辑时会有闪烁，但效率要好些。
+ * @param [options.drawAddEventType = EventType.click] - 绘制时增加点的事件，默认单击
+ * @param [options.drawEndEventType = EventType.dblClick] - 绘制时结束的事件，默认双击
+ * @param [options.drawDelEventType = EventType.rightClick] - 绘制时删除点的事件，默认右键
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效，且只有贴地对象有效)。
  * @param [options.symbol] - 矢量数据的style样式,为Function时是完全自定义的回调处理 symbol(attr, style, feature)
  * @param [options.symbol.type] - 标识数据类型，默认是根据数据生成 point、polyline、polygon
@@ -17922,10 +21239,12 @@ declare namespace GraphicLayer {
  * @param [options.symbol.styleFieldOptions] - 按styleField值与对应style样式的键值对象。
  * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, styleOpt){  return { color: "#ff0000" };  }
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
- * @param [options.clustering] - Entity点数据时，设置聚合相关参数：
+ * @param [options.clustering] - 设置聚合相关参数（仅对Label、Point、Billboard 3种对象有效）：
  * @param [options.clustering.enabled = false] - 是否开启聚合
  * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
  * @param [options.clustering.clampToGround = true] - 是否贴地
+ * @param [options.clustering.style] - 聚合点的样式参数
  * @param [options.clustering.radius = 26] - 内置样式时，圆形图标的半径大小（单位：像素）
  * @param [options.clustering.fontColor = '#ffffff'] - 内置样式时，数字的颜色
  * @param [options.clustering.color = 'rgba(181, 226, 140, 0.6)'] - 内置样式时，圆形图标的背景颜色
@@ -17954,9 +21273,9 @@ declare namespace GraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -17964,6 +21283,7 @@ declare namespace GraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GraphicLayer extends BaseGraphicLayer {
     constructor(options?: {
@@ -17972,6 +21292,9 @@ declare class GraphicLayer extends BaseGraphicLayer {
         isAutoEditing?: boolean;
         isContinued?: boolean;
         isRestorePositions?: boolean;
+        drawAddEventType?: boolean;
+        drawEndEventType?: boolean;
+        drawDelEventType?: boolean;
         zIndex?: number;
         symbol?: {
             type?: GraphicType | string;
@@ -17984,7 +21307,9 @@ declare class GraphicLayer extends BaseGraphicLayer {
         clustering?: {
             enabled?: boolean;
             pixelRange?: number;
+            minimumClusterSize?: number;
             clampToGround?: boolean;
+            style?: BillboardEntity.StyleOptions | any | PointEntity.StyleOptions | any | any;
             radius?: number;
             fontColor?: string;
             color?: string;
@@ -18028,6 +21353,7 @@ declare class GraphicLayer extends BaseGraphicLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 完成标绘时是否自动启动编辑(需要hasEdit:true时)
@@ -18058,13 +21384,28 @@ declare class GraphicLayer extends BaseGraphicLayer {
      */
     pointerEvents: boolean;
     /**
+     * 获取当前图层中所有对象，用于贴模型分析时，排除的不进行贴模型计算的模型对象
+     */
+    readonly objectsToExclude: any | undefined;
+    /**
      * 是否可以调整图层顺序（在同类型图层间）
      */
     readonly hasZIndex: boolean;
     /**
-     * 图层顺序，数字大的在上面。（当hasZIndex为true时）
+     * 图层顺序，数字大的在上面。<br/>
+     * 只对 同类型(Entity/Primitive) + 贴地(clampToGround: true) 矢量对象间有效
      */
     zIndex: number;
+    /**
+     * 将当前图层在map中层级进行 置顶 (只对同类型图层间+贴地对象 有效)。
+     * @returns 无
+     */
+    toTop(): void;
+    /**
+     * 将当前图层在map中层级进行 置底 (只对同类型图层间+贴地对象 有效)。
+     * @returns 无
+     */
+    toBottom(): void;
     /**
      * 图层内的Graphic矢量数据个数
      */
@@ -18077,6 +21418,10 @@ declare class GraphicLayer extends BaseGraphicLayer {
      * 是否自动激活编辑（true时，单击后自动激活编辑）
      */
     hasEdit: boolean;
+    /**
+     * 是否正在编辑状态
+     */
+    readonly isDrawing: boolean;
     /**
      * 是否正在编辑状态
      */
@@ -18098,6 +21443,11 @@ declare class GraphicLayer extends BaseGraphicLayer {
      */
     getRectangle(isFormat?: boolean): Cesium.Rectangle | any;
     /**
+     * 获取图层内所有数据的  最大高度
+     * @returns 高度
+     */
+    getMaxHeight(): number;
+    /**
      * 将图层数据导出为GeoJSON格式规范对象。
      * @param [options] - 参数对象:
      * @param [options.noAlt] - 不导出高度值
@@ -18116,7 +21466,12 @@ declare class GraphicLayer extends BaseGraphicLayer {
      * @param [options.flyTo = false] - 是否加载完成后进行飞行到数据区域
      * @param [options.type] - 转为指定的类型
      * @param [options.style] - 可以设置指定style样式,每种不同类型数据都有不同的样式，具体见各矢量数据的style参数。{@link GraphicType}
+     * //  * @param {boolean} [options.style.merge] 是否合并并覆盖json中已有的style，默认不合并，仅适用style配置。
      * @param [options.crs] - 原始数据的坐标系，如'EPSG:3857' （可以从 {@link http://epsg.io }查询）
+     * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+     * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
      * @param [options.onEachFeature] - 创建每个Graphic前的回调
      * @returns 转换后的Graphic对象数组
      */
@@ -18126,8 +21481,18 @@ declare class GraphicLayer extends BaseGraphicLayer {
         type?: GraphicType | string;
         style?: any;
         crs?: string;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
         onEachFeature?: (...params: any[]) => any;
     }): BaseGraphic[];
+    /**
+     * 获取当前图层聚合点列表
+     * @returns 聚合点列表
+     */
+    getClusterList(): any[];
     /**
      * 设置透明度 , 非全部矢量数据都支持，具体需要对应Graphic支持才有效
      * @param value - 透明度
@@ -18178,17 +21543,19 @@ declare class GraphicLayer extends BaseGraphicLayer {
      * 遍历所有矢量数据并将其作为参数传递给回调函数
      * @param method - 回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
-     * @returns 当前对象本身,可以链式调用
+     * @param [reverse] - 是否倒序执行
+     * @returns 当前对象本身,可以链式调用。
      */
-    eachGraphic(method: (...params: any[]) => any, context?: any): GraphicLayer;
+    eachGraphic(method: (...params: any[]) => any, context?: any, reverse?: boolean): GraphicLayer;
     /**
      * 获取图层内 所有矢量数据
+     * @param [hasPrivate = false] - 是否取私有的graphic
      * @returns 矢量数据数组
      */
-    getGraphics(): BaseGraphic[] | any[];
+    getGraphics(hasPrivate?: boolean): BaseGraphic[] | any[];
     /**
      * 清除图层内所有矢量数据
-     * @param [hasDestroy = false] - 是否释放矢量对象
+     * @param [hasDestroy = true] - 是否释放矢量对象
      * @returns 无
      */
     clear(hasDestroy?: boolean): void;
@@ -18197,13 +21564,15 @@ declare class GraphicLayer extends BaseGraphicLayer {
      * @param [options = {}] - 参数对象:
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param options.endItem - 每计算完成1个graphic高度后 的回调方法
      * @param options.end - 异步计算高度完成所有graphic后 的回调方法
-     * @returns 绘制创建完成的Promise,等价于callback参数
+     * @returns 绘制创建完成的Promise
      */
     autoSurfaceHeight(options?: {
         has3dtiles?: boolean;
         objectsToExclude?: any;
+        exact?: boolean;
         endItem: (...params: any[]) => any;
         end: (...params: any[]) => any;
     }): Promise<BaseGraphic | any>;
@@ -18243,10 +21612,12 @@ declare class GraphicLayer extends BaseGraphicLayer {
      * @param [options.success] - 绘制创建完成的回调方法，同drawCreated事件，例如： success: function (graphic){  }
      * //以下为Entity支持的构造参数
      * @param [options.name] - 矢量数据名称
+     * @param [options.minPointNum] - 线面数据时限定的最小坐标个数
      * @param [options.maxPointNum] - 线面数据时限定的最大坐标个数
+     * @param [options.validDrawPosition] - 外部自定义校验坐标,比如判断限定在指定区域内绘制。
      * @param [options.drawShow = true] - 绘制时，是否自动隐藏entity，可避免拾取坐标存在问题。
      * @param [options.addHeight] - 在绘制时，在绘制点的基础上增加的高度值
-     * @param [options.availability] - 与该对象关联的可用性(如果有的话)。
+     * @param [options.availability] - 指定时间范围内显示该对象
      * @param [options.description] - 指定此实体的HTML描述的字符串属性（infoBox中展示）。
      * @returns 绘制创建完成的Promise,等价于success参数
      */
@@ -18256,10 +21627,12 @@ declare class GraphicLayer extends BaseGraphicLayer {
         attr?: any;
         success?: (...params: any[]) => any;
         name?: string;
+        minPointNum?: number;
         maxPointNum?: number;
+        validDrawPosition?: (...params: any[]) => any;
         drawShow?: boolean;
         addHeight?: number;
-        availability?: Cesium.TimeIntervalCollection;
+        availability?: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any;
         description?: Cesium.Property | string;
     }): Promise<BaseGraphic | any>;
     /**
@@ -18269,12 +21642,15 @@ declare class GraphicLayer extends BaseGraphicLayer {
      */
     endDraw(): boolean;
     /**
-     * 停止绘制，如有未完成的绘制会自动删除
+     * 停止绘制。
+     * 线面对象：未完成的绘制会自动删除，已绘制的会完成在最后一个点位；
+     * 点状对象：会结束停留在最后一个点位，未完成的绘制会自动删除
+     * 如果需要清除正在绘制的对象，请用 clearDrawing() 方法
      * @returns 是否清除了未完成的对象
      */
     stopDraw(): boolean;
     /**
-     * 清除正在绘制
+     * 清除正在绘制的对象
      * @returns 是否清除了对象
      */
     clearDrawing(): boolean;
@@ -18305,7 +21681,7 @@ declare class GraphicLayer extends BaseGraphicLayer {
 /**
  * 经纬网
  * @param [options] - 参数对象，包括以下：
- * @param [options.numLines = 10] - 网格数
+ * @param [options.steps = [0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]] - 网格数步长(度数)数组
  * @param [options.lineStyle] - 线的样式
  * @param [options.labelStyle] - 文本的样式
  * @param [options.id = createGuid()] - 图层id标识
@@ -18317,9 +21693,9 @@ declare class GraphicLayer extends BaseGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -18327,10 +21703,11 @@ declare class GraphicLayer extends BaseGraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GraticuleLayer extends BaseLayer {
     constructor(options?: {
-        numLines?: number;
+        steps?: number[];
         lineStyle?: PolylinePrimitive.StyleOptions | any;
         labelStyle?: LabelEntity.StyleOptions | any;
         id?: string | number;
@@ -18354,6 +21731,7 @@ declare class GraticuleLayer extends BaseLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 对象添加到地图前创建一些对象的钩子方法，
@@ -18361,6 +21739,263 @@ declare class GraticuleLayer extends BaseLayer {
      * @returns 无
      */
     _mountedHook(): void;
+}
+
+declare namespace I3SLayer {
+    /**
+     * 当前类支持的{@link EventType}事件类型
+     * @example
+     * //绑定监听事件
+     * layer.on(mars3d.EventType.load, function (event) {
+     *   console.log('矢量数据对象加载完成', event)
+     * })
+     * @property add - 添加对象
+     * @property remove - 移除对象
+     * @property show - 显示了对象
+     * @property hide - 隐藏了对象
+     * @property click - 左键单击 鼠标事件
+     * @property rightClick - 右键单击 鼠标事件
+     * @property mouseOver - 鼠标移入 鼠标事件
+     * @property mouseOut - 鼠标移出 鼠标事件
+     * @property popupOpen - popup弹窗打开后
+     * @property popupClose - popup弹窗关闭
+     * @property tooltipOpen - tooltip弹窗打开后
+     * @property tooltipClose - tooltip弹窗关闭
+     * @property loadBefore - 完成加载，但未做任何其他处理前
+     * @property load - 完成加载，执行所有内部处理后
+     */
+    type EventType = {
+        add: string;
+        remove: string;
+        show: string;
+        hide: string;
+        click: string;
+        rightClick: string;
+        mouseOver: string;
+        mouseOut: string;
+        popupOpen: string;
+        popupClose: string;
+        tooltipOpen: string;
+        tooltipClose: string;
+        loadBefore: string;
+        load: string;
+    };
+}
+
+/**
+ * I3S 三维模型图层。
+ * @param options - 参数对象, 包括以下：
+ * @param options.url - tileset的主JSON文件的 url ，ION资源时可以写 url: Cesium.IonResource.fromAssetId(8564),
+ * @param [options.traceFetches = false] - 调试选项。当为true时，每当获取I3S tile时记录一条消息。
+ * @param [options.geoidTiledTerrainProvider] - arcgis地形服务。如果定义了，I3S模型将基于此地形服务的偏移量进行移位。需要将与重力相关高度的I3S数据集定位在正确的位置。
+ *
+ * //以下是3dtiles图层参数
+ * @param [options.maximumScreenSpaceError = 16] - 用于驱动细化细节级别的最大屏幕空间错误。可以简单理解为：数值加大，能让最终成像变模糊。
+ * @param [options.cacheBytes = 536870912] - 如果缓存包含当前视图不需要的块，则块缓存将被修剪到的大小(以字节为单位)。
+ * @param [options.maximumCacheOverflowBytes = 536870912] - 如果当前视图需要超过{@link Cesium3DTileset#cacheBytes}，则允许缓存净空的最大额外内存(以字节为单位)。
+ * @param [options.maximumMemoryUsage = 512] - 【cesium 1.107+弃用】数据集可以使用的最大内存量(以MB计)，这个参数要根据当前客户端显卡显存来配置，如果我们场景只显示这一个模型数据，这个可以设置到显存的50% 左右，比如我的显存是4G，这个可以设置到2048左右。那么既保证不超过显存限制，又可以最大利用显存缓存。<br />
+ * @param [options.style] - 模型样式， 使用{@link https://github.com/CesiumGS/3d-tiles/tree/master/specification/Styling|3D Tiles Styling language}.
+ * @param [options.marsJzwStyle = false] - 开启或设置建筑物特效样式。
+ * @param [options.customShader] - 自定义shader效果
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.shadows = ShadowMode.ENABLED] - 确定tileset是否投射或接收来自光源的阴影。
+ * @param [options.cullWithChildrenBounds = true] - 优化选择。是否使用子绑定卷的并集来筛选贴图。
+ * @param [options.cullRequestsWhileMoving = true] - 优化选择。不要要求贴图，当他们回来的时候可能不会使用，因为相机的运动。这个优化只适用于固定瓷砖组。
+ * @param [options.cullRequestsWhileMovingMultiplier = 60.0] - 优化选择。在移动时选择请求时使用的倍增器。越大的选择性越强，越小的选择性越弱。值越小能够更快的剔除。
+ * @param [options.preloadWhenHidden = false] - 当true时，tileset.show是false，也去预加载数据。
+ * @param [options.preloadFlightDestinations = true] - 优化选择。当摄像机在飞行时，在摄像机的飞行目的地预加载贴图。
+ * @param [options.preferLeaves = false] - 优化选择。最好先加载上叶子节点数据。这个参数默认是false，同等条件下，叶子节点会优先加载。但是Cesium的tile加载优先级有很多考虑条件，这个只是其中之一，如果skipLevelOfDetail=false，这个参数几乎无意义。所以要配合skipLevelOfDetail=true来使用，此时设置preferLeaves=true。这样我们就能最快的看见符合当前视觉精度的块，对于提升大数据以及网络环境不好的前提下有一点点改善意义。
+ * @param [options.dynamicScreenSpaceError = false] - 优化选择。减少远离摄像头的贴图的屏幕空间误差。true时会在真正的全屏加载完之后才清晰化模型.
+ * @param [options.dynamicScreenSpaceErrorDensity = 0.00278] - 密度用来调整动态画面空间误差，类似于雾密度。
+ * @param [options.dynamicScreenSpaceErrorFactor = 4.0] - 用于增加计算的动态屏幕空间误差的因素。
+ * @param [options.dynamicScreenSpaceErrorHeightFalloff = 0.25] - 瓷砖密度开始下降时的高度之比。
+ * @param [options.progressiveResolutionHeightFraction = 0.3] - 优化选择。如果在(0.0,0.5)之间，在屏幕空间或以上的瓷砖错误降低屏幕分辨率 <code>progressiveResolutionHeightFraction*screenHeight</code> 将优先。这可以帮助得到一个快速层的瓷砖下来，而全分辨率的瓷砖继续加载。
+ * @param [options.foveatedScreenSpaceError = true] - 优化选择。通过暂时提高屏幕边缘的贴图的屏幕空间误差，优先加载屏幕中央的贴图。一旦所有由{@link cesium3dtilesset#foveatedConeSize}确定的屏幕中央的贴图被加载，屏幕空间错误就会恢复正常。
+ * @param [options.foveatedConeSize = 0.1] - 优化选择。当{@link cesium3dtilesset#foveatedScreenSpaceError}为true时使用，以控制决定哪些贴图被延迟的锥大小。装在这个圆锥体里的瓷砖会立即被装入。锥外的贴图有可能被延迟，这取决于它们在锥外的距离和它们的屏幕空间误差。这是由{@link I3SDataProvider#foveatedInterpolationCallback}和{@link I3SDataProvider#foveatedMinimumScreenSpaceErrorRelaxation}控制的。设置为0.0意味着圆锥将是由相机位置和它的视图方向形成的线。将此设置为1.0意味着圆锥将包含相机的整个视场，禁用此效果。
+ * @param [options.foveatedMinimumScreenSpaceErrorRelaxation = 0.0] - 优化选择。当{@link cesium3dtilesset#foveatedScreenSpaceError}为true时使用，以控制中心锥形以外的贴图的初始屏幕空间误差松弛。屏幕空间错误将基于所提供的{@link I3SDataProvider#foveatedInterpolationCallback}从tileset值开始直到{@link I3SDataProvider#maximumScreenSpaceError}。
+ * @param [options.foveatedInterpolationCallback = Math.lerp] - 优化选择。当{@link cesium3dtilesset#foveatedScreenSpaceError}为true时使用，以控制中心锥形以外的贴图的初始屏幕空间误差松弛。优化选择。当{@link I3SDataProvider#foveatedScreenSpaceError}为true时使用，以控制凸出圆锥外的贴图的屏幕空间误差提高多少，插值在{@link I3SDataProvider#foveatedminimumscreenspaceerror}和{@link I3SDataProvider#maximumScreenSpaceError}之间。
+ * @param [options.foveatedTimeDelay = 0.2] - 优化选择。当{@link cesium3dtilesset#foveatedScreenSpaceError}为true时使用，以控制中心锥形以外的贴图的初始屏幕空间误差松弛。优化选择。优化选择。当{@link cesium3dtilesset#foveatedScreenSpaceError}为true时使用，以控制在延迟tile开始加载前摄像机停止移动后等待多长时间(秒)。这个时间延迟阻止了在相机移动时请求屏幕边缘的贴图。将此设置为0.0将立即请求任何给定视图中的所有贴图。
+ * @param [options.skipLevelOfDetail = false] - 优化选择。确定在遍历过程中是否应应用跳过详细信息的级别。是Cesium在1.5x 引入的一个优化参数，这个参数在金字塔数据加载中，可以跳过一些级别，这样整体的效率会高一些，数据占用也会小一些。但是带来的异常是：1） 加载过程中闪烁，看起来像是透过去了，数据载入完成后正常。2，有些异常的面片，这个还是因为两级LOD之间数据差异较大，导致的。当这个参数设置false，两级之间的变化更平滑，不会跳跃穿透，但是清晰的数据需要更长，而且还有个致命问题，一旦某一个tile数据无法请求到或者失败，导致一直不清晰。所以我们建议：对于网络条件好，并且数据总量较小的情况下，可以设置false，提升数据显示质量。
+ * @param [options.baseScreenSpaceError = 1024] - 当skipLevelOfDetail为true时，跳过详细级别之前必须达到的屏幕空间错误。
+ * @param [options.skipScreenSpaceErrorFactor = 16] - 当skipLevelOfDetail = true时，一个定义要跳过的最小屏幕空间错误的乘法器。与skipLevels一起使用，以决定加载哪些贴图。
+ * @param [options.skipLevels = 1] - 当skipLevelOfDetail是true，一个常量定义了加载tiles时要跳过的最小级别数。当它为0时，不会跳过任何级别。与skipScreenSpaceErrorFactor一起使用，以决定加载哪些贴图。
+ * @param [options.immediatelyLoadDesiredLevelOfDetail = false] - 当skipLevelOfDetail为true时，只有满足最大屏幕空间错误的tiles才会被下载。跳过因素将被忽略，并且只加载所需的块。
+ * @param [options.loadSiblings = false] - 当skipLevelOfDetail = true时，判断遍历过程中是否总是下载可见块的兄弟块。如果为true则不会在已加载完模型后，自动从中心开始超清化模型。
+ * @param [options.clippingPlanes] - {@link Cesium.ClippingPlaneCollection}用于选择性地禁用tile集的渲染。
+ * @param [options.classificationType] - 确定地形、3D贴图或两者都将被这个贴图集分类。有关限制和限制的详细信息，请参阅{@link cesium3dtilesset #classificationType}。
+ * @param [options.pointCloudShading] - 基于几何误差和光照构造一个{@link Cesium.PointCloudShading}对象来控制点衰减的选项。
+ * @param [options.lightColor] - 光的颜色当遮光模型。当undefined场景的浅色被使用代替。表示，rgb的倍数，new Cesium.Cartesian3(100.0,100.0, 100.0)表示白光增强到100倍。对Pbrt材质有效，倾斜摄影不生效。
+ * @param [options.backFaceCulling = true] - 是否剔除面向背面的几何图形。当为真时，背面剔除由glTF材质的双面属性决定;当为false时，禁用背面剔除。
+ * @param [options.debugHeatmapTilePropertyName] - 是否剔除面向背面的几何图形。当为真时，背面剔除由glTF材质的双面属性决定;作为热图着色的tile变量。所有渲染的贴图都将相对于其他指定的变量值着色。
+ * @param [options.pickPrimitive] - 要在拾取过程中呈现的原语，而不是tile集合。
+ * @param [options.enableDebugWireframe = false] - 仅供调试。是否可以通过debugWireframe来切换查看模型的三角网线框图。
+ * @param [options.debugWireframe = false] - 仅供调试。是否打开模型的三角网线框图。
+ * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
+ * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数,还包括：
+ * @param [options.popupOptions.title] - 固定的标题名称
+ * @param [options.popupOptions.titleField] - 标题对应的属性字段名称
+ * @param [options.popupOptions.noTitle] - 不显示标题
+ * @param [options.tooltip] - 绑定的tooltip弹窗值，也可以bindTooltip方法绑定，参数与popup属性完全相同。
+ * @param [options.tooltipOptions] - tooltip弹窗时的配置参数，也支持如pointerEvents等{@link Tooltip}构造参数,还包括：
+ * @param [options.tooltipOptions.title] - 固定的标题名称
+ * @param [options.tooltipOptions.titleField] - 标题对应的属性字段名称
+ * @param [options.tooltipOptions.noTitle] - 不显示标题
+ * @param [options.contextmenuItems] - 绑定的右键菜单值，也可以bindContextMenu方法绑定
+ * @param [options.id = createGuid()] - 图层id标识
+ * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
+ * @param [options.name = ''] - 图层名称
+ * @param [options.show = true] - 图层是否显示
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为map对象，false时不冒泡
+ * @param [options.center] - 图层自定义定位视角 {@link Map#setCameraView}
+ * @param options.center.lng - 经度值, 180 - 180
+ * @param options.center.lat - 纬度值, -90 - 90
+ * @param [options.center.alt] - 高度值
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
+ */
+declare class I3SLayer extends BaseGraphicLayer {
+    constructor(options: {
+        url: string | Cesium.Resource | Cesium.IonResource;
+        traceFetches?: boolean;
+        geoidTiledTerrainProvider?: any | Cesium.ArcGISTiledElevationTerrainProvider;
+        maximumScreenSpaceError?: number;
+        cacheBytes?: number;
+        maximumCacheOverflowBytes?: number;
+        maximumMemoryUsage?: number;
+        style?: any | Cesium.Cesium3DTileStyle | ((...params: any[]) => any);
+        marsJzwStyle?: boolean | string;
+        customShader?: Cesium.CustomShader;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
+        shadows?: Cesium.ShadowMode;
+        cullWithChildrenBounds?: boolean;
+        cullRequestsWhileMoving?: boolean;
+        cullRequestsWhileMovingMultiplier?: number;
+        preloadWhenHidden?: boolean;
+        preloadFlightDestinations?: boolean;
+        preferLeaves?: boolean;
+        dynamicScreenSpaceError?: boolean;
+        dynamicScreenSpaceErrorDensity?: number;
+        dynamicScreenSpaceErrorFactor?: number;
+        dynamicScreenSpaceErrorHeightFalloff?: number;
+        progressiveResolutionHeightFraction?: number;
+        foveatedScreenSpaceError?: boolean;
+        foveatedConeSize?: number;
+        foveatedMinimumScreenSpaceErrorRelaxation?: number;
+        foveatedInterpolationCallback?: any;
+        foveatedTimeDelay?: number;
+        skipLevelOfDetail?: boolean;
+        baseScreenSpaceError?: number;
+        skipScreenSpaceErrorFactor?: number;
+        skipLevels?: number;
+        immediatelyLoadDesiredLevelOfDetail?: boolean;
+        loadSiblings?: boolean;
+        clippingPlanes?: Cesium.ClippingPlaneCollection;
+        classificationType?: Cesium.ClassificationType;
+        pointCloudShading?: any;
+        lightColor?: Cesium.Cartesian3;
+        backFaceCulling?: boolean;
+        debugHeatmapTilePropertyName?: string;
+        pickPrimitive?: any;
+        enableDebugWireframe?: boolean;
+        debugWireframe?: boolean;
+        popup?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any);
+        popupOptions?: {
+            title?: string;
+            titleField?: string;
+            noTitle?: string;
+        };
+        tooltip?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any) | any;
+        tooltipOptions?: {
+            title?: string;
+            titleField?: string;
+            noTitle?: string;
+        };
+        contextmenuItems?: any;
+        id?: string | number;
+        pid?: string | number;
+        name?: string;
+        show?: boolean;
+        eventParent?: BaseClass | boolean;
+        center?: {
+            lng: number;
+            lat: number;
+            alt?: number;
+            heading?: number;
+            pitch?: number;
+            roll?: number;
+        };
+        flyTo?: boolean;
+        flyToOptions?: any;
+    });
+    /**
+     * 模型对应的 I3SDataProvider对象
+     */
+    readonly layer: Cesium.I3SDataProvider;
+    /**
+     * 开启或设置建筑物特效样式。
+     */
+    marsJzwStyle: boolean | any;
+    /**
+     * 模型的向上轴，比如Cesium.Axis.Z 或 Cesium.Axis.Y
+     */
+    readonly modelUpAxis: Cesium.Axis;
+    /**
+     * 遍历每一个Tileset子图层并将其作为参数传递给回调函数
+     * @param method - 回调方法
+     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @returns 当前对象本身,可以链式调用
+     */
+    eachTilesetLayer(method: (...params: any[]) => any, context?: any): GroupLayer;
+    /**
+     * 重新加载模型
+     */
+    reload(): void;
+    /**
+     * 飞行定位至图层数据所在的视角
+     * @param [options = {}] - 参数对象:
+     * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
+     * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
+     * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+     * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
+     * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
+     * @param [options.height] - 矩形区域时的高度值, 默认取地形高度值
+     * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
+     * @param [options.complete] - 飞行完成后要执行的函数。
+     * @param [options.cancel] - 飞行取消时要执行的函数。
+     * @param [options.endTransform] - 变换矩阵表示飞行结束时相机所处的参照系。
+     * @param [options.maximumHeight] - 飞行高峰时的最大高度。
+     * @param [options.pitchAdjustHeight] - 如果相机飞得比这个值高，在飞行过程中调整俯仰以向下看，并保持地球在视口。
+     * @param [options.flyOverLongitude] - 地球上的两点之间总有两条路。这个选项迫使相机选择战斗方向飞过那个经度。
+     * @param [options.flyOverLongitudeWeight] - 仅在通过flyOverLongitude指定的lon上空飞行，只要该方式的时间不超过flyOverLongitudeWeight的短途时间。
+     * @param [options.convert = true] - 是否将目的地从世界坐标转换为场景坐标（仅在不使用3D时相关）。
+     * @param [options.easingFunction] - 控制在飞行过程中如何插值时间。
+     * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
+     */
+    flyTo(options?: {
+        radius?: number;
+        scale?: number;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        minHeight?: number;
+        maxHeight?: number;
+        height?: number;
+        duration?: number;
+        complete?: Cesium.Camera.FlightCompleteCallback;
+        cancel?: Cesium.Camera.FlightCancelledCallback;
+        endTransform?: Cesium.Matrix4;
+        maximumHeight?: number;
+        pitchAdjustHeight?: number;
+        flyOverLongitude?: number;
+        flyOverLongitudeWeight?: number;
+        convert?: boolean;
+        easingFunction?: Cesium.EasingFunction.Callback;
+    }): Promise<boolean>;
 }
 
 declare namespace LodGraphicLayer {
@@ -18415,11 +22050,11 @@ declare namespace LodGraphicLayer {
  * @param [options.maximumLevel] - 图层所支持的最大层级,当地图大于该级别时，平台不去请求服务数据。
  * @param options.rectangle - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
- * @param options.debuggerTileInfo - 是否开启测试显示瓦片信息
+ * @param [options.debuggerTileInfo] - 是否开启测试显示瓦片信息
  * @param [options.opacity = 1.0] - 透明度（部分图层），取值范围：0.0-1.0
  * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
  * @param [options.symbol] - 矢量数据的style样式,为Function时是完全自定义的回调处理 symbol(attr, style, feature)
@@ -18428,9 +22063,10 @@ declare namespace LodGraphicLayer {
  * @param [options.symbol.styleFieldOptions] - 按styleField值与对应style样式的键值对象。
  * @param [options.symbol.merge] - 是否合并并覆盖json中已有的style，默认不合并。
  * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, styleOpt){  return { color: "#ff0000" };  }
- * @param options.clustering - 设置聚合相关参数：
+ * @param [options.clustering] - 设置聚合相关参数（仅对Label、Point、Billboard 3种对象有效）：
  * @param [options.clustering.enabled = false] - 是否开启聚合
  * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
  * @param [options.clustering.clampToGround = true] - 是否贴地
  * @param [options.clustering.radius = 28] - 圆形图标的整体半径大小（单位：像素）
  * @param [options.clustering.radiusIn = radius-5] - 圆形图标的内圆半径大小（单位：像素）
@@ -18457,9 +22093,9 @@ declare namespace LodGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -18467,6 +22103,7 @@ declare namespace LodGraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class LodGraphicLayer extends GraphicLayer {
     constructor(options?: {
@@ -18483,7 +22120,7 @@ declare class LodGraphicLayer extends GraphicLayer {
             ymax: number;
         };
         bbox?: number[];
-        debuggerTileInfo: boolean;
+        debuggerTileInfo?: boolean;
         opacity?: number;
         zIndex?: number;
         symbol?: {
@@ -18493,9 +22130,10 @@ declare class LodGraphicLayer extends GraphicLayer {
             merge?: boolean;
             callback?: (...params: any[]) => any;
         };
-        clustering: {
+        clustering?: {
             enabled?: boolean;
             pixelRange?: number;
+            minimumClusterSize?: number;
             clampToGround?: boolean;
             radius?: number;
             radiusIn?: number;
@@ -18537,6 +22175,7 @@ declare class LodGraphicLayer extends GraphicLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 根据LOD分块信息去请求对应的Tile瓦块内的数据
@@ -18575,7 +22214,9 @@ declare class LodGraphicLayer extends GraphicLayer {
  * OSM在线 建筑物模型
  * @param options - 参数对象，参数包括以下：
  * @param [options.maximumScreenSpaceError = 16] - 用于驱动细化细节级别的最大屏幕空间错误。数值加大，能让最终成像变模糊
- * @param [options.maximumMemoryUsage = 512] - 数据集可以使用的最大内存量(以MB计)。这个参数默认是512，也即是当几何体和纹理资源大于512MB的时候，Cesium就会淘汰掉当前帧中没有visited的所有块，这个值其实很小，也是cesium为了避免资源占用过高的一个保障，不过上述我们也估算过最差情况下，没有做纹理crn压缩的情况下，这个值很容易被超过，导致很多人误以为cesium的淘汰没有效果。这个值如果设置的过小，导致cesium几乎每帧都在尝试淘汰数据，增加了遍历的时间，也同时增加了崩溃的风险。这个值如果设置的过大，cesium的淘汰机制失效，那么容易导致显存超过显卡内存，也会导致崩溃。 这个值应该处于最差视角下资源占用 和 显存最大量之间。结论：这个参数要根据当前显卡显存来配置，如果我们场景只显示这一个模型数据，这个可以设置到显存的50 % 左右，比如我的显存是6G，这个可以设置到3000左右。那么既保证不超过显存限制，又可以最大利用显存缓存，配合crn压缩之后，这个几乎可以保证你第二次查看模型同一位置的时候，看不到加载过程，非常棒。
+ * @param [options.cacheBytes = 536870912] - 如果缓存包含当前视图不需要的块，则块缓存将被修剪到的大小(以字节为单位)。
+ * @param [options.maximumCacheOverflowBytes = 536870912] - 如果当前视图需要超过{@link Cesium3DTileset#cacheBytes}，则允许缓存净空的最大额外内存(以字节为单位)。
+ * @param [options.maximumMemoryUsage = 512] - 【cesium 1.107+弃用】数据集可以使用的最大内存量(以MB计)，这个参数要根据当前客户端显卡显存来配置，如果我们场景只显示这一个模型数据，这个可以设置到显存的50% 左右，比如我的显存是4G，这个可以设置到2048左右。那么既保证不超过显存限制，又可以最大利用显存缓存。<br />
  * @param [options.style] - 模型样式， 使用{@link https://github.com/CesiumGS/3d-tiles/tree/master/specification/Styling|3D Tiles Styling language}.
  * @param [options.marsJzwStyle = false] - 开启或设置建筑物特效样式。
  * @param [options.customShader] - 自定义shader效果
@@ -18606,9 +22247,9 @@ declare class LodGraphicLayer extends GraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -18616,10 +22257,13 @@ declare class LodGraphicLayer extends GraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class OsmBuildingsLayer extends TilesetLayer {
     constructor(options: {
         maximumScreenSpaceError?: number;
+        cacheBytes?: number;
+        maximumCacheOverflowBytes?: number;
         maximumMemoryUsage?: number;
         style?: any | Cesium.Cesium3DTileStyle | ((...params: any[]) => any);
         marsJzwStyle?: boolean | string;
@@ -18666,6 +22310,7 @@ declare class OsmBuildingsLayer extends TilesetLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -18720,41 +22365,48 @@ declare namespace TilesetLayer {
 
 /**
  * 3dtiles 三维模型图层。
- * @param options - 参数对象， 构造参数建议从{@link http://mars3d.cn/editor.html?id=layer-tileset/manager/edit|模型编辑页面}设置后保存参数后拷贝json参数即可。参数包括以下：
+ * @param options - 参数对象， 构造参数建议从{@link http://mars3d.cn/editor-vue.html?id=layer-tileset/manager/edit|模型编辑页面}设置后保存参数后拷贝json参数即可。参数包括以下：
  * @param options.url - tileset的主JSON文件的 url ，ION资源时可以写 url: Cesium.IonResource.fromAssetId(8564),
  * @param [options.maximumScreenSpaceError = 16] - 用于驱动细化细节级别的最大屏幕空间错误。可以简单理解为：数值加大，能让最终成像变模糊。
- * @param [options.maximumMemoryUsage = 512] - 数据集可以使用的最大内存量(以MB计)，这个参数要根据当前客户端显卡显存来配置，如果我们场景只显示这一个模型数据，这个可以设置到显存的50% 左右，比如我的显存是4G，这个可以设置到2048左右。那么既保证不超过显存限制，又可以最大利用显存缓存。<br />
- * 解释：
- * 这个参数默认是512，也即是当几何体和纹理资源大于512MB的时候，cesium就会淘汰掉当前帧中没有visited的所有块，这个值其实很小，也是cesium为了避免资源占用过高的一个保障.<br />
- * 这个值如果设置的过小，导致cesium几乎每帧都在尝试淘汰数据，增加了遍历的时间，也同时增加了崩溃的风险。<br />
- * 这个值如果设置的过大，cesium的淘汰机制失效，那么容易导致显存超过显卡内存，也会导致崩溃。 这个值应该处于最差视角下资源占用 和 显存最大量之间。<br />
+ * @param [options.cacheBytes = 536870912] - 额定显存大小(以字节为单位)，允许在这个值上下波动。
+ * @param [options.maximumCacheOverflowBytes = 536870912] - 最大显存大小(以字节为单位)。
+ * @param [options.maximumMemoryUsage = 512] - 【cesium 1.107+弃用】数据集可以使用的最大内存量(以MB计)，这个参数要根据当前客户端显卡显存来配置，如果我们场景只显示这一个模型数据，这个可以设置到显存的50% 左右，比如我的显存是4G，这个可以设置到2048左右。那么既保证不超过显存限制，又可以最大利用显存缓存。<br />
  * @param [options.position] - 自定义新的中心点位置（移动模型）
- * @param options.position.lng - 经度值, 180 - 180
- * @param options.position.lat - 纬度值, -90 - 90
- * @param options.position.alt - 高度值（单位：米）
+ * @param [options.position.lng] - 经度值, -180 至 180
+ * @param [options.position.lat] - 纬度值, -90 至 90
+ * @param [options.position.alt] - 高度值（单位：米）
+ * @param [options.position.alt_offset] - 相对于模型本身高度的偏移值（单位：米） ，如果有alt时已alt优先。
  * @param [options.rotation] - 自定义旋转方向（旋转模型）
  * @param options.rotation.x - X方向，角度值0-360
  * @param options.rotation.y - Y方向，角度值0-360
  * @param options.rotation.z - 四周方向，角度值0-360
  * @param [options.modelMatrix] - 模型的矩阵位置，内部无坐标位置的模型使用，此时position和rotation等参数均无效。
  * @param [options.updateMatrix] - 外部自定义修复模型矩阵位置
- * @param [options.scale = 1] - 自定义缩放比例
+ * @param [options.scale = 1] - 自定义缩放比例，整体等比例缩放
+ * @param [options.scaleX = 1] - 单独自定义缩放X轴方向比例
+ * @param [options.scaleY = 1] - 单独自定义缩放Y轴方向比例
+ * @param [options.scaleZ = 1] - 单独自定义缩放Z轴方向比例
  * @param [options.axis] - 自定义轴方向
  * @param [options.style] - 模型样式， 使用{@link https://github.com/CesiumGS/3d-tiles/tree/master/specification/Styling|3D Tiles Styling language}.
- * @param [options.marsJzwStyle = false] - 开启或设置建筑物特效样式。
+ * @param [options.marsJzwStyle = false] - 开启或设置建筑物特效样式，object时可以修改内置shader的3个变量，比如： { baseHeight: 50.0,  heightRange: 380.0,  glowRange: 400.0    },
  * @param [options.customShader] - 自定义shader效果
+ * @param [options.editUpAxis = Cesium.Axis.Z] - 标识模型的轴方向(建筑物特效、模型压平等功能中使用)
  * @param [options.highlight] - 高亮及其样式配置
  * @param [options.highlight.type] - 鼠标移入高亮 或 单击高亮(type:'click')
- * @param [options.highlight.all] - 是否整体高亮， true:模型整体全部高亮，false:单个构件高亮
  * @param [options.highlight.color = '#FFFF00'] - 颜色，支持rgba字符串
  * @param [options.highlight.outlineEffect = false] - 默认为修改矢量对象本身的style高亮，true时采用{@link OutlineEffect}方式高亮。
  * @param [options.highlight.filter] - 可以设置筛选排除一些构件, 排除的构件在filter方法内返回false
- * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.highlight.all] - 是否按整体高亮， true:模型整体全部高亮，false:单个构件高亮
+ * @param [options.highlight.uniqueKey] - 按指定字段进行对应相关构件的整体高亮，对outlineEffect时无效
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取. 字符串时为固定内置判断，目前有： "alpha":鼠标不拾取前面遮挡的透明的构件，穿透拾取其后方不透明构件。
  * @param [options.clampToGround] - 是否贴地,true时自动调用贴地计算，但此属性只适合标准的与地形数据匹配的模型，并不精确，建议通过模型编辑页面调试给具体高度值。
  * @param [options.chinaCRS] - 标识模型的国内坐标系（用于自动纠偏或加偏）
  * @param [options.clip] - 模型裁剪 对象, 可传入{@link TilesetClip}构造参数
  * @param [options.flat] - 模型压平 对象, 可传入{@link TilesetFlat}构造参数
  * @param [options.flood] - 模型淹没 对象, 可传入{@link TilesetFlood}构造参数
+ * @param [options.planClip] - 模型Plan裁剪 对象, 可传入{@link TilesetPlanClip}构造参数
+ * @param [options.modelUpAxis = Cesium.Axis.Y] - Which axis is considered up when loading models for tile contents.
+ * @param [options.modelForwardAxis = Cesium.Axis.X] - Which axis is considered forward when loading models for tile contents.
  * @param [options.shadows = ShadowMode.ENABLED] - 确定tileset是否投射或接收来自光源的阴影。
  * @param [options.cullWithChildrenBounds = true] - 优化选择。是否使用子绑定卷的并集来筛选贴图。
  * @param [options.cullRequestsWhileMoving = true] - 优化选择。不要要求贴图，当他们回来的时候可能不会使用，因为相机的运动。这个优化只适用于固定瓷砖组。
@@ -18780,11 +22432,34 @@ declare namespace TilesetLayer {
  * @param [options.loadSiblings = false] - 当skipLevelOfDetail = true时，判断遍历过程中是否总是下载可见块的兄弟块。如果为true则不会在已加载完模型后，自动从中心开始超清化模型。
  * @param [options.clippingPlanes] - {@link Cesium.ClippingPlaneCollection}用于选择性地禁用tile集的渲染。
  * @param [options.classificationType] - 确定地形、3D贴图或两者都将被这个贴图集分类。有关限制和限制的详细信息，请参阅{@link cesium3dtilesset #classificationType}。
+ * @param [options.ellipsoid = Ellipsoid.WGS84] - The ellipsoid determining the size and shape of the globe.
  * @param [options.pointCloudShading] - 基于几何误差和光照构造一个{@link Cesium.PointCloudShading}对象来控制点衰减的选项。
  * @param [options.lightColor] - 光的颜色当遮光模型。当undefined场景的浅色被使用代替。表示，rgb的倍数，new Cesium.Cartesian3(100.0,100.0, 100.0)表示白光增强到100倍。对Pbrt材质有效，倾斜摄影不生效。
+ * @param [options.imageBasedLighting] - 用于管理基于图像的光源的属性。
+ * @param [options.luminanceAtZenith = 0.2] - 模型材质亮度，The sun's luminance at the zenith in kilo candela per meter squared to use for this model's procedural environment map.
  * @param [options.backFaceCulling = true] - 是否剔除面向背面的几何图形。当为真时，背面剔除由glTF材质的双面属性决定;当为false时，禁用背面剔除。
+ * @param [options.enableShowOutline = true] - 是否启用模型的轮廓 {@link https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/CESIUM_primitive_outline|CESIUM_primitive_outline} 扩展. 可以将其设置为false，以避免在加载时对几何图形进行额外处理。如果为false，则会忽略showOutlines和outlineColor选项。
+ * @param [options.showOutline = true] - 是否显示模型的轮廓 {@link https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/CESIUM_primitive_outline|CESIUM_primitive_outline} 扩展. 当为true时，将显示轮廓。当为false时，不显示轮廓。
+ * @param [options.outlineColor = Color.BLACK] - 渲染outline轮廓时要使用的颜色。
+ * @param [options.vectorClassificationOnly = false] - 是否只应使用瓦片集的向量瓦片进行分类。
+ * @param [options.vectorKeepDecodedPositions = false] - Whether vector tiles should keep decoded positions in memory. This is used with {@link Cesium3DTileFeature.getPolylinePositions}.
+ * @param [options.featureIdLabel = "featureId_0"] - Label of the feature ID set to use for picking and styling. For EXT_mesh_features, this is the feature ID's label property, or "featureId_N" (where N is the index in the featureIds array) when not specified. EXT_feature_metadata did not have a label field, so such feature ID sets are always labeled "featureId_N" where N is the index in the list of all feature Ids, where feature ID attributes are listed before feature ID textures. If featureIdLabel is an integer N, it is converted to the string "featureId_N" automatically. If both per-primitive and per-instance feature IDs are present, the instance feature IDs take priority.
+ * @param [options.instanceFeatureIdLabel = "instanceFeatureId_0"] - Label of the instance feature ID set used for picking and styling. If instanceFeatureIdLabel is set to an integer N, it is converted to the string "instanceFeatureId_N" automatically. If both per-primitive and per-instance feature IDs are present, the instance feature IDs take priority.
+ * @param [options.showCreditsOnScreen = false] - Whether to display the credits of this tileset on screen.
+ * @param [options.splitDirection = SplitDirection.NONE] - 卷帘对比时，设置所在的屏幕，NONE时不分屏
+ * @param [options.projectTo2D = false] - 是否准确地将贴图集投影到2D。如果这是真的，那么贴图集将被准确地投影到2D，但是这样做会使用更多的内存。如果这是false，贴图集将使用更少的内存，并且仍然会在2D / CV模式下渲染，但是它的投影位置可能不准确。加载磁贴集后不能设置此参数。
  * @param [options.debugHeatmapTilePropertyName] - 是否剔除面向背面的几何图形。当为真时，背面剔除由glTF材质的双面属性决定;作为热图着色的tile变量。所有渲染的贴图都将相对于其他指定的变量值着色。
- * @param [options.pickPrimitive] - 要在拾取过程中呈现的原语，而不是tile集合。
+ * @param [options.debugFreezeFrame = false] - For debugging only. Determines if only the tiles from last frame should be used for rendering.
+ * @param [options.debugColorizeTiles = false] - For debugging only. When true, assigns a random color to each tile.
+ * @param [options.enableDebugWireframe = false] - 仅供调试。是否可以通过debugWireframe来切换查看模型的三角网线框图。
+ * @param [options.debugWireframe = false] - 仅供调试。是否打开模型的三角网线框图。
+ * @param [options.debugShowBoundingVolume = false] - For debugging only. When true, renders the bounding volume for each tile.
+ * @param [options.debugShowContentBoundingVolume = false] - For debugging only. When true, renders the bounding volume for each tile's content.
+ * @param [options.debugShowViewerRequestVolume = false] - For debugging only. When true, renders the viewer request volume for each tile.
+ * @param [options.debugShowGeometricError = false] - For debugging only. When true, draws labels to indicate the geometric error of each tile.
+ * @param [options.debugShowRenderingStatistics = false] - For debugging only. When true, draws labels to indicate the number of commands, points, triangles and features for each tile.
+ * @param [options.debugShowMemoryUsage = false] - For debugging only. When true, draws labels to indicate the texture and geometry memory in megabytes used by each tile.
+ * @param [options.debugShowUrl = false] - For debugging only. When true, draws labels to indicate the url of each tile.
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
  * @param [options.popupOptions] - popup弹窗时的配置参数，也支持如pointerEvents等{@link Popup}构造参数,还包括：
  * @param [options.popupOptions.title] - 固定的标题名称
@@ -18796,6 +22471,12 @@ declare namespace TilesetLayer {
  * @param [options.tooltipOptions.titleField] - 标题对应的属性字段名称
  * @param [options.tooltipOptions.noTitle] - 不显示标题
  * @param [options.contextmenuItems] - 绑定的右键菜单值，也可以bindContextMenu方法绑定
+ * @param [options.hasEdit = true] - 是否允许编辑
+ * @param [options.hasEditContextMenu = true] - 编辑时，是否绑定右键编辑菜单，且需要transform是true的模型才支持编辑
+ * @param [options.proxy] - 加载资源时要使用的代理服务url。
+ * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
+ * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'},
+ * @param [options.headers] - 一个对象，将发送的其他HTTP标头。比如：headers: { 'X-My-Header': 'valueOfHeader' },
  * @param [options.id = createGuid()] - 图层id标识
  * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
  * @param [options.name = ''] - 图层名称
@@ -18805,20 +22486,24 @@ declare namespace TilesetLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class TilesetLayer extends BaseGraphicLayer {
     constructor(options: {
         url: string | Cesium.Resource | Cesium.IonResource;
         maximumScreenSpaceError?: number;
+        cacheBytes?: number;
+        maximumCacheOverflowBytes?: number;
         maximumMemoryUsage?: number;
         position?: {
-            lng: number;
-            lat: number;
-            alt: number;
+            lng?: number;
+            lat?: number;
+            alt?: number;
+            alt_offset?: number;
         };
         rotation?: {
             x: number;
@@ -18828,23 +22513,31 @@ declare class TilesetLayer extends BaseGraphicLayer {
         modelMatrix?: Cesium.Matrix4;
         updateMatrix?: (...params: any[]) => any;
         scale?: number;
+        scaleX?: number;
+        scaleY?: number;
+        scaleZ?: number;
         axis?: string | Cesium.Axis;
         style?: any | Cesium.Cesium3DTileStyle | ((...params: any[]) => any);
-        marsJzwStyle?: boolean | string;
+        marsJzwStyle?: boolean | any | string;
         customShader?: Cesium.CustomShader;
+        editUpAxis?: Cesium.Axis;
         highlight?: {
             type?: string;
-            all?: boolean;
             color?: string | ((...params: any[]) => any);
             outlineEffect?: boolean;
             filter?: (...params: any[]) => any;
+            all?: boolean;
+            uniqueKey?: string;
         };
-        allowDrillPick?: boolean | ((...params: any[]) => any);
+        allowDrillPick?: boolean | ((...params: any[]) => any) | string;
         clampToGround?: boolean;
         chinaCRS?: ChinaCRS;
         clip?: any;
         flat?: any;
         flood?: any;
+        planClip?: any;
+        modelUpAxis?: Cesium.Axis;
+        modelForwardAxis?: Cesium.Axis;
         shadows?: Cesium.ShadowMode;
         cullWithChildrenBounds?: boolean;
         cullRequestsWhileMoving?: boolean;
@@ -18870,11 +22563,34 @@ declare class TilesetLayer extends BaseGraphicLayer {
         loadSiblings?: boolean;
         clippingPlanes?: Cesium.ClippingPlaneCollection;
         classificationType?: Cesium.ClassificationType;
+        ellipsoid?: Cesium.Ellipsoid;
         pointCloudShading?: any;
         lightColor?: Cesium.Cartesian3;
+        imageBasedLighting?: Cesium.ImageBasedLighting;
+        luminanceAtZenith?: number;
         backFaceCulling?: boolean;
+        enableShowOutline?: boolean;
+        showOutline?: boolean;
+        outlineColor?: Cesium.Color;
+        vectorClassificationOnly?: boolean;
+        vectorKeepDecodedPositions?: boolean;
+        featureIdLabel?: string | number;
+        instanceFeatureIdLabel?: string | number;
+        showCreditsOnScreen?: boolean;
+        splitDirection?: Cesium.SplitDirection;
+        projectTo2D?: boolean;
         debugHeatmapTilePropertyName?: string;
-        pickPrimitive?: any;
+        debugFreezeFrame?: boolean;
+        debugColorizeTiles?: boolean;
+        enableDebugWireframe?: boolean;
+        debugWireframe?: boolean;
+        debugShowBoundingVolume?: boolean;
+        debugShowContentBoundingVolume?: boolean;
+        debugShowViewerRequestVolume?: boolean;
+        debugShowGeometricError?: boolean;
+        debugShowRenderingStatistics?: boolean;
+        debugShowMemoryUsage?: boolean;
+        debugShowUrl?: boolean;
         popup?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any);
         popupOptions?: {
             title?: string;
@@ -18888,6 +22604,12 @@ declare class TilesetLayer extends BaseGraphicLayer {
             noTitle?: string;
         };
         contextmenuItems?: any;
+        hasEdit?: boolean;
+        hasEditContextMenu?: boolean;
+        proxy?: string;
+        templateValues?: any;
+        queryParameters?: any;
+        headers?: any;
         id?: string | number;
         pid?: string | number;
         name?: string;
@@ -18902,6 +22624,7 @@ declare class TilesetLayer extends BaseGraphicLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 原始的旋转角度，示例：{ x: 0, y: 0, z: 0 }
@@ -18926,7 +22649,7 @@ declare class TilesetLayer extends BaseGraphicLayer {
     /**
      * 开启或设置建筑物特效样式。
      */
-    marsJzwStyle: boolean | any;
+    marsJzwStyle: boolean | any | string;
     /**
      * 模型样式，
      * 使用{@link https://github.com/CesiumGS/3d-tiles/tree/master/specification/Styling|3D Tiles Styling language}.
@@ -18937,6 +22660,10 @@ declare class TilesetLayer extends BaseGraphicLayer {
      * 如果默认无customShader，加载模型后动态修改customShader值
      */
     customShader: Cesium.CustomShader;
+    /**
+     * 卷帘对比时，设置所在的屏幕，NONE时不分屏
+     */
+    splitDirection: Cesium.SplitDirection;
     /**
      * 模型原始的中心点坐标
      */
@@ -18954,9 +22681,13 @@ declare class TilesetLayer extends BaseGraphicLayer {
      */
     center: LngLatPoint;
     /**
+     * 调整修改模型高度, 同alt
+     */
+    height: number;
+    /**
      * 调整修改模型高度
      */
-    height: LngLatPoint;
+    alt: number;
     /**
      * 模型的边界球体。
      */
@@ -18964,7 +22695,7 @@ declare class TilesetLayer extends BaseGraphicLayer {
     /**
      * 模型的向上轴，比如Cesium.Axis.Z 或 Cesium.Axis.Y
      */
-    readonly upAxis: Cesium.Axis;
+    readonly modelUpAxis: Cesium.Axis;
     /**
      * 旋转方向，示例：{ x: 0, y: 0, z: 0 }
      */
@@ -18994,6 +22725,18 @@ declare class TilesetLayer extends BaseGraphicLayer {
      */
     allowDrillPick: boolean | ((...params: any[]) => any);
     /**
+     * 模型材质亮度，The sun's luminance at the zenith in kilo candela per meter squared to use for this model's procedural environment map.
+     */
+    luminanceAtZenith: number;
+    /**
+     * 模型裁剪 对象
+     */
+    readonly planClip: TilesetPlanClip;
+    /**
+     * 是否可以编辑
+     */
+    hasEdit: boolean;
+    /**
      * 模型裁剪 对象
      */
     readonly clip: TilesetClip;
@@ -19013,6 +22756,10 @@ declare class TilesetLayer extends BaseGraphicLayer {
      * 重新加载模型
      */
     reload(): void;
+    /**
+     * 是否存在世界矩阵
+     */
+    readonly transform: boolean;
     /**
      * 模型原始矩阵
      */
@@ -19046,20 +22793,6 @@ declare class TilesetLayer extends BaseGraphicLayer {
      * @returns 无
      */
     setOpacity(value: number): void;
-    /**
-     * 设置属性信息到Feature上
-     * @param idField - 数据中唯一标识的属性字段名称
-     * @param properties - 属性值数组
-     * @returns 当前图层本身图层
-     */
-    setProperties(idField: string, properties: any): TilesetLayer;
-    /**
-     * 移除 设置属性信息到Feature上
-     * @param [idField] - 数据中唯一标识的属性字段名称,为空时删除所有
-     * @param [properties] - 属性值数组,为空时删除所有
-     * @returns 当前图层本身图层
-     */
-    delProperties(idField?: string, properties?: any): TilesetLayer;
     /**
      * 高亮对象。
      * @param [highlightStyle] - 高亮的样式，具体见各{@link GraphicType}矢量数据的style参数。
@@ -19106,14 +22839,16 @@ declare class TilesetLayer extends BaseGraphicLayer {
      */
     stopEditing(): void;
     /**
-     * 透明度，取值范围：0.0-1.0
-     */
-    opacity: number;
-    /**
      * 飞行定位至图层数据所在的视角
      * @param [options = {}] - 参数对象:
      * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
      * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
+     * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+     * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
+     * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
+     * @param [options.height] - 矩形区域时的高度值, 默认取地形高度值
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -19129,6 +22864,12 @@ declare class TilesetLayer extends BaseGraphicLayer {
     flyTo(options?: {
         radius?: number;
         scale?: number;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        minHeight?: number;
+        maxHeight?: number;
+        height?: number;
         duration?: number;
         complete?: Cesium.Camera.FlightCompleteCallback;
         cancel?: Cesium.Camera.FlightCancelledCallback;
@@ -19148,11 +22889,11 @@ declare class TilesetLayer extends BaseGraphicLayer {
  * @param options.url - WFS服务地址
  * @param [options.parameters] - 要在URL中 传递给WFS服务GetFeature请求的其他参数。
  * @param [options.parameters.maxFeatures] - 返回结果最大数量
- * @param [options.parameters.cql_filter] - 筛选服务数据的[SQL语句]{@link https://docs.geoserver.org/2.12.2/user/services/wfs/vendor.html#wfs-vendor-parameters}
+ * @param [options.parameters.cql_filter] - 筛选服务数据的SQL语句
  * @param [options.parameters.sortBy] - 排序的属性名称，默认升序，降序时+D
  * @param [options.parameters.service = 'WFS'] - 服务类型
  * @param [options.parameters.version = '1.0.0'] - 服务版本
- * @param [options.geometryName = 'the_geom'] - geometry字段名称
+ * @param [options.geometryName = 'the_geom'] - geometry字段名称, 比如：geom 或 the_geom
  * @param [options.headers] - 将被添加到HTTP请求头。
  * @param [options.proxy] - 加载资源时使用的代理。
  * @param options.layer - 图层名称（命名空间:图层名称），多个图层名称用逗号隔开
@@ -19162,11 +22903,11 @@ declare class TilesetLayer extends BaseGraphicLayer {
  * @param [options.maximumLevel] - 图层所支持的最大层级,当地图大于该级别时，平台不去请求服务数据。
  * @param options.rectangle - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
- * @param options.debuggerTileInfo - 是否开启测试显示瓦片信息
+ * @param [options.debuggerTileInfo] - 是否开启测试显示瓦片信息
  * @param [options.zIndex] - 控制图层的叠加层次（部分图层），默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面。
  * @param [options.symbol] - 矢量数据的style样式,为Function时是完全自定义的回调处理 symbol(attr, style, feature)
  * @param [options.symbol.type] - 标识数据类型，默认是根据数据生成 point、polyline、polygon
@@ -19178,14 +22919,20 @@ declare class TilesetLayer extends BaseGraphicLayer {
  * @param [options.graphicOptions] - 默认的graphic的构造参数，每种不同类型数据都有不同的属性，具体见各{@link GraphicType}矢量数据的构造参数。
  * @param [options.chinaCRS] - 标识数据的国内坐标系（用于自动纠偏或加偏）
  * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
+ * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+ * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+ * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+ * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
  * @param [options.buildings] - 标识当前图层为建筑物白膜类型数据
  * @param [options.buildings.bottomHeight] - 建筑物底部高度（如:0） 属性字段名称（如:{bottomHeight}）
  * @param [options.buildings.cloumn = 1] - 层数，楼的实际高度 = height*cloumn
  * @param [options.buildings.height = 3.5] - 层高的  固定层高数值（如:10） 或 属性字段名称（如:{height}）
- * @param [options.clustering] - Entity点数据时，设置聚合相关参数：
+ * @param [options.clustering] - 设置聚合相关参数（仅对Label、Point、Billboard 3种对象有效）：
  * @param [options.clustering.enabled = false] - 是否开启聚合
  * @param [options.clustering.pixelRange = 20] - 多少像素矩形范围内聚合
+ * @param [options.clustering.minimumClusterSize = 2] - 可以聚集的屏幕空间对象的最小数量
  * @param [options.clustering.clampToGround = true] - 是否贴地
+ * @param [options.clustering.style] - 聚合点的样式参数
  * @param [options.clustering.radius = 26] - 内置样式时，圆形图标的半径大小（单位：像素）
  * @param [options.clustering.fontColor = '#ffffff'] - 内置样式时，数字的颜色
  * @param [options.clustering.color = 'rgba(181, 226, 140, 0.6)'] - 内置样式时，圆形图标的背景颜色
@@ -19214,9 +22961,9 @@ declare class TilesetLayer extends BaseGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.extent] - 图层自定义定位的矩形区域，与center二选一即可。 {@link Map#flyToExtent}
  * @param options.extent.xmin - 最小经度值, -180 至 180
  * @param options.extent.xmax - 最大经度值, -180 至 180
@@ -19224,6 +22971,7 @@ declare class TilesetLayer extends BaseGraphicLayer {
  * @param options.extent.ymax - 最大纬度值, -90 至 90
  * @param [options.extent.height = 0] - 矩形高度值
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class WfsLayer extends LodGraphicLayer {
     constructor(options?: {
@@ -19237,7 +22985,7 @@ declare class WfsLayer extends LodGraphicLayer {
         };
         geometryName?: string;
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: string | Cesium.DefaultProxy;
         layer: string;
         IdField?: string;
         getCapabilities?: boolean;
@@ -19250,7 +22998,7 @@ declare class WfsLayer extends LodGraphicLayer {
             ymax: number;
         };
         bbox?: number[];
-        debuggerTileInfo: boolean;
+        debuggerTileInfo?: boolean;
         zIndex?: number;
         symbol?: {
             type?: GraphicType | string;
@@ -19263,6 +23011,11 @@ declare class WfsLayer extends LodGraphicLayer {
         graphicOptions?: any;
         chinaCRS?: ChinaCRS;
         allowDrillPick?: boolean | ((...params: any[]) => any);
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
         buildings?: {
             bottomHeight?: string;
             cloumn?: string;
@@ -19271,7 +23024,9 @@ declare class WfsLayer extends LodGraphicLayer {
         clustering?: {
             enabled?: boolean;
             pixelRange?: number;
+            minimumClusterSize?: number;
             clampToGround?: boolean;
+            style?: BillboardEntity.StyleOptions | any | PointEntity.StyleOptions | any | any;
             radius?: number;
             fontColor?: string;
             color?: string;
@@ -19315,6 +23070,7 @@ declare class WfsLayer extends LodGraphicLayer {
             height?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -19331,10 +23087,11 @@ declare class WfsLayer extends LodGraphicLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GroupLayer extends BaseGraphicLayer {
     constructor(options?: {
@@ -19353,6 +23110,7 @@ declare class GroupLayer extends BaseGraphicLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 子图层对象数组
@@ -19405,6 +23163,10 @@ declare class GroupLayer extends BaseGraphicLayer {
      */
     removeLayer(childlayer: BaseLayer | GraphicLayer): GroupLayer;
     /**
+     * 移除所有子图层
+     */
+    removeAllLayer(): void;
+    /**
      * 遍历每一个子图层并将其作为参数传递给回调函数
      * @param method - 回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
@@ -19446,6 +23208,16 @@ declare class GroupLayer extends BaseGraphicLayer {
      * @returns isFormat：true时，返回格式化对象，isFormat：false时返回Cesium.Rectangle对象
      */
     getRectangle(isFormat?: boolean): Cesium.Rectangle | any;
+    /**
+     * 将当前图层在map中层级进行 置顶(只对同类型图层间有效)。
+     * @returns 无
+     */
+    toTop(): void;
+    /**
+     * 将当前图层在map中层级进行 置底(只对同类型图层间有效)
+     * @returns 无
+     */
+    toBottom(): void;
 }
 
 /**
@@ -19461,11 +23233,13 @@ declare class GroupLayer extends BaseGraphicLayer {
  * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
  * @param [options.name = ''] - 图层名称
  * @param [options.show = true] - 图层是否显示（多个地形服务时，请只设置一个TerrainLayer图层的show为tue）
+ * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class TerrainLayer extends BaseLayer {
     constructor(options?: {
         terrain: {
-            type?: TerrainType;
+            type?: string | TerrainType;
             url: string | Cesium.Resource;
             requestVertexNormals?: boolean;
             requestWaterMask?: boolean;
@@ -19475,6 +23249,8 @@ declare class TerrainLayer extends BaseLayer {
         pid?: string | number;
         name?: string;
         show?: boolean;
+        flyTo?: boolean;
+        flyToOptions?: any;
     });
 }
 
@@ -19506,12 +23282,12 @@ declare class TerrainLayer extends BaseLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -19548,10 +23324,11 @@ declare class TerrainLayer extends BaseLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class ArcGisCacheLayer extends BaseTileLayer {
     constructor(options?: {
@@ -19611,6 +23388,7 @@ declare class ArcGisCacheLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -19623,7 +23401,7 @@ declare class ArcGisCacheLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 declare namespace ArcGisLayer {
@@ -19665,7 +23443,7 @@ declare namespace ArcGisLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -19673,7 +23451,9 @@ declare namespace ArcGisLayer {
  * @param [options.crs = CRS.EPSG4326] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.enablePickFeatures = true] - 如果为true，则请求 单击坐标处服务中对应的矢量数据 并尝试解释响应中包含的功能。为false时不去服务请求。
- * @param [options.graphicConver] - 单击获取到的数据进行按需筛选解析，大数据解析很卡，可以设定阀值屏蔽大数据，避免卡顿，number类型时代表字符串长度值。
+ * @param [options.featureIndex = 0] - 如果单击有多个feature返回时，默认用第0条数据，取其他数据时可以自定义，可传index顺序，回调方法、和字符串"end"代表取最后一条
+ * @param [options.featureToGraphic = mars3d.Util.geoJsonToGraphics] - 解析单击返回的矢量数据信息为Graphic构造参数，可以按需自定义。
+ * @param [options.hasToGraphic] - 筛选或判断是否解析，单击获取到的数据进行按需筛选解析，大数据解析很卡，可以设定阀值屏蔽大数据，避免卡顿，number类型时代表字符串长度值。
  * @param [options.highlight] - 鼠标单击高亮显示对应的矢量数据 及其样式，具体见各{@link GraphicType}矢量数据的style参数。
  * @param [options.highlight.type] - 构造成的矢量数据类型。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
@@ -19709,10 +23489,11 @@ declare namespace ArcGisLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class ArcGisLayer extends BaseTileLayer {
     constructor(options?: {
@@ -19744,7 +23525,9 @@ declare class ArcGisLayer extends BaseTileLayer {
         crs?: CRS;
         chinaCRS?: ChinaCRS;
         enablePickFeatures?: boolean;
-        graphicConver?: number | boolean | ((...params: any[]) => any);
+        featureIndex?: number | string | ((...params: any[]) => any);
+        featureToGraphic?: (...params: any[]) => any;
+        hasToGraphic?: number | boolean | ((...params: any[]) => any);
         highlight?: {
             type?: GraphicType | string;
         };
@@ -19787,6 +23570,7 @@ declare class ArcGisLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 坐标系
@@ -19825,13 +23609,7 @@ declare class ArcGisLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
-    /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -19855,12 +23633,12 @@ declare class ArcGisLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -19897,10 +23675,11 @@ declare class ArcGisLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class ArcGisTileLayer extends BaseTileLayer {
     constructor(options?: {
@@ -19959,6 +23738,7 @@ declare class ArcGisTileLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -19971,7 +23751,7 @@ declare class ArcGisTileLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -19996,7 +23776,7 @@ declare class ArcGisTileLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -20034,10 +23814,11 @@ declare class ArcGisTileLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class BaiduLayer extends BaseTileLayer {
     constructor(options?: {
@@ -20096,6 +23877,7 @@ declare class BaiduLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -20108,7 +23890,7 @@ declare class BaiduLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 declare namespace BaseTileLayer {
@@ -20159,12 +23941,12 @@ declare namespace BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -20185,6 +23967,9 @@ declare namespace BaseTileLayer {
  * @param [options.gamma = 1.0] - 伽马校正值。 1.0使用未修改的图像颜色。
  * @param [options.invertColor] - 是否反向颜色，内部计算规则: color.r = 1.0 - color.r
  * @param [options.filterColor] - 滤镜颜色，内部计算规则: color.r = color.r * filterColor.r
+ * @param [options.splitDirection = Cesium.SplitDirection.NONE] - 卷帘对比时，设置所在的屏幕，NONE时不分屏
+ * @param [options.minificationFilter = Cesium.TextureMinificationFilter.LINEAR] - 缩小瓦片数据的过滤方式
+ * @param [options.magnificationFilter = Cesium.TextureMagnificationFilter.LINEAR] - 放大瓦片数据的过滤方式
  * @param [options.maximumAnisotropy = maximum supported] - 使用的最大各向异性水平 用于纹理过滤。如果未指定此参数，则支持最大各向异性 将使用WebGL堆栈。较大的值可使影像在水平方向上看起来更好 视图。
  * @param [options.cutoutRectangle] - 制图矩形，用于裁剪此ImageryLayer的一部分。
  * @param [options.colorToAlpha] - 用作Alpha的颜色。
@@ -20202,10 +23987,11 @@ declare namespace BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class BaseTileLayer extends BaseLayer {
     constructor(options?: {
@@ -20241,6 +24027,9 @@ declare class BaseTileLayer extends BaseLayer {
         gamma?: number | ((...params: any[]) => any);
         invertColor?: boolean;
         filterColor?: string | Cesium.Color;
+        splitDirection?: Cesium.SplitDirection | ((...params: any[]) => any);
+        minificationFilter?: Cesium.TextureMinificationFilter;
+        magnificationFilter?: Cesium.TextureMagnificationFilter;
         maximumAnisotropy?: number;
         cutoutRectangle?: Cesium.Rectangle;
         colorToAlpha?: Cesium.Color;
@@ -20263,6 +24052,7 @@ declare class BaseTileLayer extends BaseLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 当前是否为瓦片图层
@@ -20305,6 +24095,10 @@ declare class BaseTileLayer extends BaseLayer {
      */
     gamma: number;
     /**
+     * 卷帘对比时，设置所在的屏幕，NONE时不分屏
+     */
+    splitDirection: Cesium.SplitDirection;
+    /**
      * 是否可以调整图层顺序（在同类型图层间）
      */
     readonly hasZIndex: boolean;
@@ -20312,6 +24106,10 @@ declare class BaseTileLayer extends BaseLayer {
      * 图层顺序，数字大的在上面。（当hasZIndex为true时）
      */
     zIndex: number;
+    /**
+     * 取当前subdomains配置的随机1个值，用于URL模板中用于 {s} 占位符的子域
+     */
+    readonly subdomainItem: string;
     /**
      * 瓦片数据范围
      */
@@ -20321,7 +24119,7 @@ declare class BaseTileLayer extends BaseLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
     /**
      * 重新加载图层
      * @returns 无
@@ -20333,6 +24131,16 @@ declare class BaseTileLayer extends BaseLayer {
      * @returns 无
      */
     setOpacity(value: number): void;
+    /**
+     * 将当前图层在map中层级进行 置顶(只对同类型图层间有效)。
+     * @returns 无
+     */
+    toTop(): void;
+    /**
+     * 将当前图层在map中层级进行 置底(只对同类型图层间有效)
+     * @returns 无
+     */
+    toBottom(): void;
     /**
      * 绑定鼠标移入或单击后的 对象高亮
      * @param [options] - 高亮的样式，具体见各{@link GraphicType}矢量数据的style参数。
@@ -20364,16 +24172,16 @@ declare class BaseTileLayer extends BaseLayer {
      */
     opacity: number;
     /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
-    /**
      * 飞行定位至图层数据所在的视角
      * @param [options = {}] - 参数对象:
      * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
      * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
+     * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+     * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
+     * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
+     * @param [options.height] - 矩形区域时的高度值, 默认取地形高度值
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -20389,6 +24197,12 @@ declare class BaseTileLayer extends BaseLayer {
     flyTo(options?: {
         radius?: number;
         scale?: number;
+        heading?: number;
+        pitch?: number;
+        roll?: number;
+        minHeight?: number;
+        maxHeight?: number;
+        height?: number;
         duration?: number;
         complete?: Cesium.Camera.FlightCompleteCallback;
         cancel?: Cesium.Camera.FlightCancelledCallback;
@@ -20417,12 +24231,12 @@ declare class BaseTileLayer extends BaseLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -20460,10 +24274,11 @@ declare class BaseTileLayer extends BaseLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class BingLayer extends BaseTileLayer {
     constructor(options?: {
@@ -20523,6 +24338,7 @@ declare class BingLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -20535,7 +24351,7 @@ declare class BingLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
     /**
      * 要加载的必应地图图像的类型。
     */
@@ -20559,7 +24375,7 @@ declare class BingLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -20572,10 +24388,11 @@ declare class BingLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class EmptyTileLayer extends BaseTileLayer {
     constructor(options?: {
@@ -20604,6 +24421,7 @@ declare class EmptyTileLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 判断级别是否在当前图层的最大最小层级范围内
@@ -20622,7 +24440,7 @@ declare class EmptyTileLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -20644,7 +24462,7 @@ declare class EmptyTileLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -20685,10 +24503,11 @@ declare class EmptyTileLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GaodeLayer extends BaseTileLayer {
     constructor(options?: {
@@ -20748,6 +24567,7 @@ declare class GaodeLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -20760,7 +24580,7 @@ declare class GaodeLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -20774,12 +24594,12 @@ declare class GaodeLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -20816,10 +24636,11 @@ declare class GaodeLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GeeLayer extends BaseTileLayer {
     constructor(options?: {
@@ -20878,6 +24699,7 @@ declare class GeeLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -20890,7 +24712,7 @@ declare class GeeLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -20911,12 +24733,12 @@ declare class GeeLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS = 'GCJ02'] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -20953,10 +24775,11 @@ declare class GeeLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GoogleLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21016,6 +24839,7 @@ declare class GoogleLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -21028,7 +24852,7 @@ declare class GoogleLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21046,12 +24870,12 @@ declare class GoogleLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.opacity = 1.0] - 透明度，取值范围：0.0-1.0。
  * @param [options.alpha = 1.0] - 同opacity。
@@ -21080,10 +24904,11 @@ declare class GoogleLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class GridLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21139,13 +24964,14 @@ declare class GridLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建瓦片图层对应的ImageryProvider对象
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21159,13 +24985,12 @@ declare class GridLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
- * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
+ * @param [options.crs = CRS.EPSG4326] - 瓦片数据的坐标系信息
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
  * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'},
@@ -21198,10 +25023,11 @@ declare class GridLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class ImageLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21220,7 +25046,6 @@ declare class ImageLayer extends BaseTileLayer {
         bbox?: number[];
         zIndex?: number;
         crs?: CRS;
-        chinaCRS?: ChinaCRS;
         proxy?: string;
         templateValues?: any;
         queryParameters?: any;
@@ -21258,7 +25083,16 @@ declare class ImageLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
+    /**
+     * 图片url地址
+     */
+    url: string;
+    /**
+     * 加载完成对应的图片对象
+     */
+    readonly image: any;
     /**
      * 创建用于图层的 ImageryProvider对象
      * @param options - Provider参数，同图层构造参数。
@@ -21270,7 +25104,7 @@ declare class ImageLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21285,12 +25119,12 @@ declare class ImageLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -21328,10 +25162,11 @@ declare class ImageLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class IonLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21392,6 +25227,7 @@ declare class IonLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -21404,7 +25240,7 @@ declare class IonLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21414,6 +25250,7 @@ declare class IonLayer extends BaseTileLayer {
  * @param [options.username = 'marsgis'] - 地图帐户的用户名。
  * @param options.styleId - Mapbox样式ID。
  * @param [options.accessToken = mars3d.Token.mapbox] - 图像的Token公共访问令牌。
+ * @param [options.token] - 同accessToken，别名
  * @param [options.tilesize = 512] - 图像块的大小。
  * @param [options.scaleFactor = true] - 确定贴图是否以 @2x 比例因子渲染。
  * @param [options.minimumLevel = 0] - 瓦片所支持的最低层级，如果数据没有第0层，该参数必须配置,当地图小于该级别时，平台不去请求服务数据。
@@ -21422,12 +25259,12 @@ declare class IonLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -21465,10 +25302,11 @@ declare class IonLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class MapboxLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21476,6 +25314,7 @@ declare class MapboxLayer extends BaseTileLayer {
         username?: string;
         styleId: string;
         accessToken?: string;
+        token?: string;
         tilesize?: number;
         scaleFactor?: boolean;
         minimumLevel?: number;
@@ -21532,6 +25371,7 @@ declare class MapboxLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -21544,21 +25384,21 @@ declare class MapboxLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
  * OSM开源地图
  * @param [options] - 参数对象，包括以下：
- * @param [options.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'] - 服务url地址
- * @param [options.subdomains = 'abc'] - URL模板中用于 {s} 占位符的子域。 如果此参数是单个字符串，则字符串中的每个字符都是一个子域。如果是 一个数组，数组中的每个元素都是一个子域。
+ * @param [options.url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'] - 服务url地址
+ * @param [options.subdomains] - URL模板中用于 {s} 占位符的子域。 如果此参数是单个字符串，则字符串中的每个字符都是一个子域。如果是 一个数组，数组中的每个元素都是一个子域。
  * @param [options.minimumLevel = 0] - 瓦片所支持的最低层级，如果数据没有第0层，该参数必须配置,当地图小于该级别时，平台不去请求服务数据。
  * @param [options.maximumLevel = 18] - 瓦片所支持的最大层级,大于该层级时会显示上一层拉伸后的瓦片，当地图大于该级别时，平台不去请求服务数据。
  * @param [options.minimumTerrainLevel] - 展示影像图层的最小地形细节级别，小于该级别时，平台不显示影像数据。
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -21595,10 +25435,11 @@ declare class MapboxLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class OsmLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21653,6 +25494,7 @@ declare class OsmLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -21665,7 +25507,7 @@ declare class OsmLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21681,22 +25523,23 @@ declare class OsmLayer extends BaseTileLayer {
  *     <li><code>img_e</code>: 影像注记英文</li>
  *     <li><code>ter_d</code>: 地形渲染图</li>
  *     <li><code>ter_z</code>: 地形渲染图注记</li>
+ *     <li><code>xzqh</code>: 行政区划界线</li>
  * </ul>
+ * @param [options.url = "https://t{s}.tianditu.gov.cn/"] - 服务URL地址前缀
  * @param [options.key = mars3d.Token.tiandituArr] - 天地图服务Token，可以自行注册官网： {@link https://console.tianditu.gov.cn/api/key}
- * @param [options.url] - 服务URL地址，同xyz服务
  * @param [options.minimumLevel = 0] - 瓦片所支持的最低层级，如果数据没有第0层，该参数必须配置,当地图小于该级别时，平台不去请求服务数据。
  * @param [options.maximumLevel] - 瓦片所支持的最大层级,大于该层级时会显示上一层拉伸后的瓦片，当地图大于该级别时，平台不去请求服务数据。
  * @param [options.minimumTerrainLevel] - 展示影像图层的最小地形细节级别，小于该级别时，平台不显示影像数据。
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影,也支持传入EPSG4490坐标系
- * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
+ * @param [options.crs = CRS.EPSG4490] - 瓦片数据的坐标系信息，默认为4490投影,也支持传入EPSG3857坐标系
+ * @param [options.chinaCRS = ChinaCRS.WGS84] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
  * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'},
@@ -21730,16 +25573,17 @@ declare class OsmLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class TdtLayer extends BaseTileLayer {
     constructor(options?: {
         layer?: string;
-        key?: string[];
         url?: string;
+        key?: string[];
         minimumLevel?: number;
         maximumLevel?: number;
         minimumTerrainLevel?: number;
@@ -21792,6 +25636,7 @@ declare class TdtLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -21804,7 +25649,7 @@ declare class TdtLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21826,7 +25671,7 @@ declare class TdtLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -21864,10 +25709,11 @@ declare class TdtLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class TencentLayer extends BaseTileLayer {
     constructor(options?: {
@@ -21925,6 +25771,7 @@ declare class TencentLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -21937,7 +25784,7 @@ declare class TencentLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -21950,7 +25797,7 @@ declare class TencentLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -21982,10 +25829,11 @@ declare class TencentLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class TileInfoLayer extends BaseTileLayer {
     constructor(options?: {
@@ -22034,13 +25882,14 @@ declare class TileInfoLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建瓦片图层对应的ImageryProvider对象
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -22056,12 +25905,12 @@ declare class TileInfoLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -22098,10 +25947,11 @@ declare class TileInfoLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class TmsLayer extends BaseTileLayer {
     constructor(options?: {
@@ -22162,6 +26012,7 @@ declare class TmsLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -22174,7 +26025,7 @@ declare class TmsLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -22191,13 +26042,16 @@ declare class TmsLayer extends BaseTileLayer {
  * @param [options.parameters.version = '1.1.1'] - 服务版本
  * @param [options.parameters.request = 'GetMap'] - 请求方法
  * @param [options.parameters.styles = ''] - 样式
+ * @param [options.toLowerCase = true] - 请求参数名称是否转为小写，false时保留原样大小写
  * @param [options.crs = 'EPSG:3857'] - 瓦片数据的坐标系信息，默认为墨卡托投影，CRS规范，用于WMS规范>= 1.3.0。
  * @param [options.srs] - SRS规范，与WMS规范1.1.0或1.1.1一起使用
  * @param [options.getCapabilities = true] - 是否通过服务本身的GetCapabilities来读取一些参数，减少options配置项
  * @param [options.clock] - 一个时钟实例，用于确定时间维度的值。指定' times '时需要。
  * @param [options.times] - TimeIntervalCollection 的数据属性是一个包含时间动态维度及其值的对象。
  * @param [options.enablePickFeatures = true] - 如果为true，则请求 单击坐标处服务中对应的矢量数据 并尝试解释响应中包含的功能。为false时不去服务请求。
- * @param [options.graphicConver] - 单击获取到的数据进行按需筛选解析，大数据解析很卡，可以设定阀值屏蔽大数据，避免卡顿，number类型时代表字符串长度值。
+ * @param [options.featureIndex = 0] - 如果单击有多个feature返回时，默认用第0条数据，取其他数据时可以自定义，可传index顺序，回调方法、和字符串"end"代表取最后一条
+ * @param [options.featureToGraphic = mars3d.Util.geoJsonToGraphics] - 解析单击返回的矢量数据信息为Graphic构造参数，可以按需自定义。
+ * @param [options.hasToGraphic] - 筛选或判断是否解析，单击获取到的数据进行按需筛选解析，大数据解析很卡，可以设定阀值屏蔽大数据，避免卡顿，number类型时代表字符串长度值。
  * @param [options.getFeatureInfoParameters] - 在单击坐标处通过GetFeatureInfo请求接口时,传递给WMS服务器的附加参数。
  * @param [options.highlight] - 鼠标单击高亮显示对应的矢量数据 及其样式，包括type参数指定构造的类型，其他参数见各{@link GraphicType}矢量数据的style参数项。
  * @param [options.popup] - 绑定的popup弹窗值，也可以bindPopup方法绑定，支持：'all'、数组、字符串模板
@@ -22211,7 +26065,7 @@ declare class TmsLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
@@ -22236,6 +26090,10 @@ declare class TmsLayer extends BaseTileLayer {
  * @param [options.tileWidth = 256] - 图像图块的像素宽度。
  * @param [options.tileHeight = 256] - 图像图块的像素高度。
  * @param [options.customTags] - 允许替换网址模板中的自定义关键字。该对象必须具有字符串作为键，并且必须具有值。
+ * @param [options.proxy] - 加载资源时要使用的代理服务url。
+ * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
+ * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'},
+ * @param [options.headers] - 一个对象，将发送的其他HTTP标头。比如：headers: { 'X-My-Header': 'valueOfHeader' },
  * @param [options.id = createGuid()] - 图层id标识
  * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
  * @param [options.name = ''] - 图层名称
@@ -22245,10 +26103,11 @@ declare class TmsLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360allowPick
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class WmsLayer extends BaseTileLayer {
     constructor(options?: {
@@ -22264,13 +26123,16 @@ declare class WmsLayer extends BaseTileLayer {
             request?: string;
             styles?: string;
         };
+        toLowerCase?: boolean;
         crs?: string | CRS;
         srs?: string;
         getCapabilities?: boolean;
         clock?: Cesium.Clock;
         times?: Cesium.TimeIntervalCollection;
         enablePickFeatures?: boolean;
-        graphicConver?: number | boolean | ((...params: any[]) => any);
+        featureIndex?: number | string | ((...params: any[]) => any);
+        featureToGraphic?: (...params: any[]) => any;
+        hasToGraphic?: number | boolean | ((...params: any[]) => any);
         getFeatureInfoParameters?: any;
         highlight?: any;
         popup?: string | Globe.getTemplateHtml_template[] | ((...params: any[]) => any);
@@ -22311,6 +26173,10 @@ declare class WmsLayer extends BaseTileLayer {
         tileWidth?: number;
         tileHeight?: number;
         customTags?: any;
+        proxy?: string;
+        templateValues?: any;
+        queryParameters?: any;
+        headers?: any;
         id?: string | number;
         pid?: string | number;
         name?: string;
@@ -22325,6 +26191,7 @@ declare class WmsLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 是否存在Popup绑定
@@ -22359,13 +26226,7 @@ declare class WmsLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
-    /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -22393,12 +26254,12 @@ declare class WmsLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -22422,7 +26283,6 @@ declare class WmsLayer extends BaseTileLayer {
  * @param [options.hasAlphaChannel = true] - 如果此图像提供者提供的图像为真 包括一个Alpha通道；否则为假。如果此属性为false，则为Alpha通道，如果 目前，将被忽略。如果此属性为true，则任何没有Alpha通道的图像都将 它们的alpha随处可见。当此属性为false时，内存使用情况 和纹理上传时间可能会减少。
  * @param [options.tileWidth = 256] - 图像图块的像素宽度。
  * @param [options.tileHeight = 256] - 图像图块的像素高度。
- * @param [options.customTags] - 允许替换网址模板中的自定义关键字。该对象必须具有字符串作为键，并且必须具有值。
  * @param [options.id = createGuid()] - 图层id标识
  * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
  * @param [options.name = ''] - 图层名称
@@ -22432,10 +26292,11 @@ declare class WmsLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class WmtsLayer extends BaseTileLayer {
     constructor(options?: {
@@ -22492,7 +26353,6 @@ declare class WmtsLayer extends BaseTileLayer {
         hasAlphaChannel?: boolean;
         tileWidth?: number;
         tileHeight?: number;
-        customTags?: any;
         id?: string | number;
         pid?: string | number;
         name?: string;
@@ -22507,6 +26367,7 @@ declare class WmtsLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -22519,13 +26380,7 @@ declare class WmtsLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
-    /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -22550,6 +26405,9 @@ declare class WmtsLayer extends BaseTileLayer {
  *     <li><code>{northProjected}</code>:图块方案的墨卡托投影坐标中图块的北边缘。</li>
  *     <li><code>{width}</code>:每个图块的宽度（以像素为单位）。</li>
  *     <li><code>{height}</code>: 每个图块的高度（以像素为单位）。</li>
+ *     <li><code>{scale}</code>: z层级对应的scale值。</li>
+ *     <li><code>{origin}</code>: 该坐标系对应的origin原点坐标。</li>
+ *
  * </ul>
  * @param [options.urlSchemeZeroPadding] - 为每个图块坐标获取URL方案零填充。格式为' 000'，其中每个坐标将在左侧用零填充，以匹配传递的零字符串的宽度。例如设置:
  * urlSchemeZeroPadding:{'{x}':'0000'}将导致'x'值为12，以在生成的URL中返回{x}的字符串'0012'。传递的对象具有以下关键字:
@@ -22569,12 +26427,12 @@ declare class WmtsLayer extends BaseTileLayer {
  * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
  * @param [options.rectangle] - 瓦片数据的矩形区域范围
  * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
+ * @param options.rectangle.xmax - 最大经度值, -180 至 180
  * @param options.rectangle.ymin - 最小纬度值, -90 至 90
  * @param options.rectangle.ymax - 最大纬度值, -90 至 90
  * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
  * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
+ * @param [options.crs = CRS.EPSG3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
  * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
  * @param [options.proxy] - 加载资源时要使用的代理服务url。
  * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
@@ -22625,10 +26483,11 @@ declare class WmtsLayer extends BaseTileLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.flyToOptions] - 加载完成数据后是否自动飞行定位到数据所在的区域的对应 {@link BaseLayer#flyTo}方法参数。
  */
 declare class XyzLayer extends BaseTileLayer {
     constructor(options?: {
@@ -22690,6 +26549,7 @@ declare class XyzLayer extends BaseTileLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        flyToOptions?: any;
     });
     /**
      * 创建用于图层的 ImageryProvider对象
@@ -22702,7 +26562,7 @@ declare class XyzLayer extends BaseTileLayer {
      * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
      * @returns 创建完成的 ImageryProvider 对象
      */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
+    _createImageryProvider(options?: any): Promise<Cesium.UrlTemplateImageryProvider | any>;
 }
 
 /**
@@ -22723,7 +26583,7 @@ declare class ContextMenu extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
         eventParent?: BaseClass | boolean;
     });
     /**
@@ -22738,7 +26598,7 @@ declare class ContextMenu extends BaseControl {
  * @param [options.moveStep = 10] - 平移步长 (米)
  * @param [options.dirStep = 25] - 相机原地旋转步长，值越大步长越小。
  * @param [options.rotateStep = 1.0] - 相机围绕目标点旋转速率，0.3 - 2.0
- * @param [options.minPitch = 0.1] - 最小仰角  0 - 1
+ * @param [options.minPitch = 0.01] - 最小仰角  0 - 1
  * @param [options.maxPitch = 0.95] - 最大仰角  0 - 1
  * @param [options.minHeight = 0] - 最低高度（单位：米）
  * @param [options.id = createGuid()] - 对象的id标识
@@ -22760,7 +26620,7 @@ declare class KeyboardRoam extends BaseControl {
         enabled?: boolean;
         parentContainer?: HTMLElement;
         insertIndex?: number;
-        insertBefore?: HTMLElement;
+        insertBefore?: HTMLElement | string;
         eventParent?: BaseClass | boolean;
     });
     /**
@@ -22849,6 +26709,10 @@ declare class KeyboardRoam extends BaseControl {
      * 相机旋转的类型
      */
     static MoveType: MoveType;
+    /**
+     * 设置对象的启用和禁用状态。
+     */
+    enabled: boolean;
 }
 
 /**
@@ -22871,6 +26735,12 @@ declare class MouseEvent {
      */
     noPickEntity: boolean;
     /**
+     * 更新图层参数
+     * @param options - 与类的构造方法参数相同
+     * @returns 当前对象本身，可以链式调用
+     */
+    setOptions(options: any): MouseEvent;
+    /**
      * 清除鼠标移动的clearTimeout延迟
      * @returns 无
      */
@@ -22881,485 +26751,12 @@ declare class MouseEvent {
      * @returns 获取拾取到的Cesium选中对象
      */
     getPicked(event: any): any | undefined;
-}
-
-declare namespace Map {
     /**
-     * 场景参数
-     * @property [center] - 默认相机视角
-     * @property center.lng - 经度值, 180 - 180
-     * @property center.lat - 纬度值, -90 - 90
-     * @property center.alt - 高度值
-     * @property [center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
-     * @property [center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
-     * @property [center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
-     * @property [extent] - 矩形范围 相机视角,与center二选一
-     * @property extent.xmin - 最小经度值, -180 至 180
-     * @property extent.xmax - 最大经度值, -180 至 180
-     * @property extent.ymin - 最小纬度值, -90 至 90
-     * @property extent.ymax - 最大纬度值, -90 至 90
-     * @property [removeDblClick = false] - 是否移除Cesium默认的双击事件
-     * @property [ionToken] - Cesium Ion服务的 Token令牌
-     * @property [resolutionScale = 1.0] - 获取或设置渲染分辨率的缩放比例。小于1.0的值可以改善性能不佳的设备上的性能，而值大于1.0则将以更高的速度呈现分辨率，然后缩小比例，从而提高视觉保真度。例如，如果窗口小部件的尺寸为640x480，则将此值设置为0.5将导致场景以320x240渲染，然后在设置时按比例放大设置为2.0将导致场景以1280x960渲染，然后按比例缩小。
-     *
-     * 以下是Cesium.Scene对象相关参数
-     * @property [showSun] - 是否显示太阳，如修改对象可以用 [map.scene.sun]{@link http://mars3d.cn/api/cesium/Sun.html}
-     * @property [showMoon] - 是否显示月亮，如修改对象可以用 [map.scene.moon]{@link http://mars3d.cn/api/cesium/Moon.html}
-     * @property [showSkyBox] - 是否显示天空盒，如修改对象可以用 [map.scene.skyBox]{@link http://mars3d.cn/api/cesium/SkyBox.html}
-     * @property [showSkyAtmosphere] - 是否显示地球大气层外光圈，如修改对象可以用 [map.scene.skyAtmosphere]{@link http://mars3d.cn/api/cesium/SkyAtmosphere.html}
-     * @property [fog] - 是否启用雾化效果，如修改对象可以用 [map.scene.fog]{@link http://mars3d.cn/api/cesium/fog.html}
-     * @property [fxaa] - 是否开启快速抗锯齿
-     * @property [highDynamicRange] - 是否关闭高动态范围渲染(不关闭时地图会变暗)
-     * @property [backgroundColor] - 空间背景色 ，css颜色值
-     *
-     * 以下是Cesium.Viewer所支持的options【控件相关的写在另外的control属性中】
-     * @property [sceneMode = Cesium.SceneMode.SCENE3D] - 初始场景模式。可以设置进入场景后初始是2D、2.5D、3D 模式。
-     * @property [scene3DOnly = false] - 为 true 时，每个几何实例将仅以3D渲染以节省GPU内存。
-     * @property [mapProjection = new Cesium.GeographicProjection()] - 在二维模式下时，地图的呈现坐标系，默认为EPSG4326坐标系，如果需要EPSG3857墨卡托坐标系展示，传 new Cesium.WebMercatorProjection() 即可
-     * @property [mapMode2D = Cesium.MapMode2D.INFINITE_SCROLL] - 在二维模式下时，地图是可旋转的还是可以在水平方向无限滚动。
-     * @property [shouldAnimate = true] - 是否开启时钟动画
-     * @property [shadows = false] - 是否启用日照阴影
-     * @property [useDefaultRenderLoop = true] - 如果此小部件应控制渲染循环，则为true，否则为false。
-     * @property [targetFrameRate] - 使用默认渲染循环时的目标帧速率。
-     * @property [useBrowserRecommendedResolution = true] - 如果为true，则以浏览器建议的分辨率渲染，并忽略 window.devicePixelRatio 。
-     * @property [automaticallyTrackDataSourceClocks = true] - 如果为true，则此小部件将自动跟踪新添加的数据源的时钟设置，并在数据源的时钟发生更改时进行更新。如果要独立配置时钟，请将其设置为false。
-     * @property [contextOptions = {}] - WebGL创建属性 传递给 Cesium.Scene 的 options 。{@link Cesium.Scene}
-     * @property [contextOptions.allowTextureFilterAnisotropic = true] - 允许纹理过滤各向异性
-     * @property [contextOptions.requestWebgl2 = false] - 是否启用webgl2
-     * @property [contextOptions.webgl] - WebGL画布,用于 canvas.getContext("webgl", webglOptions)
-     * @property [contextOptions.webgl.alpha = false] - 是否包含alpha缓冲区，如果需要DIV透明时，需要改为true
-     * @property [contextOptions.webgl.antialias] - 是否执行抗锯齿
-     * @property [contextOptions.webgl.failIfMajorPerformanceCaveat] - 如果系统性能较低，是否创建上下文
-     * @property [contextOptions.webgl.depth] - 绘图缓冲区的深度缓冲区至少为16位
-     * @property [contextOptions.webgl.stencil = true] - 绘图缓冲区具有至少8位的模板缓冲区
-     * @property [contextOptions.webgl.powerPreference = "high-performance"] - 对用户代理的提示，指示GPU的哪种配置适合WebGL上下文
-     * @property [orderIndependentTranslucency = true] - 如果为true，并且配置支持它，则使用顺序无关的半透明性。
-     * @property [terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY] - 确定地形是否投射或接收来自光源的阴影。
-     * @property [requestRenderMode = false] - 是否显式渲染，如果为真，渲染帧只会在需要时发生，这是由场景中的变化决定的。启用可以减少你的应用程序的CPU/GPU使用量，并且在移动设备上使用更少的电池，但是需要使用 {@link Scene#requestRender} 在这种模式下显式地渲染一个新帧。在许多情况下，在API的其他部分更改场景后，这是必要的。参见 {@link https://cesium.com/blog/2018/01/24/cesium-scene-rendering-performance/|Improving Performance with Explicit Rendering}.
-     * @property [maximumRenderTimeChange = 0.0] - 如果requestRenderMode为true，这个值定义了在请求渲染之前允许的模拟时间的最大变化。参见 {@link https://cesium.com/blog/2018/01/24/cesium-scene-rendering-performance/|Improving Performance with Explicit Rendering}.
-     *
-     * 以下是Cesium.Globe对象相关参数
-     * @property [globe] - globe地球相关参数
-     * @property [globe.show = true] - 是否显示地球
-     * @property [globe.baseColor = '#546a53'] - 地球背景色 ，css颜色值
-     * @property [globe.depthTestAgainstTerrain = false] - 是否启用深度监测,可以开启来测试矢量对象是否在地形下面或被遮挡。
-     * @property [globe.showGroundAtmosphere = true] - 是否在地球上绘制的地面大气
-     * @property [globe.enableLighting = false] - 是否显示晨昏线，可以看到地球的昼夜区域
-     * @property [globe.tileCacheSize = 100] - 地形图块缓存的大小，表示为图块数。任何其他只要不需要渲染，就会释放超出此数目的图块这个框架。较大的数字将消耗更多的内存，但显示细节更快例如，当缩小然后再放大时。
-     * @property [globe.terrainExaggeration = 1.0] - 地形夸张倍率，用于放大地形的标量。请注意，地形夸张不会修改其他相对于椭球的图元。
-     * @property [globe.realAlt = false] - 地形夸张倍率，在测量高度和下侧提示的高度信息中是否转换为实际真实高度值。
-     * @property [globe.terrainExaggerationRelativeHeight = 0.0] - 地形被夸大的高度。默认为0.0（相对于椭球表面缩放）。高于此高度的地形将向上缩放，低于此高度的地形将向下缩放。请注意，地形夸大不会修改任何其他图元，因为它们是相对于椭球体定位的。
-     *
-     * 以下是Cesium.ScreenSpaceCameraController对象相关参数
-     * @property [cameraController] - 相机操作相关参数
-     * @property [cameraController.minimumZoomDistance = 1.0] - 相机最近视距，变焦时相机位置的最小量级（以米为单位），默认为1。该值是相机与地表(含地形)的相对距离。
-     * @property [cameraController.maximumZoomDistance = 50000000.0] - 相机最远视距，变焦时相机位置的最大值（以米为单位）。该值是相机与地表(含地形)的相对距离。
-     * @property [cameraController.zoomFactor = 3.0] - 滚轮放大倍数，控制鼠标滚轮操作的步长
-     * @property [cameraController.minimumCollisionTerrainHeight = 80000] - 最小碰撞高度，低于此高度时绕鼠标键绕圈，大于时绕视图中心点绕圈。
-     * @property [cameraController.constrainedAxis = true] - 南北极绕轴心旋转，为false时 解除在南北极区域鼠标操作限制
-     * @property [cameraController.enableRotate = true] - 2D和3D视图下，是否允许用户旋转相机
-     * @property [cameraController.enableTranslate = true] - 2D和哥伦布视图下，是否允许用户平移地图
-     * @property [cameraController.enableTilt = true] - 3D和哥伦布视图下，是否允许用户倾斜相机
-     * @property [cameraController.enableZoom = true] - 是否允许 用户放大和缩小视图
-     * @property [cameraController.enableCollisionDetection = true] - 是否允许 地形相机的碰撞检测
-     *
-     * 以下是Cesium.Clock时钟相关参数
-     * @property [clock] - 时钟相关参数
-     * @property [clock.currentTime] - 当前的时间
-     * @property [clock.multiplier = 1.0] - 当前的速度
+     * 瓦片图层上的矢量对象，动态获取
+     * @param position - 坐标
+     * @returns 完成时承诺
      */
-    type sceneOptions = {
-        center?: {
-            lng: number;
-            lat: number;
-            alt: number;
-            heading?: number;
-            pitch?: number;
-            roll?: number;
-        };
-        extent?: {
-            xmin: number;
-            xmax: number;
-            ymin: number;
-            ymax: number;
-        };
-        removeDblClick?: boolean;
-        ionToken?: string;
-        resolutionScale?: number;
-        showSun?: boolean;
-        showMoon?: boolean;
-        showSkyBox?: boolean;
-        showSkyAtmosphere?: boolean;
-        fog?: boolean;
-        fxaa?: boolean;
-        highDynamicRange?: boolean;
-        backgroundColor?: string;
-        sceneMode?: Cesium.SceneMode;
-        scene3DOnly?: boolean;
-        mapProjection?: Cesium.MapProjection;
-        mapMode2D?: Cesium.MapMode2D;
-        shouldAnimate?: boolean;
-        shadows?: boolean;
-        useDefaultRenderLoop?: boolean;
-        targetFrameRate?: number;
-        useBrowserRecommendedResolution?: boolean;
-        automaticallyTrackDataSourceClocks?: boolean;
-        contextOptions?: {
-            allowTextureFilterAnisotropic?: boolean;
-            requestWebgl2?: boolean;
-            webgl?: {
-                alpha?: boolean;
-                antialias?: boolean;
-                failIfMajorPerformanceCaveat?: boolean;
-                depth?: boolean;
-                stencil?: boolean;
-                powerPreference?: string;
-            };
-        };
-        orderIndependentTranslucency?: boolean;
-        terrainShadows?: Cesium.ShadowMode;
-        requestRenderMode?: boolean;
-        maximumRenderTimeChange?: number;
-        globe?: {
-            show?: boolean;
-            baseColor?: string;
-            depthTestAgainstTerrain?: boolean;
-            showGroundAtmosphere?: boolean;
-            enableLighting?: boolean;
-            tileCacheSize?: number;
-            terrainExaggeration?: number;
-            realAlt?: number;
-            terrainExaggerationRelativeHeight?: number;
-        };
-        cameraController?: {
-            minimumZoomDistance?: number;
-            maximumZoomDistance?: number;
-            zoomFactor?: number;
-            minimumCollisionTerrainHeight?: number;
-            constrainedAxis?: boolean;
-            enableRotate?: boolean;
-            enableTranslate?: boolean;
-            enableTilt?: boolean;
-            enableZoom?: boolean;
-            enableCollisionDetection?: boolean;
-        };
-        clock?: {
-            currentTime?: string | Cesium.JulianDate;
-            multiplier?: number;
-        };
-    };
-    /**
-     * 添加到地图的控件 参数
-     *
-     * 以下是mars3d.control定义的控件，支持所有控件类型
-     * @property [mouseDownView] - 鼠标滚轮缩放美化样式, 对应 {@link MouseDownView}构造参数
-     * @property [locationBar] - 鼠标提示控件, 对应 {@link LocationBar}构造参数
-     * @property [locationBar.fps] - 是否显示实时FPS帧率
-     * @property [locationBar.format] - 显示内容的格式化html展示的内容格式化字符串。  支持以下模版配置：【鼠标所在位置】 经度:{lng}， 纬度:{lat}， 海拔：{alt}米， 【相机的】 方向角度：{heading}， 俯仰角度：{pitch}， 视高：{cameraHeight}米， 【地图的】 层级：{level}，
-     * @property [compass] - 导航球控件 , 对应 {@link Compass}构造参数
-     * @property [distanceLegend] - 比例尺控件  , 对应 {@link DistanceLegend}构造参数
-     * @property [clockAnimate] - 时钟动画控制控件 , 对应{@link ClockAnimate}构造参数
-     * @property [zoom] - 时钟动画控制控件 , 对应 {@link Zoom}构造参数
-     * @property [overviewMap] - 鹰眼地图 控件, 对应{@link OverviewMap }构造参数
-     * @property [mapSplit] - 卷帘对比 控件, 对应{@link MapSplit }构造参数
-     * @property [contextmenu] - 内置 右键菜单 控制参数, 对应{@link ContextMenu }构造参数
-     * @property [contextmenu.preventDefault = true] - 是否取消右键菜单
-     * @property [contextmenu.hasDefault = true] - 是否绑定默认的地图右键菜单
-     * @property [popup] - 内置 Popup 控制参数
-     * @property [popup.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
-     * @property [tooltip] - 内置 Tooltip 控制参数
-     * @property [tooltip.cacheTime = 20] - 延迟缓存的时间，单位：毫秒
-     * @property [keyboardRoam] - 内置 键盘漫游 控制参数, 对应{@link KeyboardRoam }构造参数
-     * @property [keyboardRoam.moveStep = 10] - 平移步长 (米)
-     * @property [keyboardRoam.dirStep = 25] - 相机原地旋转步长，值越大步长越小。
-     * @property [keyboardRoam.rotateStep = 1.0] - 相机围绕目标点旋转速率，0.3 - 2.0
-     * @property [keyboardRoam.minPitch = 0.1] - 最小仰角  0 - 1
-     * @property [keyboardRoam.maxPitch = 0.95] - 最大仰角  0 - 1
-     * @property [keyboardRoam.minHeight = 0] - 最低高度（单位：米）
-     *
-     * 以下是Cesium.Viewer所支持的控件相关的options
-     * @property [infoBox = true] - 是否显示 点击要素之后显示的信息
-     * @property [selectionIndicator = true] - 选择模型时，是否显示绿色框
-     * @property [animation = true] - 是否创建 左下角仪表动画面板
-     * @property [animationTicks] - 左下角仪表动画面板 的可选步长
-     * @property [timeline = true] - 是否创建 下侧时间线控件面板
-     * @property [baseLayerPicker = true] - 是否显示 basemaps底图切换按钮
-     * @property [fullscreenButton = true] - 是否显示 全屏按钮
-     * @property [fullscreenElement = document.body] - 当按下全屏按钮时，要置于全屏模式的元素或id。
-     * @property [vrButton = false] - 是否显示 右下角vr虚拟现实按钮
-     * @property [geocoder = true] - 是否显示 地名查找控件按钮
-     * @property [homeButton = true] - 是否显示  视角复位按钮
-     * @property [sceneModePicker = true] - 是否显示  二三维视图切换按钮
-     * @property [projectionPicker = false] - 是否显示  用于在透视和正投影之间进行切换按钮
-     * @property [navigationHelpButton = true] - 是否显示  帮助按钮
-     * @property [navigationInstructionsInitiallyVisible = true] - 在用户明确单击按钮之前是否自动显示navigationHelpButton
-     * @property [showRenderLoopErrors = true] - 如果为true，则在发生渲染循环错误时，此小部件将自动向包含错误的用户显示HTML面板。
-     */
-    type controlOptions = {
-        mouseDownView?: boolean;
-        locationBar?: {
-            fps?: boolean;
-            format?: string | ((...params: any[]) => any);
-        };
-        compass?: any;
-        distanceLegend?: any;
-        clockAnimate?: any;
-        zoom?: any;
-        overviewMap?: any;
-        mapSplit?: any;
-        contextmenu?: {
-            preventDefault?: boolean;
-            hasDefault?: boolean;
-        };
-        popup?: {
-            depthTest?: boolean;
-        };
-        tooltip?: {
-            cacheTime?: number;
-        };
-        keyboardRoam?: {
-            moveStep?: number;
-            dirStep?: number;
-            rotateStep?: number;
-            minPitch?: number;
-            maxPitch?: number;
-            minHeight?: number;
-        };
-        infoBox?: boolean;
-        selectionIndicator?: boolean;
-        animation?: boolean;
-        animationTicks?: number[];
-        timeline?: boolean;
-        baseLayerPicker?: boolean;
-        fullscreenButton?: boolean;
-        fullscreenElement?: Element | string;
-        vrButton?: boolean;
-        geocoder?: boolean | Cesium.GeocoderService[];
-        homeButton?: boolean;
-        sceneModePicker?: boolean;
-        projectionPicker?: boolean;
-        navigationHelpButton?: boolean;
-        navigationInstructionsInitiallyVisible?: boolean;
-        showRenderLoopErrors?: boolean;
-    };
-    /**
-     * 鼠标操作相关配置 参数
-     * @property [enabledMoveTarget = true] - 是否开启鼠标移动事件的拾取矢量数据
-     * @property [moveDelay = 30] - 鼠标移动事件的延迟毫秒数
-     * @property [pickWidth = 4] - 拾取时所选矩形的宽度，单位：像素
-     * @property [pickHeight = 4] - 拾取时所选矩形的高度，单位：像素
-     * @property [pickLimit = 9] - 在允许allowDrillPick穿透拾取时，限制拾取的对象个数。
-     */
-    type mouseOptions = {
-        enabledMoveTarget?: boolean;
-        moveDelay?: number;
-        pickWidth?: number;
-        pickHeight?: number;
-        pickLimit?: number;
-    };
-    /**
-     * 添加到地图的特效 参数
-     * @property [blackAndWhite] - 黑白效果,对应{@link BlackAndWhiteEffect }构造参数
-     * @property [bloom] - 泛光效果,对应{@link BloomEffect }构造参数
-     * @property [brightness] - 亮度特效,对应{@link BrightnessEffect }构造参数
-     * @property [depthOfField] - 景深特效,对应{@link DepthOfFieldEffect }构造参数
-     * @property [fog] - 雾 特效,对应{@link FogEffect }构造参数
-     * @property [inverted] - 倒影效果,对应{@link InvertedEffect }构造参数
-     * @property [mosaic] - 马赛克效果,对应{@link MosaicEffect }构造参数
-     * @property [nightVision] - 夜视效果,对应{@link NightVisionEffect }构造参数
-     * @property [outline] - 轮廓线描边效果,对应{@link OutlineEffect }构造参数
-     * @property [rain] - 下雨 特效,对应{@link RainEffect }构造参数
-     * @property [snow] - 下雪 特效,对应{@link SnowEffect }构造参数
-     * @property [snowCover] - 地面积雪 特效,对应{@link SnowCoverEffect }构造参数
-     */
-    type effectOptions = {
-        blackAndWhite?: any;
-        bloom?: any;
-        brightness?: any;
-        depthOfField?: any;
-        fog?: any;
-        inverted?: any;
-        mosaic?: any;
-        nightVision?: any;
-        outline?: any;
-        rain?: any;
-        snow?: any;
-        snowCover?: any;
-    };
-    /**
-     * 地形服务配置
-     * @property [type = "xyz"] - 地形类型
-     * @property url - 地形服务地址
-     * @property [show = false] - 是否启用显示地形
-     * @property [requestVertexNormals = false] - 是否应该从服务器请求额外的光照信息，如果可用，以每个顶点法线的形式。
-     * @property [requestWaterMask = false] - 是否应该向服务器请求每个瓦的水掩膜(如果有的话)。
-     * @property [requestMetadata = true] - 是否应该从服务器请求每个块元数据(如果可用)。
-     */
-    type terrainOptions = {
-        type?: TerrainType;
-        url: string | Cesium.Resource;
-        show?: boolean;
-        requestVertexNormals?: boolean;
-        requestWaterMask?: boolean;
-        requestMetadata?: boolean;
-    };
-    /**
-     * 底图图层配置
-     * @property type - 图层类型
-     * @property [多个参数] - 每种不同type都有自己的不同属性，具体参考{@link LayerType}找到type对应的BaseTileLayer子类图层类,查看其构造参数
-     */
-    type basemapOptions = {
-        type: string;
-        多个参数?: any;
-    };
-    /**
-     * 可以叠加显示的图层配置，
-     * @property type - 图层类型
-     * @property [id] - 图层id标识
-     * @property [pid = -1] - 图层父级的id，一般图层管理中使用
-     * @property [name = ''] - 图层名称
-     * @property [show = true] - 图层是否显示
-     * @property [center] - 图层自定义定位视角，默认根据数据情况自动定位。
-     * @property [popup] - 当图层支持popup弹窗时，绑定的值
-     * @property [popupOptions] - popup弹窗时的配置参数
-     * @property [tooltip] - 当图层支持tooltip弹窗时，绑定的值
-     * @property [tooltipOptions] - tooltip弹窗时的配置参数
-     * @property [多个参数] - 每种type都有自己的不同属性，具体参考{@link LayerType}找到type对应的图层类,查看其构造参数
-     */
-    type layerOptions = {
-        type: string;
-        id?: string | number;
-        pid?: string | number;
-        name?: string;
-        show?: boolean;
-        center?: any;
-        popup?: any;
-        popupOptions?: Popup.StyleOptions | any;
-        tooltip?: any;
-        tooltipOptions?: Tooltip.StyleOptions | any;
-        多个参数?: any;
-    };
-    /**
-     * 覆盖SDK内的{@link Token}所有第3方Token默认值
-     * @property [tianditu] - 天地图
-     * @property [gaode] - 高德
-     * @property [baidu] - 百度
-     * @property [ion] - Ion服务
-     * @property [mapbox] - mapbox地图
-     * @property [bing] - 微软Bing地图
-     */
-    type tokenOptions = {
-        tianditu?: string | string[];
-        gaode?: string | string[];
-        baidu?: string | string[];
-        ion?: string;
-        mapbox?: string;
-        bing?: string;
-    };
-    /**
-     * Map支持的{@link EventType}事件类型
-     * @example
-     * //绑定监听事件
-     * map.on(mars3d.EventType.click, function (event) {
-     *   console.log('单击了地图对象', event)
-     * })
-     * @property addLayer - 添加图层
-     * @property removeLayer - 移除图层
-     * @property terrainChange - 地形变化
-     * @property tileLoadProgress - 地图中瓦片加载进度变化
-     * @property cameraMoveStart - 相机开启移动前 场景事件
-     * @property cameraMoveEnd - 相机移动完成后 场景事件
-     * @property cameraChanged - 相机位置完成 场景事件
-     * @property preUpdate - 场景更新前 场景事件
-     * @property postUpdate - 场景更新后 场景事件
-     * @property preRender - 场景渲染前 场景事件
-     * @property postRender - 场景渲染后 场景事件
-     * @property morphStart - 场景模式(2D/3D/哥伦布)变换前 场景事件
-     * @property morphComplete - 完成场景模式(2D/3D/哥伦布)变换 场景事件
-     * @property clockTick - 时钟跳动 场景事件
-     * @property renderError - 场景渲染失败（需要刷新页面）
-     * @property click - 左键单击 鼠标事件
-     * @property clickGraphic - 左键单击到矢量或模型数据时 鼠标事件
-     * @property clickTileGraphic - 左键单击到wms或arcgis瓦片服务的对应矢量数据时
-     * @property clickMap - 左键单击地图空白（未单击到矢量或模型数据）时 鼠标事件
-     * @property dblClick - 左键双击 鼠标事件
-     * @property leftDown - 左键鼠标按下 鼠标事件
-     * @property leftUp - 左键鼠标按下后释放 鼠标事件
-     * @property mouseMove - 鼠标移动 鼠标事件
-     * @property mouseMoveTarget - 鼠标移动（拾取目标，并延迟处理） 鼠标事件
-     * @property wheel - 鼠标滚轮滚动 鼠标事件
-     * @property rightClick - 右键单击 鼠标事件
-     * @property rightDown - 右键鼠标按下 鼠标事件
-     * @property rightUp - 右键鼠标按下后释放 鼠标事件
-     * @property middleClick - 中键单击 鼠标事件
-     * @property middleDown - 中键鼠标按下 鼠标事件
-     * @property middleUp - 中键鼠标按下后释放 鼠标事件
-     * @property pinchStart - 在触摸屏上两指缩放开始 鼠标事件
-     * @property pinchEnd - 在触摸屏上两指缩放结束 鼠标事件
-     * @property pinchMove - 在触摸屏上两指移动 鼠标事件
-     * @property mouseDown - 鼠标按下 [左中右3键都触发] 鼠标事件
-     * @property mouseUp - 鼠标按下后释放 [左中右3键都触发] 鼠标事件
-     * @property mouseOver - 鼠标移入 鼠标事件
-     * @property mouseOut - 鼠标移出 鼠标事件
-     * @property keydown - 按键按下 键盘事件
-     * @property keyup - 按键按下后释放 键盘事件
-     * @property popupOpen - popup弹窗打开后
-     * @property popupClose - popup弹窗关闭
-     * @property tooltipOpen - tooltip弹窗打开后
-     * @property tooltipClose - tooltip弹窗关闭
-     * @property contextMenuOpen - 右键菜单 打开后
-     * @property contextMenuClose - 右键菜单 关闭
-     * @property contextMenuClick - 右键菜单 单击某一项后
-     */
-    type EventType = {
-        addLayer: string;
-        removeLayer: string;
-        terrainChange: string;
-        tileLoadProgress: string;
-        cameraMoveStart: string;
-        cameraMoveEnd: string;
-        cameraChanged: string;
-        preUpdate: string;
-        postUpdate: string;
-        preRender: string;
-        postRender: string;
-        morphStart: string;
-        morphComplete: string;
-        clockTick: string;
-        renderError: string;
-        click: string;
-        clickGraphic: string;
-        clickTileGraphic: string;
-        clickMap: string;
-        dblClick: string;
-        leftDown: string;
-        leftUp: string;
-        mouseMove: string;
-        mouseMoveTarget: string;
-        wheel: string;
-        rightClick: string;
-        rightDown: string;
-        rightUp: string;
-        middleClick: string;
-        middleDown: string;
-        middleUp: string;
-        pinchStart: string;
-        pinchEnd: string;
-        pinchMove: string;
-        mouseDown: string;
-        mouseUp: string;
-        mouseOver: string;
-        mouseOut: string;
-        keydown: string;
-        keyup: string;
-        popupOpen: string;
-        popupClose: string;
-        tooltipOpen: string;
-        tooltipClose: string;
-        contextMenuOpen: string;
-        contextMenuClose: string;
-        contextMenuClick: string;
-    };
+    pickImageryLayerFeatures(position: LngLatPoint | Cesium.Cartesian3 | any): Promise<any>;
 }
 
 /**
@@ -23367,28 +26764,30 @@ declare namespace Map {
  * @param id - 地图div容器的id 或 已构造好的Viewer对象
  * @param [options = {}] - 参数对象:
  * @param [options.scene] - 场景参数
- * @param [options.control] - 添加的控件
  * @param [options.mouse] - 鼠标操作相关配置参数
- * @param [options.effect] - 添加的特效
  * @param [options.terrain] - 地形服务配置
  * @param [options.basemaps] - 底图图层配置
  * @param [options.layers] - 可以叠加显示的图层配置
- * @param [options.chinaCRS = ChinaCRS.WGS84] - 标识当前三维场景的国内坐标系（用于部分图层内对比判断来自动纠偏或加偏）
- * @param [options.lang] - 使用的语言（如中文、英文等）。
+ * @param [options.control] - 添加的控件
+ * @param [options.effect] - 添加的特效
+ * @param [options.thing] - 添加的特效
+ * @param [options.chinaCRS = ChinaCRS.WGS84] - 标识当前三维场景的国内坐标系（用于部分图层内对比判断来自动纠偏或加偏），只能初始化传入
+ * @param [options.lang] - 使用的语言文本键值对对象，可传入外部自定义的任意语言文本。
  * @param [options.templateValues] - 图层中统一的url模版，比如可以将服务url前缀统一使用模板，方便修改或动态配置。
  * @param [options.token] - 覆盖SDK内的{@link Token}所有第3方Token默认值
  */
 declare class Map extends BaseClass {
     constructor(id: string | Cesium.Viewer, options?: {
         scene?: Map.sceneOptions;
-        control?: Map.controlOptions;
         mouse?: Map.mouseOptions;
-        effect?: Map.effectOptions;
         terrain?: Map.terrainOptions;
         basemaps?: Map.basemapOptions[];
         layers?: Map.layerOptions[];
+        control?: Map.controlOptions;
+        effect?: Map.effectOptions;
+        thing?: Map.thingOptions;
         chinaCRS?: ChinaCRS;
-        lang?: LangType;
+        lang?: any | Lang;
         templateValues?: any;
         token?: Map.tokenOptions;
     });
@@ -23452,7 +26851,7 @@ declare class Map extends BaseClass {
     /**
      * 获取或设置当前的地形服务
      */
-    terrainProvider: Cesium.TerrainProvider;
+    terrainProvider: Cesium.TerrainProvider | any;
     /**
      * 是否开启地形
      */
@@ -23465,6 +26864,10 @@ declare class Map extends BaseClass {
      * 是否只拾取模型上的点
      */
     onlyPickModelPosition: boolean;
+    /**
+     * 是否只拾取地形上的点，忽略模型和矢量数据
+     */
+    onlyPickTerrainPosition: boolean;
     /**
      * 获取鼠标事件控制器
      */
@@ -23486,6 +26889,10 @@ declare class Map extends BaseClass {
      */
     readonly effects: any;
     /**
+     * 获取地图上已构造的thing特效对象
+     */
+    readonly thing: any;
+    /**
      * 默认绑定的图层，简单场景时快捷方便使用
      */
     readonly graphicLayer: GraphicLayer;
@@ -23499,9 +26906,9 @@ declare class Map extends BaseClass {
      */
     fixedLight: boolean;
     /**
-     * 使用的语言（如中文、英文等）。
+     * 使用的语言文本配置
      */
-    lang: LangType;
+    lang: Lang | any;
     /**
      * 鼠标滚轮放大的步长比例
      */
@@ -23510,6 +26917,16 @@ declare class Map extends BaseClass {
      * 是否全局启用highlight ，如果在某些场景，如标绘时，可以手动关闭下
      */
     highlightEnabled: boolean;
+    /**
+     * 获取将在地球上渲染的ImageryLayer图像图层的集合[贴模型时]
+     */
+    readonly imageryLayersForClamp: Cesium.ImageryLayerCollection;
+    /**
+     * 设置Map所有参数构造参数 【测试中功能，可能部分参数无法更新,欢迎反馈问题 】
+     * @param newOptions - Map所有参数构造参数
+     * @returns 当前对象本身，可以链式调用
+     */
+    setOptions(newOptions: any): Map;
     /**
      * 设置Scene场景参数
      * @param options - 参数
@@ -23545,13 +26962,19 @@ declare class Map extends BaseClass {
      * 提取地球当前视域边界,示例：{ xmin: 70,  xmax: 140,  ymin: 0,  ymax: 55, height: 0, }
      * @param [options = {}] - 参数对象:
      * @param [options.formatNum = false] - 是否格式化小数位，只保留6位小数
-     * @param [options.scale = 1] - 通过在每个方向上按给定比例扩展当前边界，0.x时返回缩小的比例边界，大于1时返回放大的边界
+     * @param [options.scale = 0] - 在每个方向上按给定比例扩展（大于0）或缩小（-1到0时）当前边界所创建的边界。比率为0.5时，边界在每个方向上扩展了50%。
      * @returns 当前视域边界
      */
     getExtent(options?: {
         formatNum?: boolean;
         scale?: number;
     }): any;
+    /**
+     * 判断坐标点是否在当前视域内
+     * @param position - 坐标
+     * @returns 当前视域边界
+     */
+    isInView(position: Cesium.Cartesian3): boolean;
     /**
      * 当存在地形夸张时，获取其实际的高度值
      * @param alt - 鼠标拾取的高度值
@@ -23566,7 +26989,7 @@ declare class Map extends BaseClass {
      * @param [options.width = canvas.width] - 图片的高度像素值
      * @param [options.height = canvas.height] - 图片的高度像素值
      * @param [options.type = 'image/jpeg'] - 图片格式
-     * @param [options.encoderOptions = 0.92] - 在指定图片格式为 image/jpeg 或 image/webp的情况下，可以从 0 到 1 的区间内选择图片的质量。如果超出取值范围，将会使用默认值 0.92。其他参数会被忽略。
+     * @param [options.encoderOptions = 1] - 在指定图片格式为 image/jpeg 或 image/webp的情况下，可以从 0 到 1 的区间内选择图片的质量。如果超出取值范围，将会使用默认值 0.92。其他参数会被忽略。
      * @returns 截图完成后的回调方法的Promise
      */
     expImage(options?: {
@@ -23598,9 +27021,10 @@ declare class Map extends BaseClass {
     /**
      * 重新设置basemps底图图层，对options.basemaps重新赋值
      * @param arr - 底图图层配置
+     * @param [reload = true] - 是否重新构造
      * @returns 图层数组
      */
-    setBasemapsOptions(arr: Map.basemapOptions[]): BaseLayer[];
+    setBasemapsOptions(arr: Map.basemapOptions[], reload?: boolean): BaseLayer[];
     /**
      * 重新设置layers图层，对options.layers重新赋值
      * @param arr - 可以叠加显示的图层配置
@@ -23619,7 +27043,7 @@ declare class Map extends BaseClass {
      * @param [showVal] - 如果传值，覆盖图层的show属性
      * @returns 图层加载完成承诺
      */
-    addLayer(layer: BaseLayer, showVal?: boolean): Promise<Boolean | any>;
+    addLayer(layer: BaseLayer, showVal?: boolean): Promise<boolean | any>;
     /**
      * 移除图层
      * @param layer - 需要移除的图层
@@ -23637,9 +27061,10 @@ declare class Map extends BaseClass {
      * 遍历每一个图层并将其作为参数传递给回调函数
      * @param method - 回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @param [reverse] - 是否倒序执行
      * @returns 当前对象本身,可以链式调用
      */
-    eachLayer(method: (...params: any[]) => any, context?: any): Map;
+    eachLayer(method: (...params: any[]) => any, context?: any, reverse?: boolean): Map;
     /**
      * 根据指定属性获取图层，包括config.json配置的图层
      * @param attrValue - 属性值
@@ -23715,13 +27140,14 @@ declare class Map extends BaseClass {
      * 遍历每一个控件并将其作为参数传递给回调函数
      * @param method - 回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @param [reverse] - 是否倒序执行
      * @returns 当前对象本身,可以链式调用
      */
-    eachControl(method: (...params: any[]) => any, context?: any): Map;
+    eachControl(method: (...params: any[]) => any, context?: any, reverse?: boolean): Map;
     /**
      * 根据指定属性获取控件
      * @param attrValue - 属性值
-     * @param [attrName = 'id'] - 属性键
+     * @param [attrName = 'type'] - 属性键
      * @returns 控件对象
      */
     getControl(attrValue: string | number | boolean, attrName?: string): BaseControl;
@@ -23741,7 +27167,7 @@ declare class Map extends BaseClass {
     /**
      * 根据指定属性获取Thing对象
      * @param key - 属性值（如id、name值）
-     * @param [attrName = 'id'] - 属性名称
+     * @param [attrName = 'type'] - 属性名称
      * @returns Thing对象
      */
     getEffect(key: string | any, attrName?: string): BaseEffect;
@@ -23768,9 +27194,10 @@ declare class Map extends BaseClass {
      * 遍历每一个Thing对象并将其作为参数传递给回调函数
      * @param method - 回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
+     * @param [reverse] - 是否倒序执行
      * @returns 当前对象本身,可以链式调用
      */
-    eachThing(method: (...params: any[]) => any, context?: any): Map;
+    eachThing(method: (...params: any[]) => any, context?: any, reverse?: boolean): Map;
     /**
      * 根据指定属性获取Thing对象
      * @param attrValue - 属性值
@@ -23779,23 +27206,31 @@ declare class Map extends BaseClass {
      */
     getThing(attrValue: string | number | boolean, attrName?: string): BaseThing;
     /**
-     * 根据设置的lang参数，获取当前key对应语言的文本内容。
+     * 获取当前key对应语言的文本内容。
      * @param key - 文本key
      * @returns lang参数指定的对应文本内容
      */
-    getLangText(key: string): void;
+    getLangText(key: string): string;
+    /**
+     * 设置当前key对应语言的文本内容。
+     * @param key - 文本key ，如果是object时更新对应的多个键值对
+     * @param text - 文本内容
+     */
+    setLangText(key: string | any, text: string): void;
     /**
      * 放大地图
      * @param [relativeAmount = 2] - 相对量
+     * @param [mandatory] - 是否强制更新，忽略screenSpaceCameraController的enableInputs/enableZoom限制
      * @returns 是否有移动位置
      */
-    zoomIn(relativeAmount?: number): boolean;
+    zoomIn(relativeAmount?: number, mandatory?: boolean): boolean;
     /**
      * 缩小地图
      * @param [relativeAmount = 2] - 相对量
+     * @param [mandatory] - 是否强制更新，忽略screenSpaceCameraController的enableInputs/enableZoom限制
      * @returns 是否有移动位置
      */
-    zoomOut(relativeAmount?: number): boolean;
+    zoomOut(relativeAmount?: number, mandatory?: boolean): boolean;
     /**
      * 设置鼠标操作习惯方式。
      * 默认为中键旋转，右键拉伸远近。传`rightTilt:true`可以设置为右键旋转，中键拉伸远近。
@@ -23817,7 +27252,7 @@ declare class Map extends BaseClass {
     setPitchRange(max: number, min?: number): void;
     /**
      * 设置相机pitch值，保持地图中心位置不变。
-     * @param pitch - 俯仰角度值， 0至360
+     * @param pitch - 俯仰角度值， -90至90
      * @param [options] - 具有以下属性的对象:
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
      * @param [options.duration] - 飞行持续时间（秒）。如果省略，内部会根据飞行距离计算出理想的飞行时间。
@@ -23832,6 +27267,22 @@ declare class Map extends BaseClass {
         cancel?: Cesium.Camera.FlightCancelledCallback;
     }): Promise<boolean>;
     /**
+     * 设置相机heading值，保持地图中心位置不变。
+     * @param heading - 方向角度值， 0-360
+     * @param [options] - 具有以下属性的对象:
+     * @param [options.pitch] - 俯仰角度值，绕垂直于地心的轴旋转角度, -90至90
+     * @param [options.duration] - 飞行持续时间（秒）。如果省略，内部会根据飞行距离计算出理想的飞行时间。
+     * @param [options.complete] - 飞行完成后要执行的函数。
+     * @param [options.cancel] - 飞行取消时要执行的函数。
+     * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
+     */
+    setHeading(heading: number, options?: {
+        pitch?: number;
+        duration?: number;
+        complete?: Cesium.Camera.FlightCompleteCallback;
+        cancel?: Cesium.Camera.FlightCancelledCallback;
+    }): Promise<boolean>;
+    /**
      * 停止视角定位等操作
      * @returns 当前对象本身，可以链式调用
      */
@@ -23840,7 +27291,7 @@ declare class Map extends BaseClass {
      * 获取当前相机视角参数，
      * 示例：{"lat":30.526361,"lng":116.335987,"alt":45187,"heading":0,"pitch":-45}
      * @param [options = {}] - 参数对象:
-     * @param [options.simplify = true] - 是否简化，false时保留角度1位小数位
+     * @param [options.simplify = true] - 是否简化，true时不返回roll并无小数，false时返回roll和保留角度1位小数位
      * @returns 当前相机视角参数
      */
     getCameraView(options?: {
@@ -23852,9 +27303,9 @@ declare class Map extends BaseClass {
      * @param cameraView.lng - 经度值, 180 - 180
      * @param cameraView.lat - 纬度值, -90 - 90
      * @param [cameraView.alt] - 高度值
-     * @param [cameraView.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
-     * @param [cameraView.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
-     * @param [cameraView.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+     * @param [cameraView.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+     * @param [cameraView.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [cameraView.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [options = {}] - 参数对象:
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
@@ -23892,9 +27343,9 @@ declare class Map extends BaseClass {
      * 为了兼容老版本用户习惯和center参数名称一致而用的别名方法。
      * @param cameraView - 飞行参数，同 setCameraView 方法
      * @param [options = {}] - 参数对象，同 setCameraView 方法
-     * @returns 无
+     * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
      */
-    centerAt(cameraView: any, options?: any): void;
+    centerAt(cameraView: any, options?: any): Promise<boolean>;
     /**
      * 飞行到默认视角，
      * 一般为config.json中的center参数配置的视角。
@@ -23912,8 +27363,8 @@ declare class Map extends BaseClass {
      * @param arr.lat - 纬度值, -90 至 90
      * @param arr.alt - 高度值
      * @param arr.heading - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param arr.pitch - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param arr.roll - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param arr.pitch - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param arr.roll - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [arr.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [arr.stop = 1] - 该步骤飞行结束的停留时间（单位：秒）。
      * @param [arr.onStart] - 该步骤飞行开始前的回调方法
@@ -23953,6 +27404,16 @@ declare class Map extends BaseClass {
         easingFunction?: Cesium.EasingFunction.Callback;
     }): void;
     /**
+     * 暂停执行 setCameraViewList
+     * @returns 无
+     */
+    pauseCameraViewList(): void;
+    /**
+     * 继续执行 setCameraViewList
+     * @returns 无
+     */
+    proceedCameraViewList(): void;
+    /**
      * 飞行至Cesium相关矢量对象处，是Cesium本身的flyTo方法。
      *
      * 将相机移至提供的一个或多个实体或数据源。如果数据源仍在加载过程中，或者可视化仍在加载中，此方法在执行飞行之前等待数据准备就绪。
@@ -23980,8 +27441,8 @@ declare class Map extends BaseClass {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度,-90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -24022,8 +27483,8 @@ declare class Map extends BaseClass {
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -24062,14 +27523,14 @@ declare class Map extends BaseClass {
      * @param extent.xmax - 最大经度值, -180 至 180
      * @param extent.ymin - 最小纬度值, -90 至 90
      * @param extent.ymax - 最大纬度值, -90 至 90
-     * @param [extent.height = 0] - 矩形高度值
+     * @param [extent.height] - 矩形高度值, 默认取地形高度值
      * @param [options = {}] - 参数对象:
      * @param [options.scale] - 缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
      * @param [options.minHeight] - 定位时相机的最小高度值，用于控制避免异常数据
      * @param [options.maxHeight] - 定位时相机的最大高度值，用于控制避免异常数据
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -24112,10 +27573,11 @@ declare class Map extends BaseClass {
      * @param [options = {}] - 具有以下属性的对象:
      * @param [options.radius] - 相机距离目标点的距离（单位：米）
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [options.duration] - 飞行持续时间（秒）。如果省略，内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.clampToGround] - 是否贴地对象,true时异步计算实际高度值后进行定位。
+     * @param [options.lock] - 是否是trackedEntity锁定视角状态
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
      * @param [options.endTransform] - 表示飞行完成后摄像机将位于的参考帧的变换矩阵。
@@ -24133,6 +27595,7 @@ declare class Map extends BaseClass {
         roll?: number;
         duration?: number;
         clampToGround?: boolean;
+        lock?: boolean;
         complete?: Cesium.Camera.FlightCompleteCallback;
         cancel?: Cesium.Camera.FlightCancelledCallback;
         endTransform?: Cesium.Matrix4;
@@ -24148,13 +27611,25 @@ declare class Map extends BaseClass {
      */
     isFlyAnimation(): boolean;
     /**
-     * 执行开场动画，动画播放地球飞行定位到指定区域
+     * 执行开场动画，动画播放地球飞行定位到指定区域（1.旋转地球+2.降低高度+3.指定视角）
      * @param [options = {}] - 参数对象:
      * @param [options.center = getCameraView()] - 飞行到的指定区域视角参数
+     * @param [options.duration1 = 2] - 第一步旋转地球时长，单位：秒
+     * @param [options.easingFunction1 = Cesium.EasingFunction.LINEAR_NONE] - 第一步旋转地球飞行中，控制如何在飞行期间内插值时间参数。
+     * @param [options.duration2 = 2] - 第二步降低高度时长，单位：秒
+     * @param [options.easingFunction2] - 第二步降低高度飞行中，控制如何在飞行期间内插值时间参数。
+     * @param [options.duration3 = 2] - 第三步指定视角飞行时长，单位：秒
+     * @param [options.easingFunction3] - 第三步指定视角飞行中，控制如何在飞行期间内插值时间参数。
      * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
      */
     openFlyAnimation(options?: {
         center?: any;
+        duration1?: number;
+        easingFunction1?: Cesium.EasingFunction.Callback;
+        duration2?: number;
+        easingFunction2?: Cesium.EasingFunction.Callback;
+        duration3?: number;
+        easingFunction3?: Cesium.EasingFunction.Callback;
     }): Promise<boolean>;
     /**
      * 执行旋转地球动画
@@ -24168,11 +27643,16 @@ declare class Map extends BaseClass {
         center?: any;
     }): Promise<boolean>;
     /**
-     * 清除已高亮的矢量对象
-     * @param [result] - 事件对象
+     * 判断指定对象是否为当前场景中正在高亮的对象
+     * @param target - 判断的高亮的对象（如graphic或layer等）
      * @returns 无
      */
-    closeHighlight(result?: any): void;
+    isHighlighting(target: any): void;
+    /**
+     * 清除已高亮的矢量对象
+     * @returns 无
+     */
+    closeHighlight(): void;
     /**
      * 高亮矢量对象
      * @param graphic - 矢量对象
@@ -24230,9 +27710,9 @@ declare class Map extends BaseClass {
      * @returns 当前对象本身，可以链式调用
      */
     bindContextMenu(content: {
-        text?: string;
+        text?: string | ((...params: any[]) => any);
         icon?: string;
-        show?: ((...params: any[]) => any) | boolean;
+        show?: boolean | ((...params: any[]) => any);
         callback?: (...params: any[]) => any;
         children?: any;
     }[], options?: {
@@ -24268,13 +27748,19 @@ declare class Map extends BaseClass {
      */
     closeSmallTooltip(): Map;
     /**
+     * 移除所有加载的图层、控件、对象。慎用
+     * @param [hasDestroy = true] - 是否释放对象
+     * @returns 无
+     */
+    clear(hasDestroy?: boolean): void;
+    /**
      * 销毁地图
      * @returns 无
      */
     destroy(): void;
     /**
      * 绑定指定类型事件监听器,
-     * 支持在监听中调用 event.stopPropagation(); 组织事件冒泡
+     * 支持在监听中调用 event.stopPropagation(); 阻止事件冒泡
      * @param types - 事件类型
      * @param fn - 绑定的监听器回调方法
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
@@ -24284,11 +27770,544 @@ declare class Map extends BaseClass {
     /**
      * 解除绑定指定类型事件监听器
      * @param [types] - 事件类型,未传值时解绑所有事件
-     * @param [fn] - 绑定的监听器回调方法,未传值时解绑所有指定类型对应事件
+     * @param [fn] - 绑定的监听器回调方法,未传值时解绑所有指定类型对应事件，特殊说明：map.on监听的Cesium相关原生事件时必须传入该参数
      * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
      * @returns 当前对象本身,可以链式调用
      */
     off(types?: EventType | string | EventType[], fn?: (...params: any[]) => any, context?: any): BaseClass;
+    /**
+     * 是否有绑定指定的事件
+     * @param type - 事件类型
+     * @param [propagate] - 是否判断指定的父类 (用addEventParent设置的)
+     * @returns 是否存在
+     */
+    listens(type: EventType | string, propagate?: BaseClass): boolean;
+}
+
+declare namespace Map {
+    /**
+     * 场景参数
+     * @property [center] - 默认相机视角
+     * @property center.lng - 经度值, 180 - 180
+     * @property center.lat - 纬度值, -90 - 90
+     * @property center.alt - 高度值
+     * @property [center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+     * @property [center.pitch] - 俯仰角度值，绕纬度线旋转角度,-90至90
+     * @property [center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
+     * @property [extent] - 矩形范围 相机视角,与center二选一
+     * @property extent.xmin - 最小经度值, -180 至 180
+     * @property extent.xmax - 最大经度值, -180 至 180
+     * @property extent.ymin - 最小纬度值, -90 至 90
+     * @property extent.ymax - 最大纬度值, -90 至 90
+     * @property [removeDblClick = false] - 是否移除Cesium默认的双击事件
+     * @property [ionToken] - Cesium Ion服务的 Token令牌
+     * @property [resolutionScale = 1.0] - 获取或设置渲染分辨率的缩放比例。小于1.0的值可以改善性能不佳的设备上的性能，而值大于1.0则将以更高的速度呈现分辨率，然后缩小比例，从而提高视觉保真度。例如，如果窗口小部件的尺寸为640x480，则将此值设置为0.5将导致场景以320x240渲染，然后在设置时按比例放大设置为2.0将导致场景以1280x960渲染，然后按比例缩小。
+     *
+     * 以下是Cesium.Scene对象相关参数
+     * @property [showSun] - 是否显示太阳，如修改对象可以用 [map.scene.sun]{@link http://mars3d.cn/api/cesium/Sun.html}
+     * @property [showMoon] - 是否显示月亮，如修改对象可以用 [map.scene.moon]{@link http://mars3d.cn/api/cesium/Moon.html}
+     * @property [showSkyBox] - 是否显示天空盒，如修改对象可以用 [map.scene.skyBox]{@link http://mars3d.cn/api/cesium/SkyBox.html}
+     * @property [showSkyAtmosphere] - 是否显示地球大气层外光圈，如修改对象可以用 [map.scene.skyAtmosphere]{@link http://mars3d.cn/api/cesium/SkyAtmosphere.html}
+     * @property [fog] - 是否启用雾化效果，如修改对象可以用 [map.scene.fog]{@link http://mars3d.cn/api/cesium/fog.html}
+     * @property [fxaa] - 是否开启快速抗锯齿
+     * @property [highDynamicRange] - 是否关闭高动态范围渲染(不关闭时地图会变暗)
+     * @property [backgroundColor] - 空间背景色 ，css颜色值
+     *
+     * 以下是Cesium.Viewer所支持的options【控件相关的写在另外的control属性中】
+     * @property [sceneMode = Cesium.SceneMode.SCENE3D] - 初始场景模式。可以设置进入场景后初始是2D、2.5D、3D 模式。
+     * @property [scene3DOnly = false] - 为 true 时，每个几何实例将仅以3D渲染以节省GPU内存。
+     * @property [mapProjection = CRS.EPSG4326] - 在二维模式下时，地图的呈现坐标系，默认为EPSG4326坐标系，如果需要EPSG3857墨卡托坐标系展示，传 new Cesium.WebMercatorProjection() 即可
+     * @property [mapMode2D = Cesium.MapMode2D.INFINITE_SCROLL] - 在二维模式下时，地图是可旋转的还是可以在水平方向无限滚动。
+     * @property [shouldAnimate = true] - 是否开启时钟动画
+     * @property [shadows = false] - 是否启用日照阴影
+     * @property [useDefaultRenderLoop = true] - 如果此小部件应控制渲染循环，则为true，否则为false。
+     * @property [targetFrameRate] - 使用默认渲染循环时的目标帧速率。
+     * @property [useBrowserRecommendedResolution = true] - 如果为true，则以浏览器建议的分辨率渲染，并忽略 window.devicePixelRatio 。
+     * @property [automaticallyTrackDataSourceClocks = true] - 如果为true，则此小部件将自动跟踪新添加的数据源的时钟设置，并在数据源的时钟发生更改时进行更新。如果要独立配置时钟，请将其设置为false。
+     * @property [contextOptions = {}] - WebGL创建属性 传递给 Cesium.Scene 的 options 。{@link Cesium.Scene}
+     * @property [contextOptions.allowTextureFilterAnisotropic = true] - 允许纹理过滤各向异性
+     * @property [contextOptions.requestWebgl1 = false] - 是否启用webgl1，cesium v1.102起默认用webgl2渲染
+     * @property [contextOptions.webgl] - WebGL画布,用于 canvas.getContext("webgl", webglOptions) See {@link https://registry.khronos.org/webgl/specs/latest/1.0/#5.2|WebGLContextAttributes}
+     * @property [contextOptions.webgl.alpha = false] - 是否包含alpha缓冲区，如果需要DIV透明时，需要改为true
+     * @property [contextOptions.webgl.depth] - 绘图缓冲区的深度缓冲区至少为16位
+     * @property [contextOptions.webgl.stencil = true] - 绘图缓冲区具有至少8位的模板缓冲区
+     * @property [contextOptions.webgl.antialias] - 是否执行抗锯齿
+     * @property [contextOptions.webgl.failIfMajorPerformanceCaveat] - 如果系统性能较低，是否创建上下文
+     * @property [contextOptions.webgl.preserveDrawingBuffer] - 是否将把绘图缓存保留下来，截图需要将该项设置为true
+     * @property [contextOptions.webgl.powerPreference = "high-performance"] - 对用户代理的提示，指示GPU的哪种配置适合WebGL上下文，可选值："default"、"low-power"、"high-performance"
+     * @property [orderIndependentTranslucency = true] - 如果为true，并且配置支持它，则使用顺序无关的半透明性。
+     * @property [terrainShadows = Cesium.ShadowMode.RECEIVE_ONLY] - 确定地形是否投射或接收来自光源的阴影。
+     * @property [requestRenderMode = false] - 是否显式渲染，如果为真，渲染帧只会在需要时发生，这是由场景中的变化决定的。启用可以减少你的应用程序的CPU/GPU使用量，并且在移动设备上使用更少的电池，但是需要使用 {@link Scene#requestRender} 在这种模式下显式地渲染一个新帧。在许多情况下，在API的其他部分更改场景后，这是必要的。参见 {@link https://cesium.com/blog/2018/01/24/cesium-scene-rendering-performance/|Improving Performance with Explicit Rendering}.
+     * @property [maximumRenderTimeChange = 0.0] - 如果requestRenderMode为true，这个值定义了在请求渲染之前允许的模拟时间的最大变化。参见 {@link https://cesium.com/blog/2018/01/24/cesium-scene-rendering-performance/|Improving Performance with Explicit Rendering}.
+     * @property [depthPlaneEllipsoidOffset = 0.0] - 调整DepthPlane以处理椭球体零标高以下的渲染伪影。
+     * @property [msaaSamples = 1] - 如果提供，该值控制多样本抗混叠的速率。典型的多采样率是每像素2、4，有时是8个采样。更高的MSAA采样率可能会影响性能，以换取更好的视觉质量。这个值只适用于支持多样本渲染目标的WebGL2上下文。
+     *
+     * 以下是Cesium.Globe对象相关参数
+     * @property [globe] - globe地球相关参数
+     * @property [globe.show = true] - 是否显示地球
+     * @property [globe.baseColor = '#546a53'] - 地球背景色 ，css颜色值
+     * @property [globe.depthTestAgainstTerrain = false] - 是否启用深度监测,可以开启来测试矢量对象是否在地形下面或被遮挡。
+     * @property [globe.showGroundAtmosphere = true] - 是否在地球上绘制的地面大气
+     * @property [globe.enableLighting = false] - 是否显示晨昏线，可以看到地球的昼夜区域
+     * @property [globe.tileCacheSize = 100] - 地形图块缓存的大小，表示为图块数。任何其他只要不需要渲染，就会释放超出此数目的图块这个框架。较大的数字将消耗更多的内存，但显示细节更快例如，当缩小然后再放大时。
+     * @property [globe.terrainExaggeration = 1.0] - 地形夸张倍率，用于放大地形的标量。请注意，地形夸张不会修改其他相对于椭球的图元。
+     * @property [globe.realAlt = false] - 地形夸张倍率，在测量高度和下侧提示的高度信息中是否转换为实际真实高度值。
+     * @property [globe.terrainExaggerationRelativeHeight = 0.0] - 地形被夸大的高度。默认为0.0（相对于椭球表面缩放）。高于此高度的地形将向上缩放，低于此高度的地形将向下缩放。请注意，地形夸大不会修改任何其他图元，因为它们是相对于椭球体定位的。
+     *
+     * 以下是Cesium.ScreenSpaceCameraController对象相关参数
+     * @property [cameraController] - 相机操作相关参数
+     * @property [cameraController.minimumZoomDistance = 1.0] - 相机最近视距，变焦时相机位置的最小量级（以米为单位），默认为1。该值是相机与地表(含地形)的相对距离。
+     * @property [cameraController.maximumZoomDistance = 50000000.0] - 相机最远视距，变焦时相机位置的最大值（以米为单位）。该值是相机与地表(含地形)的相对距离。
+     * @property [cameraController.zoomFactor = 3.0] - 滚轮放大倍数，控制鼠标滚轮操作的步长
+     * @property [cameraController.minimumCollisionTerrainHeight = 80000] - 最小碰撞高度，低于此高度时绕鼠标键绕圈，大于时绕视图中心点绕圈。
+     * @property [cameraController.constrainedAxis = true] - 南北极绕轴心旋转，为false时 解除在南北极区域鼠标操作限制
+     * @property [cameraController.enableRotate = true] - 2D和3D视图下，是否允许用户旋转相机
+     * @property [cameraController.enableTranslate = true] - 2D和哥伦布视图下，是否允许用户平移地图
+     * @property [cameraController.enableTilt = true] - 3D和哥伦布视图下，是否允许用户倾斜相机
+     * @property [cameraController.enableZoom = true] - 是否允许 用户放大和缩小视图
+     * @property [cameraController.enableCollisionDetection = true] - 是否允许 地形相机的碰撞检测
+     *
+     * 以下是Cesium.Clock时钟相关参数
+     * @property [clock] - 时钟相关参数
+     * @property [clock.currentTime] - 当前的时间
+     * @property [clock.multiplier = 1.0] - 当前的速度
+     */
+    type sceneOptions = {
+        center?: {
+            lng: number;
+            lat: number;
+            alt: number;
+            heading?: number;
+            pitch?: number;
+            roll?: number;
+        };
+        extent?: {
+            xmin: number;
+            xmax: number;
+            ymin: number;
+            ymax: number;
+        };
+        removeDblClick?: boolean;
+        ionToken?: string;
+        resolutionScale?: number;
+        showSun?: boolean;
+        showMoon?: boolean;
+        showSkyBox?: boolean;
+        showSkyAtmosphere?: boolean;
+        fog?: boolean;
+        fxaa?: boolean;
+        highDynamicRange?: boolean;
+        backgroundColor?: string;
+        sceneMode?: Cesium.SceneMode;
+        scene3DOnly?: boolean;
+        mapProjection?: Cesium.MapProjection | CRS;
+        mapMode2D?: Cesium.MapMode2D;
+        shouldAnimate?: boolean;
+        shadows?: boolean;
+        useDefaultRenderLoop?: boolean;
+        targetFrameRate?: number;
+        useBrowserRecommendedResolution?: boolean;
+        automaticallyTrackDataSourceClocks?: boolean;
+        contextOptions?: {
+            allowTextureFilterAnisotropic?: boolean;
+            requestWebgl1?: boolean;
+            webgl?: {
+                alpha?: boolean;
+                depth?: boolean;
+                stencil?: boolean;
+                antialias?: boolean;
+                premultipliedAlpha?: boolean;
+                failIfMajorPerformanceCaveat?: boolean;
+                preserveDrawingBuffer?: boolean;
+                powerPreference?: string;
+            };
+        };
+        orderIndependentTranslucency?: boolean;
+        terrainShadows?: Cesium.ShadowMode;
+        requestRenderMode?: boolean;
+        maximumRenderTimeChange?: number;
+        depthPlaneEllipsoidOffset?: number;
+        msaaSamples?: number;
+        globe?: {
+            show?: boolean;
+            baseColor?: string;
+            depthTestAgainstTerrain?: boolean;
+            showGroundAtmosphere?: boolean;
+            enableLighting?: boolean;
+            tileCacheSize?: number;
+            terrainExaggeration?: number;
+            realAlt?: number;
+            terrainExaggerationRelativeHeight?: number;
+        };
+        cameraController?: {
+            minimumZoomDistance?: number;
+            maximumZoomDistance?: number;
+            zoomFactor?: number;
+            minimumCollisionTerrainHeight?: number;
+            constrainedAxis?: boolean;
+            enableRotate?: boolean;
+            enableTranslate?: boolean;
+            enableTilt?: boolean;
+            enableZoom?: boolean;
+            enableCollisionDetection?: boolean;
+        };
+        clock?: {
+            currentTime?: string | Cesium.JulianDate;
+            multiplier?: number;
+        };
+    };
+    /**
+     * 添加到地图的控件 参数
+     * @property [homeButton = false] - 视角复位按钮，是否显示, object时 对应 {@link HomeButton}构造参数
+     * @property [zoom] - 放大缩小按钮 , 对应 {@link Zoom}构造参数
+     * @property [sceneModePicker = false] - 二三维切换按钮，是否显示二维、三维、2.5D视图切换按钮, object时 对应 {@link SceneModePicker}构造参数
+     * @property [projectionPicker = false] - 投影切换按钮, 是否显示用于在透视和正投影之间进行切换按钮, object时 对应 {@link ProjectionPicker}构造参数
+     * @property [fullscreenButton = false] - 全屏按钮，是否显示, object时 对应 {@link FullscreenButton}构造参数
+     * @property [fullscreenElement = document.body] - 当按下全屏按钮时，要置于全屏模式的元素或id,也可以定义在fullscreenButton中，比如 fullscreenButton: { fullscreenElement: "mars3dContainer" }
+     * @property [vrButton = false] - VR效果按钮，是否显示, object时 对应 {@link VRButton}构造参数
+     * @property [geocoder = false] - 是否显示 地名查找按钮 控件，是Cesium原生控件, object时 对应 {@link Geocoder}构造参数
+     * @property [navigationHelpButton = false] - 帮助按钮，是否显示, object时 对应 {@link NavigationHelpButton}构造参数
+     * @property [navigationInstructionsInitiallyVisible = true] - 帮助按钮 在用户明确单击按钮之前是否自动显示
+     * @property [baseLayerPicker = false] - 是否显示 底图切换 按钮，是Cesium原生控件,  object时 对应 {@link C}构造参数
+     * @property [imageryProviderViewModels] - baseLayerPicker底图切换面板中，用于图像的ProviderViewModel实例数组，默认自动根据basemaps数组生成。
+     * @property [selectedImageryProviderViewModel] - baseLayerPicker底图切换面板中，如果没有提供当前基本图像层的视图模型，则使用第一个可用的图像层。默认为show:true的basemaps图层
+     * @property [terrainProviderViewModels] - baseLayerPicker底图切换面板中，用于地形的ProviderViewModel实例数组。默认自动使用terrain配置+无地形。
+     * @property [selectedTerrainProviderViewModel] - baseLayerPicker底图切换面板中，如果没有提供当前基础地形层的视图模型，则使用第一个可用的地形层。
+     * @property [compass] - 导航球, 对应 {@link Compass}构造参数
+     * @property [locationBar] - 状态栏, 对应 {@link LocationBar}构造参数
+     * @property [locationBar.format] - 显示内容的格式化html展示的内容格式化字符串。  支持以下模版配置：【鼠标所在位置】 经度:{lng}， 纬度:{lat}， 海拔：{alt}米， 【相机的】 方向角度：{heading}， 俯仰角度：{pitch}， 视高：{cameraHeight}米， 【地图的】 层级：{level}，每秒帧率：{fps} (越高越流畅)，延迟：{ms} 毫秒 (越小越流畅)
+     * @property [distanceLegend] - 比例尺, 对应 {@link DistanceLegend}构造参数
+     * @property [clockAnimate] - 时钟控制, 对应{@link ClockAnimate}构造参数
+     * @property [animation = true] - 时钟仪表控制(Cesium原生)
+     * @property [timeline = true] - 时间线, 是否创建下侧时间线控件面板
+     * @property [overviewMap] - 鹰眼地图, 对应{@link OverviewMap }构造参数
+     * @property [mapSplit] - 卷帘对比, 对应{@link MapSplit }构造参数
+     * @property [keyboardRoam] - 键盘漫游, 对应{@link KeyboardRoam }构造参数
+     * @property [mouseDownView] - 鼠标滚轮缩放美化样式(指示图标), 对应 {@link MouseDownView}构造参数
+     * @property [infoBox = true] - 信息面板，是否显示点击要素之后显示的信息，是Cesium原生控件
+     * @property [selectionIndicator = true] - 选中框，是否显示选择模型时的绿色框，是Cesium原生控件
+     * @property [showRenderLoopErrors = true] - 如果为true，则在发生渲染循环错误时，此小部件将自动向包含错误的用户显示HTML面板，是Cesium原生控件
+     * @property [contextmenu] - 内置 右键菜单 控制参数, 对应{@link ContextMenu }构造参数
+     * @property [contextmenu.preventDefault = true] - 是否取消右键菜单
+     * @property [contextmenu.hasDefault = true] - 是否绑定默认的地图右键菜单
+     * @property [popup] - 内置 Popup 控制参数
+     * @property [popup.depthTest = true] - 是否打开深度判断（true时判断是否在球背面）
+     * @property [tooltip] - 内置 Tooltip 控制参数
+     * @property [tooltip.cacheTime = 20] - 延迟缓存的时间，单位：毫秒
+     */
+    type controlOptions = {
+        homeButton?: boolean | any;
+        zoom?: any;
+        sceneModePicker?: boolean | any;
+        projectionPicker?: boolean | any;
+        fullscreenButton?: boolean | any;
+        fullscreenElement?: Element | string | any;
+        vrButton?: boolean | any;
+        geocoder?: boolean | Cesium.GeocoderService[] | any;
+        navigationHelpButton?: boolean | any;
+        navigationInstructionsInitiallyVisible?: boolean | any;
+        baseLayerPicker?: boolean | any;
+        imageryProviderViewModels?: Cesium.ProviderViewModel[];
+        selectedImageryProviderViewModel?: Cesium.ProviderViewModel;
+        terrainProviderViewModels?: Cesium.ProviderViewModel[];
+        selectedTerrainProviderViewModel?: Cesium.ProviderViewModel;
+        compass?: any;
+        locationBar?: {
+            format?: string | ((...params: any[]) => any);
+        };
+        distanceLegend?: any;
+        clockAnimate?: any;
+        animation?: boolean;
+        timeline?: boolean;
+        overviewMap?: any;
+        mapSplit?: any;
+        keyboardRoam?: any;
+        mouseDownView?: boolean;
+        infoBox?: boolean;
+        selectionIndicator?: boolean;
+        showRenderLoopErrors?: boolean;
+        contextmenu?: {
+            preventDefault?: boolean;
+            hasDefault?: boolean;
+        };
+        popup?: {
+            depthTest?: boolean;
+        };
+        tooltip?: {
+            cacheTime?: number;
+        };
+    };
+    /**
+     * 鼠标操作相关配置 参数
+     * @property [enabledMoveTarget = true] - 是否开启鼠标移动事件的拾取矢量数据
+     * @property [moveDelay = 30] - 鼠标移动事件的延迟毫秒数
+     * @property [pickWidth = 4] - 拾取时所选矩形的宽度，单位：像素
+     * @property [pickHeight = 4] - 拾取时所选矩形的高度，单位：像素
+     * @property [pickLimit = 9] - 在允许allowDrillPick穿透拾取时，限制拾取的对象个数。
+     */
+    type mouseOptions = {
+        enabledMoveTarget?: boolean;
+        moveDelay?: number;
+        pickWidth?: number;
+        pickHeight?: number;
+        pickLimit?: number;
+    };
+    /**
+     * 添加到地图的特效 参数
+     * @property [bloom] - 泛光,对应{@link BloomEffect }构造参数
+     * @property [brightness] - 亮度,对应{@link BrightnessEffect }构造参数
+     * @property [rain] - 雨天气,对应{@link RainEffect }构造参数
+     * @property [snow] - 雪天气 ,对应{@link SnowEffect }构造参数
+     * @property [snowCover] - 地面积雪,对应{@link SnowCoverEffect }构造参数
+     * @property [fog] - 雾天气,对应{@link FogEffect }构造参数
+     * @property [depthOfField] - 景深,对应{@link DepthOfFieldEffect }构造参数
+     * @property [mosaic] - 马赛克,对应{@link MosaicEffect }构造参数
+     * @property [nightVision] - 夜视,对应{@link NightVisionEffect }构造参数
+     * @property [blackAndWhite] - 黑白,对应{@link BlackAndWhiteEffect }构造参数
+     * @property [outline] - 对象轮廓描边,对应{@link OutlineEffect }构造参数
+     * @property [bloomTarget] - 对象泛光,对应{@link BloomTargetEffect }构造参数
+     * @property [colorCorrection] - 颜色校正 特效,对应类为：{@link ColorCorrectionEffect }构造参数
+     */
+    type effectOptions = {
+        bloom?: any;
+        brightness?: any;
+        rain?: any;
+        snow?: any;
+        snowCover?: any;
+        fog?: any;
+        depthOfField?: any;
+        mosaic?: any;
+        nightVision?: any;
+        blackAndWhite?: any;
+        outline?: any;
+        bloomTarget?: any;
+        colorCorrection?: string;
+    };
+    /**
+     * 添加到地图的 Thing对象(如分析、管理类等) 参数 【提示：仅与地图一对一的类型，非所有Thing类】
+     * @property [shadows] - 日照分析, 对应类为：{@link Shadows }
+     * @property [sightline] - 通视分析, 对应类为：{@link Sightline }
+     * @property [skyline] - 天际线描边, 对应类为：{@link Skyline }
+     * @property [cameraHistory] - 相机视角记录及处理类, 对应类为：{@link CameraHistory }
+     * @property [rotateOut] - 相机位置不动，对外四周旋转, 对应类为：{@link RotateOut }
+     * @property [rotatePoint] - 相机绕 固定中心点 旋转, 对应类为：{@link RotatePoint }
+     * @property [firstPersonRoam] - 第一人称贴地漫游, 对应类为：{@link FirstPersonRoam }
+     * @property [streetView] - 街景视角模式控制, 对应类为：{@link StreetView }
+     * @property [terrainFlat] - 地形压平, 对应类为：{@link TerrainFlat }
+     * @property [terrainClip] - 地形开挖, 对应类为：{@link TerrainClip }
+     * @property [terrainPlanClip] - 地形开挖（基于clippingPlanes）, 对应类为：{@link TerrainPlanClip }
+     * @property [terrainUplift] - 地形抬升, 对应类为：{@link TerrainUplift }
+     * @property [floodByMaterial] - 淹没分析（基于地球材质）, 对应类为：{@link FloodByMaterial }
+     * @property [floodByGraphic] - 淹没分析（基于polygon矢量面抬高）, 对应类为：{@link FloodByGraphic }
+     * @property [underground] - 地下模式, 对应类为：{@link Underground }
+     * @property [contourLine] - 等高线, 对应类为：{@link ContourLine }
+     * @property [slope] - 坡度坡向分析, 对应类为：{@link Slope }
+     * @property [limitHeight] - 模型限高分析, 对应类为：{@link LimitHeight }
+     */
+    type thingOptions = {
+        shadows?: string;
+        sightline?: string;
+        skyline?: string;
+        cameraHistory?: string;
+        rotateOut?: string;
+        rotatePoint?: string;
+        firstPersonRoam?: string;
+        streetView?: string;
+        terrainFlat?: string;
+        terrainClip?: string;
+        terrainPlanClip?: string;
+        terrainUplift?: string;
+        floodByMaterial?: string;
+        floodByGraphic?: string;
+        underground?: string;
+        contourLine?: string;
+        slope?: string;
+        limitHeight?: string;
+    };
+    /**
+     * 地形服务配置
+     * @property [type = "xyz"] - 地形类型
+     * @property url - 地形服务地址
+     * @property [show = false] - 是否启用显示地形
+     * @property [requestVertexNormals = false] - 是否应该从服务器请求额外的光照信息，如果可用，以每个顶点法线的形式。
+     * @property [requestWaterMask = false] - 是否应该向服务器请求每个瓦的水掩膜(如果有的话)。
+     * @property [requestMetadata = true] - 是否应该从服务器请求每个块元数据(如果可用)。
+     * @property [clip = false] - 是否默认启用地形开挖，如果后续打开，缓存数据不会裁剪
+     * @property [flat = false] - 是否默认启用地形压平
+     * @property [uplift = false] - 是否默认启用地形抬升
+     * @property [flood = false] - 是否默认启用地形区域材质(淹没，等高线)
+     */
+    type terrainOptions = {
+        type?: string | TerrainType;
+        url: string | Cesium.Resource;
+        show?: boolean;
+        requestVertexNormals?: boolean;
+        requestWaterMask?: boolean;
+        requestMetadata?: boolean;
+        clip?: boolean;
+        flat?: boolean;
+        uplift?: boolean;
+        flood?: boolean;
+    };
+    /**
+     * 底图图层配置
+     * @property type - 图层类型
+     * @property [多个参数] - 每种不同type都有自己的不同属性，具体参考{@link LayerType}找到type对应的BaseTileLayer子类图层类,查看其构造参数
+     */
+    type basemapOptions = {
+        type: string | LayerType;
+        多个参数?: any;
+    };
+    /**
+     * 可以叠加显示的图层配置，
+     * @property type - 图层类型
+     * @property [id] - 图层id标识
+     * @property [pid = -1] - 图层父级的id，一般图层管理中使用
+     * @property [name = ''] - 图层名称
+     * @property [show = true] - 图层是否显示
+     * @property [center] - 图层自定义定位视角，默认根据数据情况自动定位。
+     * @property [popup] - 当图层支持popup弹窗时，绑定的值
+     * @property [popupOptions] - popup弹窗时的配置参数
+     * @property [tooltip] - 当图层支持tooltip弹窗时，绑定的值
+     * @property [tooltipOptions] - tooltip弹窗时的配置参数
+     * @property [多个参数] - 每种type都有自己的不同属性，具体参考{@link LayerType}找到type对应的图层类,查看其构造参数
+     */
+    type layerOptions = {
+        type: string | LayerType;
+        id?: string | number;
+        pid?: string | number;
+        name?: string;
+        show?: boolean;
+        center?: any;
+        popup?: any;
+        popupOptions?: Popup.StyleOptions | any;
+        tooltip?: any;
+        tooltipOptions?: Tooltip.StyleOptions | any;
+        多个参数?: any;
+    };
+    /**
+     * 覆盖SDK内的{@link Token}所有第3方Token默认值
+     * @property [tianditu] - 天地图
+     * @property [gaode] - 高德
+     * @property [baidu] - 百度
+     * @property [ion] - Ion服务
+     * @property [mapbox] - mapbox地图
+     * @property [bing] - 微软Bing地图
+     */
+    type tokenOptions = {
+        tianditu?: string | string[];
+        gaode?: string | string[];
+        baidu?: string | string[];
+        ion?: string;
+        mapbox?: string;
+        bing?: string;
+    };
+    /**
+     * Map支持的{@link EventType}事件类型
+     * @example
+     * //绑定监听事件
+     * map.on(mars3d.EventType.click, function (event) {
+     *   console.log('单击了地图对象', event)
+     * })
+     * @property load - 地图初始化完成事件(地形、所有图层完成初始化)
+     * @property addLayer - 添加图层
+     * @property removeLayer - 移除图层
+     * @property terrainChange - 地形变化
+     * @property tileLoadProgress - 地图中瓦片加载进度变化
+     * @property cameraMoveStart - 相机开启移动前 场景事件
+     * @property cameraMoveEnd - 相机移动完成后 场景事件
+     * @property cameraChanged - 相机位置完成 场景事件
+     * @property preUpdate - 场景更新前 场景事件
+     * @property postUpdate - 场景更新后 场景事件
+     * @property preRender - 场景渲染前 场景事件
+     * @property postRender - 场景渲染后 场景事件
+     * @property morphStart - 场景模式(2D/3D/哥伦布)变换前 场景事件
+     * @property morphComplete - 完成场景模式(2D/3D/哥伦布)变换 场景事件
+     * @property clockTick - 时钟跳动 场景事件
+     * @property renderError - 场景渲染失败（需要刷新页面）
+     * @property click - 左键单击 鼠标事件
+     * @property clickGraphic - 左键单击到矢量或模型数据时 鼠标事件
+     * @property clickTileGraphic - 左键单击到wms或arcgis瓦片服务的对应矢量数据时
+     * @property clickMap - 左键单击地图空白（未单击到矢量或模型数据）时 鼠标事件
+     * @property dblClick - 左键双击 鼠标事件
+     * @property leftDown - 左键鼠标按下 鼠标事件
+     * @property leftUp - 左键鼠标按下后释放 鼠标事件
+     * @property mouseMove - 鼠标移动 鼠标事件
+     * @property mouseMoveTarget - 鼠标移动（拾取目标，并延迟处理） 鼠标事件
+     * @property wheel - 鼠标滚轮滚动 鼠标事件
+     * @property rightClick - 右键单击 鼠标事件
+     * @property rightDown - 右键鼠标按下 鼠标事件
+     * @property rightUp - 右键鼠标按下后释放 鼠标事件
+     * @property middleClick - 中键单击 鼠标事件
+     * @property middleDown - 中键鼠标按下 鼠标事件
+     * @property middleUp - 中键鼠标按下后释放 鼠标事件
+     * @property pinchStart - 在触摸屏上两指缩放开始 鼠标事件
+     * @property pinchEnd - 在触摸屏上两指缩放结束 鼠标事件
+     * @property pinchMove - 在触摸屏上两指移动 鼠标事件
+     * @property mouseDown - 鼠标按下 [左中右3键都触发] 鼠标事件
+     * @property mouseUp - 鼠标按下后释放 [左中右3键都触发] 鼠标事件
+     * @property mouseOver - 鼠标移入 鼠标事件
+     * @property mouseOut - 鼠标移出 鼠标事件
+     * @property keydown - 按键按下 键盘事件
+     * @property keyup - 按键按下后释放 键盘事件
+     * @property popupOpen - popup弹窗打开后
+     * @property popupClose - popup弹窗关闭
+     * @property tooltipOpen - tooltip弹窗打开后
+     * @property tooltipClose - tooltip弹窗关闭
+     * @property contextMenuOpen - 右键菜单 打开后
+     * @property contextMenuClose - 右键菜单 关闭
+     * @property contextMenuClick - 右键菜单 单击某一项后
+     */
+    type EventType = {
+        load: string;
+        addLayer: string;
+        removeLayer: string;
+        terrainChange: string;
+        tileLoadProgress: string;
+        cameraMoveStart: string;
+        cameraMoveEnd: string;
+        cameraChanged: string;
+        preUpdate: string;
+        postUpdate: string;
+        preRender: string;
+        postRender: string;
+        morphStart: string;
+        morphComplete: string;
+        clockTick: string;
+        renderError: string;
+        click: string;
+        clickGraphic: string;
+        clickTileGraphic: string;
+        clickMap: string;
+        dblClick: string;
+        leftDown: string;
+        leftUp: string;
+        mouseMove: string;
+        mouseMoveTarget: string;
+        wheel: string;
+        rightClick: string;
+        rightDown: string;
+        rightUp: string;
+        middleClick: string;
+        middleDown: string;
+        middleUp: string;
+        pinchStart: string;
+        pinchEnd: string;
+        pinchMove: string;
+        mouseDown: string;
+        mouseUp: string;
+        mouseOver: string;
+        mouseOut: string;
+        keydown: string;
+        keyup: string;
+        popupOpen: string;
+        popupClose: string;
+        tooltipOpen: string;
+        tooltipClose: string;
+        contextMenuOpen: string;
+        contextMenuClose: string;
+        contextMenuClick: string;
+    };
 }
 
 /**
@@ -24330,6 +28349,14 @@ declare class CircleScanMaterialProperty extends BaseMaterialProperty {
         color?: string | Cesium.Color;
     });
     /**
+     * 背景图片URL
+     */
+    image: string;
+    /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24348,14 +28375,6 @@ declare class CircleScanMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
-    /**
-     * 背景图片URL
-     */
-    image: string;
 }
 
 /**
@@ -24376,6 +28395,26 @@ declare class CircleWaveMaterialProperty extends BaseMaterialProperty {
         gradient?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
+     * 播放总时长，单位：秒 （会覆盖speed参数）
+     */
+    duration: number;
+    /**
+     * 圆圈个数
+     */
+    count: number;
+    /**
+     * 透明度的幂方（0-1）,0表示无虚化效果，1表示虚化成均匀渐变
+     */
+    gradient: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24394,22 +28433,6 @@ declare class CircleWaveMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
-    /**
-     * 速度
-     */
-    speed: number;
-    /**
-     * 圆圈个数
-     */
-    count: number;
-    /**
-     * 透明度的幂方（0-1）,0表示无虚化效果，1表示虚化成均匀渐变
-     */
-    gradient: number;
 }
 
 /**
@@ -24428,6 +28451,22 @@ declare class CylinderWaveMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 圈数量
+     */
+    repeat: number;
+    /**
+     * 圈的宽度比例
+     */
+    thickness: number;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24446,18 +28485,10 @@ declare class CylinderWaveMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
-    /**
-     * 重复次数
-     */
-    repeat: number;
 }
 
 /**
- * 线状: 数字流动线 材质
+ * 数字流动线 材质(可用于PlaneEntity)
  * @param [options] - 参数对象，包括以下：
  * @param [options.color = Cesium.Color.ORANGE] - 颜色
  * @param [options.speed = 5.0] - 速度，值越大越快
@@ -24474,6 +28505,26 @@ declare class DigitalFlowMaterialProperty extends BaseMaterialProperty {
         segment?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
+     * 高亮强度
+     */
+    glow: number;
+    /**
+     * 流动高亮强度
+     */
+    flowGlow: number;
+    /**
+     * 分段数
+     */
+    segment: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24492,10 +28543,6 @@ declare class DigitalFlowMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24510,6 +28557,14 @@ declare class EllipsoidElectricMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24528,10 +28583,6 @@ declare class EllipsoidElectricMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24546,6 +28597,14 @@ declare class EllipsoidWaveMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24564,10 +28623,6 @@ declare class EllipsoidWaveMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24576,13 +28631,55 @@ declare class EllipsoidWaveMaterialProperty extends BaseMaterialProperty {
  * @param options.image - 背景图片URL
  * @param [options.opacity = 1] - 透明度
  * @param [options.color = Cesium.Color.WHITE] - 颜色
+ * @param [options.speed = 0] - 不为0时呈现图片滚动效果，数字代表滚动速度
+ * @param [options.flipx = false] - 是否X方向翻转图片
+ * @param [options.flipy = false] - 是否Y方向翻转图片
+ * @param [options.repeat = new Cesium.Cartesian2(1.0, 1.0)] - 指定图像在每个方向上重复的次数
+ * @param [options.noWhite = true] - 是否不显示白色，true时没有加载完成前的白色闪烁，但也不支持纯白色的图片
  */
 declare class Image2MaterialProperty extends BaseMaterialProperty {
     constructor(options?: {
         image: string;
         opacity?: number;
         color?: string | Cesium.Color;
+        speed?: number;
+        flipx?: boolean;
+        flipy?: boolean;
+        repeat?: Cesium.Cartesian2;
+        noWhite?: boolean;
     });
+    /**
+     * 背景图片URL
+     */
+    image: string;
+    /**
+     * 透明度，0-1
+     */
+    opacity: number;
+    /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 不为0时呈现图片滚动效果，数字代表滚动速度
+     */
+    speed: number;
+    /**
+     * 是否X方向翻转图片
+     */
+    flipx: boolean;
+    /**
+     * 是否Y方向翻转图片
+     */
+    flipy: boolean;
+    /**
+     * 是否不显示白色，true时没有加载完成前的白色闪烁，但也不支持纯白色的图片
+     */
+    noWhite: boolean;
+    /**
+     * 指定图像在每个方向上重复的次数
+     */
+    repeat: Cesium.Cartesian2;
     /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
@@ -24602,14 +28699,6 @@ declare class Image2MaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 透明度，0-1
-     */
-    opacity: number;
-    /**
-     * 背景图片URL
-     */
-    image: string;
 }
 
 /**
@@ -24626,6 +28715,18 @@ declare class LineBloomMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
+     * 泛光强度
+     */
+    glow: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24644,10 +28745,122 @@ declare class LineBloomMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
+}
+
+/**
+ * 线状: 十字形间隔线 材质
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.color = Cesium.Color.WHITE] - 线颜色
+ * @param [options.dashLength = 30.0] - 十字长度，以像素为单位
+ * @param [options.maskLength = 10.0] - 空隙间隔长度
+ * @param [options.centerPower = 0.1] - 中心百分比
+ * @param [options.dashPower = 0.2] - 虚线百分比
+ * @param [options.dashPattern = 255.0] - 指定的16位模式
+ */
+declare class LineCrossMaterialProperty extends BaseMaterialProperty {
+    constructor(options?: {
+        color?: Cesium.Color;
+        dashLength?: number;
+        maskLength?: number;
+        centerPower?: number;
+        dashPower?: number;
+        dashPattern?: number;
+    });
+    /**
+     * 线颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 十字长度，以像素为单位
+     */
+    dashLength: number;
+    /**
+     * 空隙间隔长度
+     */
+    maskLength: number;
+    /**
+     * 中心百分比
+     */
+    centerPower: number;
+    /**
+     * 虚线百分比
+     */
+    dashPower: number;
+    /**
+     * 指定的16位模式
+     */
+    dashPattern: number;
+    /**
+     * 获取 材质名称
+     * @param [time] - 检索值的时间。
+     * @returns 材质名称
+     */
+    getType(time?: Cesium.JulianDate): string;
+    /**
+     * 获取所提供时间的属性值。
+     * @param [time] - 检索值的时间。
+     * @param [result] - 用于存储值的对象，如果省略，则创建并返回一个新的实例。
+     * @returns 修改的result参数或一个新的实例(如果没有提供result参数)。
+     */
+    getValue(time?: Cesium.JulianDate, result?: any): any;
+    /**
+     * 将此属性与提供的属性进行比较并返回, 如果两者相等返回true，否则为false
+     * @param [other] - 比较的对象
+     * @returns 两者是同一个对象
+     */
+    equals(other?: Cesium.Property): boolean;
+}
+
+/**
+ * 线状: 泛光线 材质
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.color = Cesium.Color.WHITE] - 颜色
+ * @param [options.gapColor = Cesium.Color.TRANSPARENT] - 虚线间隔颜色，默认为透明
+ * @param [options.dashLength = 16.0] - 虚线间隔长度，以像素为单位
+ * @param [options.dashPattern = 255.0] - 指定的16位模式
+ */
+declare class LineDotDashMaterialProperty extends BaseMaterialProperty {
+    constructor(options?: {
+        color?: Cesium.Color;
+        gapColor?: Cesium.Color;
+        dashLength?: number;
+        dashPattern?: number;
+    });
     /**
      * 颜色
      */
     color: Cesium.Color;
+    /**
+     * 虚线间隔颜色，默认为透明
+     */
+    gapColor: Cesium.Color;
+    /**
+     * 虚线间隔长度，以像素为单位
+     */
+    dashLength: number;
+    /**
+     * 指定的16位模式
+     */
+    dashPattern: number;
+    /**
+     * 获取 材质名称
+     * @param [time] - 检索值的时间。
+     * @returns 材质名称
+     */
+    getType(time?: Cesium.JulianDate): string;
+    /**
+     * 获取所提供时间的属性值。
+     * @param [time] - 检索值的时间。
+     * @param [result] - 用于存储值的对象，如果省略，则创建并返回一个新的实例。
+     * @returns 修改的result参数或一个新的实例(如果没有提供result参数)。
+     */
+    getValue(time?: Cesium.JulianDate, result?: any): any;
+    /**
+     * 将此属性与提供的属性进行比较并返回, 如果两者相等返回true，否则为false
+     * @param [other] - 比较的对象
+     * @returns 两者是同一个对象
+     */
+    equals(other?: Cesium.Property): boolean;
 }
 
 /**
@@ -24662,6 +28875,14 @@ declare class LineFlickerMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 背景图片颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24680,10 +28901,6 @@ declare class LineFlickerMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24704,6 +28921,26 @@ declare class LineFlowColorMaterialProperty extends BaseMaterialProperty {
         startTime?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
+     * 比例
+     */
+    percent: number;
+    /**
+     * 透明程度 0.0-1.0
+     */
+    alpha: number;
+    /**
+     * 开始的时间系数
+     */
+    startTime: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24722,10 +28959,6 @@ declare class LineFlowColorMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24735,7 +28968,8 @@ declare class LineFlowColorMaterialProperty extends BaseMaterialProperty {
  * @param [options.color = new Cesium.Color(1, 0, 0, 1.0)] - 背景图片颜色
  * @param [options.repeat = new Cesium.Cartesian2(1.0, 1.0)] - 横纵方向重复次数
  * @param [options.axisY = false] - 是否Y轴朝上
- * @param [options.speed = 10] - 速度，建议取值范围1-100
+ * @param [options.mixt = false] - 默认为color颜色，true时color颜色与图片颜色混合
+ * @param [options.speed = 10] - 速度
  * @param [options.duration] - 播放总时长，单位：秒 （会覆盖speed参数）
  * @param [options.hasImage2 = false] - 是否有2张图片的混合模式
  * @param [options.image2] - 第2张背景图片URL地址
@@ -24747,12 +28981,53 @@ declare class LineFlowMaterialProperty extends BaseMaterialProperty {
         color?: string | Cesium.Color;
         repeat?: Cesium.Cartesian2;
         axisY?: boolean;
+        mixt?: boolean;
         speed?: number;
         duration?: number;
         hasImage2?: boolean;
         image2?: string;
         color2?: string | Cesium.Color;
     });
+    /**
+     * 背景图片URL
+     */
+    image: string;
+    /**
+     * 背景图片颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 是否Y轴朝上
+     */
+    axisY: boolean;
+    /**
+     * 默认为color颜色，true时color颜色与图片颜色混合
+     */
+    mixt: boolean;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
+     * 播放总时长，单位：秒 （会覆盖speed参数）
+     */
+    duration: number;
+    /**
+     * 横纵方向重复次数
+     */
+    repeat: Cesium.Cartesian2;
+    /**
+     * 第2张背景图片
+     */
+    image2: string;
+    /**
+     * 第2张背景图片颜色
+     */
+    color2: Cesium.Color;
+    /**
+     * 是否有2张图片的混合模式
+     */
+    hasImage2: boolean;
     /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
@@ -24772,17 +29047,83 @@ declare class LineFlowMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
+}
+
+/**
+ * 线状: 三条平行虚线 材质
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.color = Cesium.Color.RED] - 中心线颜色
+ * @param [options.dashLength = 16.0] - 中心线虚线间隔长度，以像素为单位
+ * @param [options.widthRatio = 0.1] - 中心线百分比
+ * @param [options.sidesColor = Cesium.Color.WHITE] - 外侧线颜色
+ * @param [options.sidesDashLength = 32] - 外侧线长度
+ * @param [options.sidesWidthRatio = 0.1] - 外侧线百分比
+ * @param [options.dashPattern = 255.0] - 指定的16位模式
+ */
+declare class LineThreeDashMaterialProperty extends BaseMaterialProperty {
+    constructor(options?: {
+        color?: Cesium.Color;
+        dashLength?: number;
+        widthRatio?: number;
+        sidesColor?: Cesium.Color;
+        sidesDashLength?: number;
+        sidesWidthRatio?: number;
+        dashPattern?: number;
+    });
     /**
-     * 颜色
+     * 中心线颜色
      */
     color: Cesium.Color;
+    /**
+     * 中心线虚线间隔长度，以像素为单位
+     */
+    dashLength: number;
+    /**
+     * 中心线百分比
+     */
+    widthRatio: number;
+    /**
+     * 外侧线颜色
+     */
+    sidesColor: Cesium.Color;
+    /**
+     * 外侧线长度
+     */
+    sidesDashLength: number;
+    /**
+     * 外侧线百分比
+     */
+    sidesWidthRatio: number;
+    /**
+     * 指定的16位模式
+     */
+    dashPattern: number;
+    /**
+     * 获取 材质名称
+     * @param [time] - 检索值的时间。
+     * @returns 材质名称
+     */
+    getType(time?: Cesium.JulianDate): string;
+    /**
+     * 获取所提供时间的属性值。
+     * @param [time] - 检索值的时间。
+     * @param [result] - 用于存储值的对象，如果省略，则创建并返回一个新的实例。
+     * @returns 修改的result参数或一个新的实例(如果没有提供result参数)。
+     */
+    getValue(time?: Cesium.JulianDate, result?: any): any;
+    /**
+     * 将此属性与提供的属性进行比较并返回, 如果两者相等返回true，否则为false
+     * @param [other] - 比较的对象
+     * @returns 两者是同一个对象
+     */
+    equals(other?: Cesium.Property): boolean;
 }
 
 /**
  * 线状: 轨迹线 材质
  * @param [options] - 参数对象，包括以下：
  * @param [options.color = new Cesium.Color(1, 0, 0, 1.0)] - 颜色
- * @param [options.bgColor] - 线的背景颜色
+ * @param [options.bgColor] - 背景颜色
  * @param [options.speed = 5.0] - 速度，值越大越快
  */
 declare class LineTrailMaterialProperty extends BaseMaterialProperty {
@@ -24792,6 +29133,18 @@ declare class LineTrailMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 背景颜色
+     */
+    bgColor: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24810,14 +29163,6 @@ declare class LineTrailMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
-    /**
-     * 背景颜色
-     */
-    bgColor: Cesium.Color;
 }
 
 /**
@@ -24832,6 +29177,14 @@ declare class NeonLightMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24850,10 +29203,6 @@ declare class NeonLightMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24874,6 +29223,26 @@ declare class ODLineMaterialProperty extends BaseMaterialProperty {
         bidirectional?: number;
     });
     /**
+     * 运动对象的颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 线的背景颜色
+     */
+    bgColor: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
+     * 开始的时间系数
+     */
+    startTime: number;
+    /**
+     * 运行形式：0 正向运动 1 反向运动 2 双向运动
+     */
+    bidirectional: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24892,18 +29261,6 @@ declare class ODLineMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 运动对象的颜色
-     */
-    color: Cesium.Color;
-    /**
-     * 线的背景颜色
-     */
-    bgColor: Cesium.Color;
-    /**
-     * 速度
-     */
-    speed: number;
 }
 
 /**
@@ -24920,6 +29277,18 @@ declare class PolyAsphaltMaterialProperty extends BaseMaterialProperty {
         frequency?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 块大小
+     */
+    size: number;
+    /**
+     * 粗糙度
+     */
+    frequency: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24938,10 +29307,6 @@ declare class PolyAsphaltMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -24958,6 +29323,18 @@ declare class PolyBlobMaterialProperty extends BaseMaterialProperty {
         frequency?: number;
     });
     /**
+     * 浅色的颜色
+     */
+    evenColor: Cesium.Color;
+    /**
+     * 深色的颜色
+     */
+    oddColor: Cesium.Color;
+    /**
+     * 频率
+     */
+    frequency: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -24976,14 +29353,6 @@ declare class PolyBlobMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 浅色的颜色
-     */
-    evenColor: Cesium.Color;
-    /**
-     * 深色的颜色
-     */
-    oddColor: Cesium.Color;
 }
 
 /**
@@ -25005,14 +29374,6 @@ declare class PolyFacetMaterialProperty extends BaseMaterialProperty {
      * @returns 材质名称
      */
     getType(time?: Cesium.JulianDate): string;
-    /**
-     * 浅色的颜色
-     */
-    evenColor: Cesium.Color;
-    /**
-     * 深色的颜色
-     */
-    oddColor: Cesium.Color;
 }
 
 /**
@@ -25030,6 +29391,22 @@ declare class PolyGradientMaterialProperty extends BaseMaterialProperty {
         diffusePower?: number;
         center?: Cesium.Cartesian2;
     });
+    /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 漫射系数
+     */
+    diffusePower: number;
+    /**
+     * 透明度系数
+     */
+    alphaPower: number;
+    /**
+     * 渐变位置，默认在中心
+     */
+    center: Cesium.Cartesian2;
     /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
@@ -25049,10 +29426,6 @@ declare class PolyGradientMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -25074,14 +29447,6 @@ declare class PolyGrassMaterialProperty extends BaseMaterialProperty {
      * @returns 材质名称
      */
     getType(time?: Cesium.JulianDate): string;
-    /**
-     * 浅色的颜色
-     */
-    evenColor: Cesium.Color;
-    /**
-     * 深色的颜色
-     */
-    oddColor: Cesium.Color;
 }
 
 /**
@@ -25102,6 +29467,26 @@ declare class PolyWoodMaterialProperty extends BaseMaterialProperty {
         grainFrequency?: number;
     });
     /**
+     * 浅色的颜色
+     */
+    evenColor: Cesium.Color;
+    /**
+     * 深色的颜色
+     */
+    oddColor: Cesium.Color;
+    /**
+     * 环频率
+     */
+    frequency: number;
+    /**
+     * 噪波比例
+     */
+    noiseScale: Cesium.Cartesian2;
+    /**
+     * 颗粒的频率
+     */
+    grainFrequency: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25120,14 +29505,6 @@ declare class PolyWoodMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 浅色的颜色
-     */
-    evenColor: Cesium.Color;
-    /**
-     * 深色的颜色
-     */
-    oddColor: Cesium.Color;
 }
 
 /**
@@ -25142,6 +29519,14 @@ declare class RadarLineMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25160,10 +29545,6 @@ declare class RadarLineMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -25178,6 +29559,14 @@ declare class RadarWaveMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25196,10 +29585,6 @@ declare class RadarWaveMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -25218,6 +29603,22 @@ declare class RectSlideMaterialProperty extends BaseMaterialProperty {
         pure?: boolean;
     });
     /**
+     * 背景图片URL
+     */
+    image: string;
+    /**
+     * 背景图片颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度，值越大越快
+     */
+    speed: number;
+    /**
+     * 是否纯色
+     */
+    pure: boolean;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25236,14 +29637,6 @@ declare class RectSlideMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 背景图片URL
-     */
-    image: string;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -25258,6 +29651,14 @@ declare class ScanLineMaterialProperty extends BaseMaterialProperty {
         speed?: number;
     });
     /**
+     * 颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25276,14 +29677,6 @@ declare class ScanLineMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
-    /**
-     * 速度
-     */
-    speed: Cesium.Color;
 }
 
 /**
@@ -25307,6 +29700,7 @@ declare class ScanLineMaterialProperty extends BaseMaterialProperty {
  * @param [options.padding = 10] - 要在文本周围添加的填充的像素大小。
  * @param [options.textBaseline = 'top'] - 文本的基线。
  * @param [options.onCustomCanvas] - 支持对生成后的Canvas做自定义处理。
+ * @param [options.speed = 0] - 不为0时呈现文字滚动效果，数字代表滚动速度
  */
 declare class TextMaterialProperty extends Image2MaterialProperty {
     constructor(options?: {
@@ -25319,16 +29713,21 @@ declare class TextMaterialProperty extends Image2MaterialProperty {
         fill?: boolean;
         color?: string;
         stroke?: boolean;
-        strokeColor?: Cesium.Color;
+        strokeColor?: string | Cesium.Color;
         strokeWidth?: number;
         background?: boolean;
-        backgroundColor?: Cesium.Color;
+        backgroundColor?: string | Cesium.Color;
         outlineWidth?: number;
-        outlineColor?: Cesium.Color;
+        outlineColor?: string | Cesium.Color;
         padding?: number;
         textBaseline?: string;
         onCustomCanvas?: (...params: any[]) => any;
+        speed?: number;
     });
+    /**
+     * 是否透明
+     */
+    transparent: boolean;
     /**
      * 文本内容
      */
@@ -25337,13 +29736,21 @@ declare class TextMaterialProperty extends Image2MaterialProperty {
      * 文本样式
      */
     textStyles: any;
+    /**
+     * 背景图片URL
+     */
+    image: string;
+    /**
+     * 颜色
+     */
+    color: Cesium.Color;
 }
 
 /**
  * 墙体:  走马灯围墙 材质
  * @param [options] - 参数对象，包括以下：
  * @param options.image - 背景图片URL
- * @param [options.color = new Cesium.Color(1, 0, 0, 1.0)] - 背景图片颜色
+ * @param [options.color = new Cesium.Color(0, 0, 0, 1.0)] - 背景图片颜色
  * @param [options.count = 1] - 数量
  * @param [options.reverse = false] - 方向，false是往下，true是往上
  * @param [options.speed = 5.0] - 速度，值越大越快
@@ -25361,6 +29768,34 @@ declare class WallScrollMaterialProperty extends BaseMaterialProperty {
         axisY?: boolean;
     });
     /**
+     * 背景图片URL
+     */
+    image: string;
+    /**
+     * 背景图片颜色
+     */
+    color: Cesium.Color;
+    /**
+     * 速度
+     */
+    speed: number;
+    /**
+     * 数量
+     */
+    count: number;
+    /**
+     * 方向，false是往下，true是往上
+     */
+    reverse: boolean;
+    /**
+     * 是否Y轴朝上
+     */
+    axisY: boolean;
+    /**
+     * 是否泛光
+     */
+    bloom: boolean;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25379,14 +29814,6 @@ declare class WallScrollMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 背景图片URL
-     */
-    image: string;
-    /**
-     * 颜色
-     */
-    color: Cesium.Color;
 }
 
 /**
@@ -25403,6 +29830,18 @@ declare class WaterLightMaterialProperty extends BaseMaterialProperty {
         alpha?: number;
     });
     /**
+     * 图片路径，镜面反射纹理材质图片
+     */
+    specularMap: string;
+    /**
+     * 图片路径，水正常扰动的法线图材质图片
+     */
+    normalMap: string;
+    /**
+     * 透明度
+     */
+    alpha: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25421,24 +29860,20 @@ declare class WaterLightMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 图片路径，镜面反射纹理材质图片
-     */
-    specularMap: string;
 }
 
 /**
  * 水面效果材质
  * @param [options] - 参数对象，包括以下：
  * @param [options.baseWaterColor = new Cesium.Color(0.2, 0.3, 0.6, 1.0)] - 基础颜色
- * @param [options.blendColor = new Cesium.Color(0.0, 1.0, 0.699, 1.0)] - 从水中混合到非水域时使用的rgba颜色对象。
- * @param [options.specularMap] - 单一通道纹理用来指示水域的面积。
- * @param [options.normalMap] - 水正常扰动的法线图。
- * @param [options.frequency = 100] - 控制波数的数字。
- * @param [options.animationSpeed = 0.01] - 控制水的动画速度的数字。
- * @param [options.amplitude = 10] - 控制水波振幅的数字。
- * @param [options.specularIntensity = 0.5] - 控制镜面反射强度的数字。
- * @param [options.fadeFactor = 1.0] - fadeFactor
+ * @param [options.blendColor = new Cesium.Color(0.0, 1.0, 0.699, 1.0)] - 从水中混合到非水域时使用的rgba颜色
+ * @param [options.specularMap] - 单一通道纹理用来指示水域的面积
+ * @param [options.normalMap] - 水正常扰动的法线图
+ * @param [options.frequency = 100] - 控制波数的数字
+ * @param [options.animationSpeed = 0.01] - 控制水的动画速度的数字
+ * @param [options.amplitude = 10] - 控制水波振幅的数字
+ * @param [options.specularIntensity = 0.5] - 控制镜面反射强度的数字
+ * @param [options.fadeFactor = 1.0] - 衰减因子
  */
 declare class WaterMaterialProperty extends BaseMaterialProperty {
     constructor(options?: {
@@ -25453,6 +29888,42 @@ declare class WaterMaterialProperty extends BaseMaterialProperty {
         fadeFactor?: number;
     });
     /**
+     * 基础颜色
+     */
+    baseWaterColor: Cesium.Color;
+    /**
+     * 从水中混合到非水域时使用的rgba颜色
+     */
+    blendColor: Cesium.Color;
+    /**
+     * 单一通道纹理用来指示水域的面积
+     */
+    specularMap: string;
+    /**
+     * 水正常扰动的法线图
+     */
+    normalMap: string;
+    /**
+     * 控制波数的数字
+     */
+    frequency: number;
+    /**
+     * 控制水的动画速度的数字
+     */
+    animationSpeed: number;
+    /**
+     * 控制水波振幅的数字
+     */
+    amplitude: number;
+    /**
+     * 控制镜面反射强度的数字
+     */
+    specularIntensity: number;
+    /**
+     * 衰减因子
+     */
+    fadeFactor: number;
+    /**
      * 获取 材质名称
      * @param [time] - 检索值的时间。
      * @returns 材质名称
@@ -25471,22 +29942,6 @@ declare class WaterMaterialProperty extends BaseMaterialProperty {
      * @returns 两者是同一个对象
      */
     equals(other?: Cesium.Property): boolean;
-    /**
-     * 基础颜色
-     */
-    baseWaterColor: Cesium.Color;
-    /**
-     * 从水中混合到非水域时使用的rgba颜色对象。
-     */
-    blendColor: Cesium.Color;
-    /**
-     * 单一通道纹理用来指示水域的面积。
-     */
-    specularMap: string;
-    /**
-     * 水正常扰动的法线图。
-     */
-    normalMap: string;
 }
 
 /**
@@ -25558,6 +30013,7 @@ declare class CylinderWaveMaterial extends Cesium.Material {
  * @param [options.outlineColor = color] - 矩形边框的颜色。
  * @param [options.padding = 10] - 要在文本周围添加的填充的像素大小。
  * @param [options.textBaseline = 'top'] - 文本的基线。
+ * @param [options.speed = 0] - 不为0时呈现文字滚动效果，数字代表滚动速度
  */
 declare class TextMaterial extends Cesium.Material {
     constructor(options?: {
@@ -25568,16 +30024,17 @@ declare class TextMaterial extends Cesium.Material {
         font_style?: string;
         font?: string;
         fill?: boolean;
-        color?: string;
+        color?: string | Cesium.Color;
         stroke?: boolean;
-        strokeColor?: Cesium.Color;
+        strokeColor?: string | Cesium.Color;
         strokeWidth?: number;
         background?: boolean;
         backgroundColor?: Cesium.Color;
         outlineWidth?: number;
-        outlineColor?: Cesium.Color;
+        outlineColor?: string | Cesium.Color;
         padding?: number;
         textBaseline?: string;
+        speed?: number;
     });
 }
 
@@ -25599,10 +30056,11 @@ declare class TextMaterial extends Cesium.Material {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.zIndex = 9] - 图层对应DIV的zIndex层级
  */
 declare class EchartsLayer extends BaseLayer {
     constructor(options?: {
@@ -25625,6 +30083,7 @@ declare class EchartsLayer extends BaseLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        zIndex?: number;
     });
     /**
      * echarts对象，是echarts.init方法返回的 echartsInstance 实例
@@ -25693,7 +30152,7 @@ declare class EchartsLayer extends BaseLayer {
  * @param [options.positions] - 坐标数据集合（含value热力值），有热力值时，传入LatLngPoint数组，热力值为value字段。示例:[{lat:31.123,lng:103.568,value:1.2},{lat:31.233,lng:103.938,value:2.3}]
  * @param [options.rectangle] - 坐标的矩形区域范围，默认内部自动计算
  * @param options.rectangle.xmin - 最小经度值
- * @param options.rectangle.xmax - 最大纬度值
+ * @param options.rectangle.xmax - 最大经度值
  * @param options.rectangle.ymin - 最小纬度值
  * @param options.rectangle.ymax - 最大纬度值
  * @param [options.max] - 数据集的value值上限，默认内部计算
@@ -25705,13 +30164,16 @@ declare class EchartsLayer extends BaseLayer {
  * @param [options.heatStyle.radius = 25] - 每个数据点将具有的半径（如果未在数据点本身上指定）
  * @param [options.heatStyle.gradient] - 色带，表示渐变的对象，示例：{ 0.4: 'blue', 0.6: 'green',0.8: 'yellow',0.9: 'red' }
  * @param [options.style] - 矢量对象样式参数，还包括：
+ * @param [options.style.type] - 渲染类型，支持："image"：ImageLayer图片展示, "graphic"：普通RectanglePrimitive矢量矩形展示, "arc"：曲面RectanglePrimitive矢量矩形展示
  * @param [options.style.opacity = 1] - 透明度
- * @param [options.style.arc = false] - 是否显示曲面热力图
+ * @param [options.style.height = 0] - 高度，相对于椭球面的高度。
+ * @param [options.style.clampToGround = false] - 是否贴地
+ * @param [options.style.多个参数] - rectangle矩形支持的样式, tip: 是指支持多个其他参数
+ * @param [options.style.arc = false] - 是否显示曲面热力图，同 type:"arc"
  * @param [options.style.arcRadiusScale = 1.5] - 曲面热力图时，radius扩大比例
  * @param [options.style.arcBlurScale = 1.5] - 曲面热力图时，blur扩大比例
- * @param [options.style.height = 0] - 高度，相对于椭球面的高度。
- * @param [options.style.diffHeight] - 曲面的起伏差值高，默认根据数据范围的比例自动计算。
- * @param [options.style.多个参数] - rectangle矩形支持的样式
+ * @param [options.style.arcDirection = 1] - 曲面热力图时，凹陷的方向，1向上，-1向下，0双面
+ * @param [options.style.diffHeight] - 曲面热力图时，曲面的起伏差值高，默认根据数据范围的比例自动计算。
  * @param [options.maxCanvasSize = 5000] - Canvas最大尺寸（单位：像素），调大精度更高，但过大容易内存溢出
  * @param [options.minCanvasSize = 700] - Canvas最小尺寸（单位：像素）
  * @param [options.delayTime = 2] - 显示数据时的过渡动画时长（单位：秒）
@@ -25724,10 +30186,11 @@ declare class EchartsLayer extends BaseLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.allowDrillPick] - 是否允许鼠标穿透拾取
  */
 declare class HeatLayer extends BaseLayer {
     constructor(options: {
@@ -25747,14 +30210,17 @@ declare class HeatLayer extends BaseLayer {
             radius?: number;
             gradient?: any;
         };
-        style?: {
-            opacity?: boolean;
-            arc?: boolean;
-            arcRadiusScale?: boolean;
-            arcBlurScale?: boolean;
+        style?: any | {
+            type?: string;
+            opacity?: number;
             height?: number;
+            clampToGround?: boolean;
+            多个参数?: any;
+            arc?: boolean;
+            arcRadiusScale?: number;
+            arcBlurScale?: number;
+            arcDirection?: number;
             diffHeight?: number;
-            多个参数?: RectanglePrimitive.StyleOptions | any;
         };
         maxCanvasSize?: number;
         minCanvasSize?: number;
@@ -25773,6 +30239,7 @@ declare class HeatLayer extends BaseLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        allowDrillPick?: boolean | ((...params: any[]) => any);
     });
     /**
      * 矢量数据图层
@@ -25853,10 +30320,11 @@ declare class HeatLayer extends BaseLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.zIndex = 9] - 图层对应DIV的zIndex层级
  * @param [dataSet] - mapv.DataSet数据集,可以参考[ MapV数据集对象说明]{@link https://github.com/huiyan-fe/mapv/blob/master/src/data/DataSet.md}
  */
 declare class MapVLayer extends BaseLayer {
@@ -25880,6 +30348,7 @@ declare class MapVLayer extends BaseLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        zIndex?: number;
     } | any, dataSet?: any);
     /**
      * 图层对应的Canvas对象
@@ -25956,7 +30425,7 @@ declare class MapVLayer extends BaseLayer {
 }
 
 /**
- * 视锥体的类型
+ * 视椎体的类型
  */
 declare enum SensorType {
     /**
@@ -26062,7 +30531,7 @@ declare class Tle {
      */
     readonly eccentricity: number;
     /**
-     * 近地点幅角，
+     * 近地点角矩(deg)
      * tle2的第35–42列
      */
     readonly perigee: number;
@@ -26091,7 +30560,7 @@ declare class Tle {
      */
     readonly checksum2: number;
     /**
-     * 获取卫星指定时间所在的 ECEF坐标
+     * 获取卫星指定时间所在的 ECI地固系坐标
      * @param datetime - 指定的时间
      * @returns ECEF(地心地固坐标系) 坐标
      */
@@ -26130,7 +30599,7 @@ declare class Tle {
      */
     static getPoint(tle1: string, tle2: string, datetime: Date | Cesium.JulianDate | number): LngLatPoint | undefined;
     /**
-     * 获取卫星指定时间所在的 ECEF坐标
+     * 获取卫星指定时间所在的 ECI地固系坐标
      * @param tle1 - 卫星TLE的第一行
      * @param tle2 - 卫星TLE的第二行
      * @param datetime - 指定的时间
@@ -26151,34 +30620,27 @@ declare class Tle {
      */
     static eciToGeodetic(positionEci: Cesium.Cartesian3, datetime: Date | Cesium.JulianDate | number): LngLatPoint;
     /**
-     * ECI坐标 转换为 ECEF坐标
+     * ECI惯性系坐标 转换为 ECI地固系坐标
      * @param positionEci - ECI(地心惯性坐标系)坐标
      * @param datetime - 指定时间, number时请传入格林尼治恒星时(GMST)时间
+     * @param [positionEcf] - ECI(地心惯性坐标系)坐标
      * @returns ECEF(地心地固坐标系) 坐标
      */
-    static eciToEcf(positionEci: Cesium.Cartesian3, datetime: Date | Cesium.JulianDate | number): Cesium.Cartesian3;
+    static eciToEcf(positionEci: Cesium.Cartesian3, datetime: Date | Cesium.JulianDate | number, positionEcf?: Cesium.Cartesian3): Cesium.Cartesian3;
     /**
-     * ECEF坐标 转换为 ECI坐标
+     * ECI地固系坐标 转换为 ECI惯性系坐标
      * @param positionEcf - ECEF(地心地固坐标系) 坐标
      * @param datetime - 指定时间, number时请传入格林尼治恒星时(GMST)时间
      * @returns ECI(地心惯性坐标系)坐标
      */
     static ecfToEci(positionEcf: Cesium.Cartesian3, datetime: Date | Cesium.JulianDate | number): Cesium.Cartesian3;
     /**
-     * 卫星开普勒六根数转换到两行轨道根数
-     * @param startYear - 开始年,比如2017年时传入17
-     * @param startTime - 开始时间，每年1月1日0点为0，后逐渐累积，整数部分为日，小数部分为时分秒
-     * @param six - 轨道六根数,顺序为:
-     *   Mean:平均运动（每日绕行圈数）必须小于100,
-     *   Eccentricity:离心率（小数,小于1）,
-     *   Inclination:轨道的交角（deg），不能是负数,
-     *   Argument of perigee :近地点角矩(deg)，不超过360,
-     *   RAAN :升交点赤经（deg），不超过360,
-     *   Mean :在轨圈数
-     * @param name - 卫星两位数编号，如01,最多五位数
-     * @returns 两行轨道根数
+     * 两行轨道根数 转换到 开普勒六根数
+     * @param tle1 - 两行轨道根数1
+     * @param tle2 - 两行轨道根数2
+     * @returns 卫星开普勒六根数对象
      */
-    static coe2tle(startYear: number, startTime: number, six: number[], name: string): string[];
+    static tle2coe(tle1: string, tle2: string): any;
 }
 
 declare namespace Tle {
@@ -26206,15 +30668,17 @@ declare namespace CamberRadar {
      * @property [outlineColor = new Cesium.Color(1.0, 0.0, 0.0)] - 边线颜色
      * @property startRadius - 内曲面半径 （单位：米）
      * @property radius - 外曲面半径 （单位：米）
-     * @property [startFovH = Cesium.Math.toRadians(-50)] - 左横截面角度（弧度值）
-     * @property [endFovH = Cesium.Math.toRadians(50)] - 右横截面角度（弧度值）
-     * @property [startFovV = Cesium.Math.toRadians(5)] - 垂直起始角度（弧度值）
-     * @property [endFovV = Cesium.Math.toRadians(85)] - 垂直结束角度（弧度值）
+     * @property [startFovH = -50] - 左横截面角度（角度值）
+     * @property [endFovH = 50] - 右横截面角度（角度值）
+     * @property [startFovV = 5] - 垂直起始角度（角度值）
+     * @property [endFovV = 85] - 垂直结束角度（角度值）
      * @property [segmentH = 60] - 垂直方向(类似经度线)分割数
      * @property [segmentV = 20] - 水平方向(类似纬度线)分割数
      * @property [heading = 0] - 方向角 （度数值，0-360度）
      * @property [pitch = 0] - 俯仰角（度数值，0-360度）
      * @property [roll = 0] - 翻滚角（度数值，0-360度）
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = true] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
      */
     type StyleOptions = any | {
         color?: string | Cesium.Color;
@@ -26234,6 +30698,8 @@ declare namespace CamberRadar {
         heading?: number;
         pitch?: number;
         roll?: number;
+        translucent?: boolean;
+        closed?: boolean;
     };
 }
 
@@ -26268,19 +30734,19 @@ declare class CamberRadar extends BasePointPrimitive {
      */
     radius: number;
     /**
-     * 左横截面角度（弧度值）
+     * 左横截面角度（角度值）
      */
     startFovV: number;
     /**
-     * 右横截面角度（弧度值）
+     * 右横截面角度（角度值）
      */
     endFovV: number;
     /**
-     * 垂直起始角度（弧度值）
+     * 垂直起始角度（角度值）
      */
     startFovH: number;
     /**
-     * 垂直结束角度（弧度值）
+     * 垂直结束角度（角度值）
      */
     endFovH: number;
     /**
@@ -26328,6 +30794,8 @@ declare namespace ConicSensor {
      * @property [hideRayEllipsoid = false] - 在地球相交时 是否隐藏
      * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
      * @property [faceForward = false] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = true] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
      */
     type StyleOptions = any | {
         angle?: number;
@@ -26346,6 +30814,8 @@ declare namespace ConicSensor {
         hideRayEllipsoid?: boolean;
         flat?: boolean;
         faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
     };
 }
 
@@ -26358,7 +30828,7 @@ declare namespace ConicSensor {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.lookAt] - 椎体方向追踪的目标（椎体方向跟随变化，位置不变）
  * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
- * @param [options.revers = false] - 是否反转朝向
+ * @param [options.reverse = false] - 是否反转朝向
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
@@ -26370,7 +30840,7 @@ declare class ConicSensor extends BasePointPrimitive {
         attr?: any;
         lookAt?: Cesium.Cartesian3 | Cesium.PositionProperty;
         fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
-        revers?: boolean;
+        reverse?: boolean;
         id?: string | number;
         name?: string;
         show?: boolean;
@@ -26432,7 +30902,7 @@ declare class ConicSensor extends BasePointPrimitive {
      */
     readonly matrix: Cesium.Matrix4;
     /**
-     * 获取视锥体射出length半径长度后的点坐标
+     * 获取视椎体射出length半径长度后的点坐标
      */
     readonly rayPosition: Cesium.Cartesian3;
     /**
@@ -26440,7 +30910,7 @@ declare class ConicSensor extends BasePointPrimitive {
      */
     readonly reverse: boolean;
     /**
-     * 是否与地球相交，当rayEllipsoid：true时才有效。
+     * 是否与地球相交，当 rayEllipsoid：true时才有效。
      */
     readonly intersectEllipsoid: boolean;
     /**
@@ -26500,6 +30970,8 @@ declare namespace RectSensor {
      * @property [hideRayEllipsoid = false] - 在地球相交时 是否隐藏
      * @property [flat = false] - 当true时，在片段着色器中使用平面着色，不考虑光照。
      * @property [faceForward = false] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = false] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
      */
     type StyleOptions = any | {
         angle1?: number;
@@ -26520,6 +30992,8 @@ declare namespace RectSensor {
         hideRayEllipsoid?: boolean;
         flat?: boolean;
         faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
     };
 }
 
@@ -26532,7 +31006,7 @@ declare namespace RectSensor {
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.lookAt] - 椎体方向追踪的目标（椎体方向跟随变化，位置不变）
  * @param [options.fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
- * @param [options.revers = false] - 是否反转朝向
+ * @param [options.reverse = false] - 是否反转朝向
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
@@ -26544,7 +31018,7 @@ declare class RectSensor extends BasePointPrimitive {
         attr?: any;
         lookAt?: Cesium.Cartesian3 | Cesium.PositionProperty;
         fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
-        revers?: boolean;
+        reverse?: boolean;
         id?: string | number;
         name?: string;
         show?: boolean;
@@ -26610,7 +31084,7 @@ declare class RectSensor extends BasePointPrimitive {
      */
     readonly matrix: Cesium.Matrix4;
     /**
-     * 获取视锥体射出length半径长度后的点坐标
+     * 获取视椎体射出length半径长度后的点坐标
      */
     readonly rayPosition: Cesium.Cartesian3;
     /**
@@ -26659,57 +31133,78 @@ declare namespace Satellite {
 }
 
 /**
- * 卫星综合体 对象类【统一管理卫星模型、轨道、视锥体】,
+ * 卫星综合体 对象类【统一管理卫星模型、轨道、视椎体】,
  * 【需要引入  mars3d-space 插件库】
  * @param options - 参数对象，包括以下：
- * @param options.tle1 - 卫星两行轨道数（TLE） 的tle1, 示例：'1 39150U 13018A   18309.20646405  .00000034  00000-0  12253-4 0  9993'
- * @param options.tle2 - 卫星两行轨道数（TLE） 的tle2, 示例：'2 39150  97.9189  29.2064 0018076 220.9170 139.0692 14.76532215297913'
+ * @param [options.tle1] - 卫星两行轨道数（TLE） 的tle1, 示例：'1 39150U 13018A   18309.20646405  .00000034  00000-0  12253-4 0  9993'
+ * @param [options.tle2] - 卫星两行轨道数（TLE） 的tle2, 示例：'2 39150  97.9189  29.2064 0018076 220.9170 139.0692 14.76532215297913'
  * @param [options.period] - 卫星运行周期（单位：分钟）, 未传值时自动在tle2中解析
- * @param options.position - 当没有tle时，自定义传入动态坐标位置（含时序的点集合）
+ * @param [options.pointsNum = 60] - 卫星轨道计算的点数量，值越大轨道越平滑度但占用资源越多(可能卡)
+ * @param [options.referenceFrame = Cesium.ReferenceFrame.INERTIAL] - 使用地固系（ECEF坐标），还是地惯系（ECI惯性坐标）
+ * @param [options.numberOfDerivatives = 0] - 每个位置的导数的数量;即速度、加速度等。
+ * @param [options.position] - 当没有tle时，自定义传入动态坐标位置（含时序的点集合）
  * @param [options.orientation] - 当没有tle时，自定义传入实体方向
- * @param [options.model] - 设置是否显示 gltf卫星模型 和对应的样式，属性还包含：<br />
- * //  * @param {Boolean} [options.model.autoHeading=true]  heading是否自动为轨道的方向
- * @param [options.cone] - 设置是否显示 卫星视锥体 和对应的样式
+ * @param [options.attr] - 矢量数据的 属性信息，可以任意附加属性。
+ * @param [options.model] - 设置是否显示 gltf卫星模型 和对应的样式
  * @param [options.label] - 设置是否显示 文本 和对应的样式
  * @param [options.billboard] - 设置是否显示 图标点 和对应的样式
  * @param [options.point] - 设置是否显示 像素点 和对应的样式
+ * @param [options.cone] - 设置是否显示 卫星视椎体 和对应的样式
  * @param [options.path] - 设置是否显示 卫星轨迹路线 和对应的样式，属性还包含：<br />
- * //  * @param {Boolean} [options.path.closure=false]  是否闭合轨道圆
- * @param [options.shadingLine] - 设置是否显示 星下轨迹 和对应的样式
- * @param [options.fixedFrameTransform] - 参考系
- * @param [options.frameRate = 50] - 多少帧刷新1次，控制效率，如果卡顿就把该数值调大一些。
+ * //  * @param {boolean} [options.path.closure=false]  是否闭合轨道圆
+ * @param [highlight] - 鼠标移入或单击(type:'click')后的对应高亮的部分样式，提示：原有style的配置项需要与highlightStyle配置有一一对应关系，否则无法清除
+ * @param [highlight.model] - 设置是否显示 gltf卫星模型 和对应的样式
+ * @param [highlight.label] - 设置是否显示 文本 和对应的样式
+ * @param [highlight.billboard] - 设置是否显示 图标点 和对应的样式
+ * @param [highlight.point] - 设置是否显示 像素点 和对应的样式
+ * @param [highlight.cone] - 设置是否显示 卫星视椎体 和对应的样式
+ * @param [highlight.path] - 设置是否显示 卫星轨迹路线 和对应的样式
+ * @param [options.frameRate = 1] - 多少帧获取一次数据。用于控制效率，如果卡顿就把该数值调大一些。
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
  */
-declare class Satellite extends BaseGraphic {
+declare class Satellite extends Route {
     constructor(options: {
-        tle1: string;
-        tle2: string;
+        tle1?: string;
+        tle2?: string;
         period?: number;
-        position: Cesium.SampledPositionProperty;
+        pointsNum?: number;
+        referenceFrame?: Cesium.ReferenceFrame;
+        numberOfDerivatives?: number;
+        position?: Cesium.SampledPositionProperty;
         orientation?: Cesium.Property;
+        attr?: any;
         model?: ModelEntity.StyleOptions | any;
-        cone?: SatelliteSensor.StyleOptions | any;
         label?: LabelEntity.StyleOptions | any;
         billboard?: BillboardEntity.StyleOptions | any;
         point?: PointEntity.StyleOptions | any;
+        cone?: SatelliteSensor.StyleOptions | any | any;
         path?: PolylineEntity.StyleOptions | any;
-        shadingLine?: BillboardEntity.StyleOptions | any;
-        fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
         frameRate?: number;
         id?: string | number;
         name?: string;
         show?: boolean;
+    }, highlight?: {
+        model?: ModelEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
+        billboard?: BillboardEntity.StyleOptions | any;
+        point?: PointEntity.StyleOptions | any;
+        cone?: SatelliteSensor.StyleOptions | any | any;
+        path?: PolylineEntity.StyleOptions | any;
     });
-    /**
-     * 加载Entity数据的内部Cesium容器
-     */
-    readonly dataSource: Cesium.CustomDataSource;
     /**
      * 卫星TLE算法类对象
      */
     readonly tle: Tle;
+    /**
+     * 获取当前已计算的轨道的开始时间和结束时间，格式为{start:'2021-01-01 00:00:00',end:'2021-01-01 12:01:02'}
+     */
+    readonly timeRange: any;
+    /**
+     * 卫星视椎体（圆锥或四凌锥） 子对象
+     */
+    cone: SatelliteSensor | SatelliteSensor[] | any;
     /**
      * 圆锥的角度或者四棱锥的第一个角度，半场角度，取值范围 0.1-89.9
      */
@@ -26719,82 +31214,20 @@ declare class Satellite extends BaseGraphic {
      */
     angle2: number;
     /**
-     * 四周方向角，0-360度角度值
-     */
-    heading: number;
-    /**
-     * 俯仰角，上下摇摆的角度，0-360度角度值
-     */
-    pitch: number;
-    /**
-     * 滚转角，左右摆动的角度，0-360度角度值
-     */
-    roll: number;
-    /**
-     * 是否显示视锥体
+     * 是否显示视椎体
      */
     coneShow: boolean;
-    /**
-     * 当前时间的卫星位置坐标 （笛卡尔坐标）
-     */
-    position: Cesium.Cartesian3;
-    /**
-     * 获取当前时间转换计算模型矩阵。如果方向或位置未定义，则返回undefined。
-     */
-    readonly modelMatrix: Cesium.Matrix4;
-    /**
-     * 获取卫星方向 中心射线与地球相交点
-     */
-    readonly groundPosition: Cesium.Cartesian3;
-    /**
-     * 获取当前已计算的轨道的开始时间和结束时间，格式为{start:'2021-01-01 00:00:00',end:'2021-01-01 12:01:02'}
-     */
-    readonly timeRange: any;
     /**
      * 卫星凝视的目标（卫星方向一直朝向这个目标所在位置）
      */
     lookAt: Cesium.Cartesian3 | Cesium.PositionProperty;
     /**
-     * 是否显示3个方向轴，用于对比测试
-     */
-    debugAxis: boolean;
-    /**
-     * 显示3个方向轴时的对应轴长度，用于对比测试
-     */
-    debugAxisLength: number;
-    /**
-     * 重新赋值参数，同构造方法参数一致。
-     * @param options - 参数,与类的构造方法参数相同
-     * @returns 无
-     */
-    setOptions(options: any): void;
-    /**
-     * 单击轨迹连线上的点后，求该点对应的时间
-     * @param position - 轨迹连线上的某点
-     * @param [arr] - 轨迹的原始数组，默认为内部记录的轨迹
-     * @returns 对应的时间
-     */
-    getPointTime(position: Cesium.Cartesian3, arr?: any): Date;
-    /**
-     * 更新角度
-     * @param [newangle] - 新角度值
-     * @param [newangle.heading = 0] - 方向角 （度数值，0-360度），如 model.autoHeading 为true，传入值无效
-     * @param [newangle.pitch = 0] - 俯仰角（度数值，0-360度）
-     * @param [newangle.roll = 0] - 翻滚角（度数值，0-360度）
-     * @returns 无
-     */
-    updateOrientation(newangle?: {
-        heading?: number;
-        pitch?: number;
-        roll?: number;
-    }): void;
-    /**
      * 定位到卫星当前所在位置
      * @param [options = {}] - 具有以下属性的对象:
      * @param [options.scale = 1.5] - 视角离卫星距离的缩放比例，计算公式：视角距离 = scale*卫星当前高度
      * @param [options.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
-     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, 0至360
-     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, 0至360
+     * @param [options.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+     * @param [options.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
      * @param [options.duration] - 飞行持续时间（秒）。如果省略，内部会根据飞行距离计算出理想的飞行时间。
      * @param [options.complete] - 飞行完成后要执行的函数。
      * @param [options.cancel] - 飞行取消时要执行的函数。
@@ -26806,7 +31239,7 @@ declare class Satellite extends BaseGraphic {
      * @param [options.easingFunction] - 控制在飞行过程中如何插值时间。
      * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
      */
-    flyTo(options?: {
+    flyToPoint(options?: {
         scale?: number;
         heading?: number;
         pitch?: number;
@@ -26822,18 +31255,16 @@ declare class Satellite extends BaseGraphic {
         easingFunction?: Cesium.EasingFunction.Callback;
     }): Promise<boolean>;
     /**
-     * 矢量数据对应的 Cesium内部对象 (不同子类中实现)
+     * 开始绘制矢量数据，绘制的数据会加载在layer图层。
+     * @param layer - 图层
+     * @returns 无
      */
-    readonly czmObject: Cesium.Entity | Cesium.Primitive | Cesium.GroundPrimitive | Cesium.ClassificationPrimitive | any;
-    /**
-     * 当前类的构造参数
-     */
-    readonly options: any;
+    startDraw(layer: GraphicLayer): void;
 }
 
 declare namespace SatelliteSensor {
     /**
-     * 卫星视锥综合体（圆锥或四凌锥） 支持的样式信息
+     * 卫星视椎体（圆锥或四凌锥） 支持的样式信息
      * @property [sensorType = SatelliteSensor.Type.Rect] - 视锥类型
      * @property [angle1 = 5] - 圆锥的角度或者四棱锥的第一个角度，半场角度，取值范围 0.1-89.9
      * @property [angle2 = 5] - 四棱锥的第二个角度，半场角度，取值范围 0.1-89.9
@@ -26842,11 +31273,15 @@ declare namespace SatelliteSensor {
      * @property [heading = 0] - 方向角 （角度值 0-360）
      * @property [pitch = 0] - 俯仰角（角度值 0-360）
      * @property [roll = 0] - 翻滚角（角度值 0-360）
-     * @property [color = Cesium.Color.YELLOW] - 颜色
+     * @property [color = "rgba(255,255,0,0.4)"] - 颜色
      * @property [opacity = 1.0] - 透明度, 取值范围：0.0-1.0
      * @property [outline = false] - 是否显示边线
      * @property [outlineColor = color] - 边线颜色
      * @property [rayEllipsoid = false] - 是否求交地球计算
+     * @property [flat = true] - 当true时，在片段着色器中使用平面着色，不考虑光照。
+     * @property [faceForward = false] - 当true时，片段着色器根据需要翻转表面的法线，以确保法线面向查看器以避免黑点。
+     * @property [translucent = true] - 当true时，几何图形将显示为半透明，因此{@link Cesium.PerInstanceColorAppearance#renderState}将启用alpha混合。
+     * @property [closed = false] - 当true时，几何图形将被关闭，因此{@link Cesium.PerInstanceColorAppearance#renderState}启用了背面剔除。
      */
     type StyleOptions = any | {
         sensorType?: SatelliteSensor.Type;
@@ -26862,9 +31297,13 @@ declare namespace SatelliteSensor {
         outline?: boolean;
         outlineColor?: string | Cesium.Color;
         rayEllipsoid?: boolean;
+        flat?: boolean;
+        faceForward?: boolean;
+        translucent?: boolean;
+        closed?: boolean;
     };
     /**
-     * 视锥体类型
+     * 视椎体类型
      */
     enum Type {
         Conic,
@@ -26877,13 +31316,12 @@ declare namespace SatelliteSensor {
  * 【需要引入  mars3d-space 插件库】
  * @param [options] - 参数对象，包括以下：
  * @param options.position - 坐标位置
+ * @param [options.orientation] - 指定实体方向的属性。
  * @param options.style - 样式信息
  * @param [options.attr] - 附件的属性信息，可以任意附加属性，导出geojson或json时会自动处理导出。
  * @param [options.lookAt] - 椎体方向追踪的目标（椎体方向跟随变化，位置不变）
- * @param [options.trackedEntity] - 椎体跟随的卫星（椎体位置跟随变化，方向不变）
- * @param [options.autoHeading] - 是否自动追踪trackedEntity目标的heading方向
  * @param [options.fixedFrameTransform] - 参考系
- * @param [options.revers = false] - 是否反转朝向
+ * @param [options.reverse = false] - 是否反转朝向
  * @param [options.id = createGuid()] - 矢量数据id标识
  * @param [options.name = ''] - 矢量数据名称
  * @param [options.show = true] - 矢量数据是否显示
@@ -26891,13 +31329,12 @@ declare namespace SatelliteSensor {
 declare class SatelliteSensor extends BasePointPrimitive {
     constructor(options?: {
         position: LngLatPoint | Cesium.Cartesian3 | number[];
+        orientation?: Cesium.Property | any;
         style: SatelliteSensor.StyleOptions | any;
         attr?: any;
         lookAt?: Cesium.Cartesian3 | Cesium.PositionProperty;
-        trackedEntity?: Cesium.Entity;
-        autoHeading?: boolean;
         fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame;
-        revers?: boolean;
+        reverse?: boolean;
         id?: string | number;
         name?: string;
         show?: boolean;
@@ -26943,10 +31380,6 @@ declare class SatelliteSensor extends BasePointPrimitive {
      */
     outline: boolean;
     /**
-     * 椎体跟随的卫星（椎体位置跟随变化，方向不变）
-     */
-    trackedEntity: Cesium.Entity | ModelEntity;
-    /**
      * 椎体方向追踪的目标（椎体方向跟随变化，位置不变）
      */
     lookAt: Cesium.Entity;
@@ -26955,7 +31388,7 @@ declare class SatelliteSensor extends BasePointPrimitive {
      */
     readonly matrix: Cesium.Matrix4;
     /**
-     * 获取视锥体方向中心射线与地球相交点
+     * 获取视椎体方向中心射线与地球相交点
      */
     readonly groundPosition: Cesium.Cartesian3;
     /**
@@ -26978,345 +31411,6 @@ declare class SatelliteSensor extends BasePointPrimitive {
      * @returns 成像区坐标，经、纬度坐标数组
      */
     getAreaCoords(): any[][];
-    /**
-     * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
-     */
-    position: Cesium.Cartesian3 | LngLatPoint;
-}
-
-/**
- * 超图S3M三维模型图层,
- * 【需要引入  mars3d-supermap 插件库】
- * @param [options] - 参数对象，包括以下：
- * @param options.url - supermap的S3M服务地址,示例："url": "http://www.supermapol.com/realspace/services/3D-Olympic/rest/realspace"
- * @param [options.layername] - 指定图层名称,未指定时，打开iserver场景服务下所有图层
- * @param [options.sceneName] - 工作空间中有多个场景，需要指定场景名称；设置为undefined，默认打开第一个
- * @param [options.s3mOptions] - [S3M支持的参数]{@link http://support.supermap.com.cn:8090/webgl/docs/Documentation/S3MTilesLayer.html?classFilter=S3MTilesLayer} ,示例： {"selectEnabled":false},
- * @param [options.position] - 模型新的中心点位置（移动模型）
- * @param options.position.alt - 获取或设置底部高程。（单位：米）
- * @param [options.id = createGuid()] - 图层id标识
- * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
- * @param [options.name = ''] - 图层名称
- * @param [options.show = true] - 图层是否显示
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为map对象，false时不冒泡
- * @param [options.center] - 图层自定义定位视角 {@link Map#setCameraView}
- * @param options.center.lng - 经度值, 180 - 180
- * @param options.center.lat - 纬度值, -90 - 90
- * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
- * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
- */
-declare class S3MLayer extends BaseLayer {
-    constructor(options?: {
-        url: string;
-        layername?: string;
-        sceneName?: string;
-        s3mOptions?: any;
-        position?: {
-            alt: number;
-        };
-        id?: string | number;
-        pid?: string | number;
-        name?: string;
-        show?: boolean;
-        eventParent?: BaseClass | boolean;
-        center?: {
-            lng: number;
-            lat: number;
-            alt?: number;
-            heading?: number;
-            pitch?: number;
-            roll?: number;
-        };
-        flyTo?: boolean;
-    });
-    /**
-     * 模型对应的Cesium.S3MTilesLayer图层组
-     */
-    readonly layer: any;
-    /**
-     * 设置S3M图层本身支持的参数
-     */
-    s3mOptions: any;
-    /**
-     * 遍历每一个子图层并将其作为参数传递给回调函数
-     * @param method - 回调方法
-     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
-     * @returns 当前对象本身,可以链式调用
-     */
-    eachLayer(method: (...params: any[]) => any, context?: any): GroupLayer;
-    /**
-     * 设置透明度
-     * @param value - 透明度
-     * @returns 无
-     */
-    setOpacity(value: number): void;
-    /**
-     * 飞行定位至图层数据所在的视角
-     * @param [options = {}] - 参数对象:
-     * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
-     * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
-     * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
-     * @param [options.complete] - 飞行完成后要执行的函数。
-     * @param [options.cancel] - 飞行取消时要执行的函数。
-     * @param [options.endTransform] - 变换矩阵表示飞行结束时相机所处的参照系。
-     * @param [options.maximumHeight] - 飞行高峰时的最大高度。
-     * @param [options.pitchAdjustHeight] - 如果相机飞得比这个值高，在飞行过程中调整俯仰以向下看，并保持地球在视口。
-     * @param [options.flyOverLongitude] - 地球上的两点之间总有两条路。这个选项迫使相机选择战斗方向飞过那个经度。
-     * @param [options.flyOverLongitudeWeight] - 仅在通过flyOverLongitude指定的lon上空飞行，只要该方式的时间不超过flyOverLongitudeWeight的短途时间。
-     * @param [options.convert = true] - 是否将目的地从世界坐标转换为场景坐标（仅在不使用3D时相关）。
-     * @param [options.easingFunction] - 控制在飞行过程中如何插值时间。
-     * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
-     */
-    flyTo(options?: {
-        radius?: number;
-        scale?: number;
-        duration?: number;
-        complete?: Cesium.Camera.FlightCompleteCallback;
-        cancel?: Cesium.Camera.FlightCancelledCallback;
-        endTransform?: Cesium.Matrix4;
-        maximumHeight?: number;
-        pitchAdjustHeight?: number;
-        flyOverLongitude?: number;
-        flyOverLongitudeWeight?: number;
-        convert?: boolean;
-        easingFunction?: Cesium.EasingFunction.Callback;
-    }): Promise<boolean>;
-}
-
-/**
- * 超图影像瓦片服务图层,
- * 【需要引入  mars3d-supermap 插件库】
- * @param [options] - 参数对象，包括以下：
- * @param options.url - supermap的影像服务地址
- * @param [options.subdomains] - URL模板中用于 {s} 占位符的子域。 如果此参数是单个字符串，则字符串中的每个字符都是一个子域。如果是 一个数组，数组中的每个元素都是一个子域。
- * @param [options.tileFormat] - 影像图片格式，默认为png。
- * @param [options.transparent = true] - 设置请求的地图服务的参数是否为transparent。
- * @param [options.transparentBackColor] - 设置影像透明色。
- * @param [options.transparentBackColorTolerance] - 去黑边,设置影像透明色容限，取值范围为0.0~1.0。0.0表示完全透明，1.0表示完全不透明。
- * @param [options.cacheKey] - 影像的三维缓存密钥。
- * @param [options.minimumLevel = 0] - 瓦片所支持的最低层级，如果数据没有第0层，该参数必须配置,当地图小于该级别时，平台不去请求服务数据。
- * @param [options.maximumLevel] - 瓦片所支持的最大层级,大于该层级时会显示上一层拉伸后的瓦片，当地图大于该级别时，平台不去请求服务数据。
- * @param [options.minimumTerrainLevel] - 展示影像图层的最小地形细节级别，小于该级别时，平台不显示影像数据。
- * @param [options.maximumTerrainLevel] - 展示影像图层的最大地形细节级别，大于该级别时，平台不显示影像数据。
- * @param [options.rectangle] - 瓦片数据的矩形区域范围
- * @param options.rectangle.xmin - 最小经度值, -180 至 180
- * @param options.rectangle.xmax - 最大纬度值, -180 至 180
- * @param options.rectangle.ymin - 最小纬度值, -90 至 90
- * @param options.rectangle.ymax - 最大纬度值, -90 至 90
- * @param [options.bbox] - bbox规范的瓦片数据的矩形区域范围,与rectangle二选一即可。
- * @param [options.zIndex] - 控制图层的叠加层次，默认按加载的顺序进行叠加，但也可以自定义叠加顺序，数字大的在上面(只对同类型图层间有效)。
- * @param [options.crs = CRS.EPSG:3857] - 瓦片数据的坐标系信息，默认为墨卡托投影
- * @param [options.chinaCRS] - 标识瓦片的国内坐标系（用于自动纠偏或加偏），自动将瓦片转为map对应的chinaCRS类型坐标系。
- * @param [options.proxy] - 加载资源时要使用的代理服务url。
- * @param [options.templateValues] - 一个对象，用于替换Url中的模板值的键/值对
- * @param [options.queryParameters] - 一个对象，其中包含在检索资源时将发送的查询参数。比如：queryParameters: {'access_token': '123-435-456-000'},
- * @param [options.headers] - 一个对象，将发送的其他HTTP标头。比如：headers: { 'X-My-Header': 'valueOfHeader' },
- * @param [options.enablePickFeatures = true] - 如果为true，则 {@link UrlTemplateImageryProvider#pickFeatures} 请求 pickFeaturesUrl 并尝试解释响应中包含的功能。
- *        如果为 false{@link UrlTemplateImageryProvider#pickFeatures} 会立即返回未定义（表示没有可拾取的内容） 功能）而无需与服务器通信。如果您知道数据，则将此属性设置为false 源不支持选择功能，或者您不希望该提供程序的功能可供选择。注意 可以通过修改 {@link UriTemplateImageryProvider#enablePickFeatures}来动态覆盖 属性。
- * @param [options.getFeatureInfoFormats] - 在某处获取功能信息的格式 调用 {@link UrlTemplateImageryProvider#pickFeatures} 的特定位置。如果这 参数未指定，功能选择已禁用。
- * @param [options.opacity = 1.0] - 透明度，取值范围：0.0-1.0。
- * @param [options.alpha = 1.0] - 同opacity。
- * @param [options.nightAlpha = 1.0] - 当 enableLighting 为 true 时 ，在地球的夜晚区域的透明度，取值范围：0.0-1.0。
- * @param [options.dayAlpha = 1.0] - 当 enableLighting 为 true 时，在地球的白天区域的透明度，取值范围：0.0-1.0。
- * @param [options.brightness = 1.0] - 亮度
- * @param [options.contrast = 1.0] - 对比度。 1.0使用未修改的图像颜色，小于1.0会降低对比度，而大于1.0则会提高对比度。
- * @param [options.hue = 0.0] - 色调。 0.0 时未修改的图像颜色。
- * @param [options.saturation = 1.0] - 饱和度。 1.0使用未修改的图像颜色，小于1.0会降低饱和度，而大于1.0则会增加饱和度。
- * @param [options.gamma = 1.0] - 伽马校正值。 1.0使用未修改的图像颜色。
- * @param [options.maximumAnisotropy = maximum supported] - 使用的最大各向异性水平 用于纹理过滤。如果未指定此参数，则支持最大各向异性 将使用WebGL堆栈。较大的值可使影像在水平方向上看起来更好 视图。
- * @param [options.cutoutRectangle] - 制图矩形，用于裁剪此ImageryLayer的一部分。
- * @param [options.colorToAlpha] - 用作Alpha的颜色。
- * @param [options.colorToAlphaThreshold = 0.004] - 颜色到Alpha的阈值。
- * @param [options.hasAlphaChannel = true] - 如果此图像提供者提供的图像为真 包括一个Alpha通道；否则为假。如果此属性为false，则为Alpha通道，如果 目前，将被忽略。如果此属性为true，则任何没有Alpha通道的图像都将 它们的alpha随处可见。当此属性为false时，内存使用情况 和纹理上传时间可能会减少。
- * @param [options.tileWidth = 256] - 图像图块的像素宽度。
- * @param [options.tileHeight = 256] - 图像图块的像素高度。
- * @param [options.customTags] - 允许替换网址模板中的自定义关键字。该对象必须具有字符串作为键，并且必须具有值。
- * @param [options.id = createGuid()] - 图层id标识
- * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
- * @param [options.name = ''] - 图层名称
- * @param [options.show = true] - 图层是否显示
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为map对象，false时不冒泡
- * @param [options.center] - 图层自定义定位视角 {@link Map#setCameraView}
- * @param options.center.lng - 经度值, 180 - 180
- * @param options.center.lat - 纬度值, -90 - 90
- * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
- * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
- */
-declare class SmImgLayer extends BaseTileLayer {
-    constructor(options?: {
-        url: string;
-        subdomains?: string | string[];
-        tileFormat?: string;
-        transparent?: boolean;
-        transparentBackColor?: string | Cesium.Color;
-        transparentBackColorTolerance?: number;
-        cacheKey?: string;
-        minimumLevel?: number;
-        maximumLevel?: number;
-        minimumTerrainLevel?: number;
-        maximumTerrainLevel?: number;
-        rectangle?: {
-            xmin: number;
-            xmax: number;
-            ymin: number;
-            ymax: number;
-        };
-        bbox?: number[];
-        zIndex?: number;
-        crs?: CRS;
-        chinaCRS?: ChinaCRS;
-        proxy?: string;
-        templateValues?: any;
-        queryParameters?: any;
-        headers?: any;
-        enablePickFeatures?: boolean;
-        getFeatureInfoFormats?: Cesium.GetFeatureInfoFormat[];
-        opacity?: number;
-        alpha?: number | ((...params: any[]) => any);
-        nightAlpha?: number | ((...params: any[]) => any);
-        dayAlpha?: number | ((...params: any[]) => any);
-        brightness?: number | ((...params: any[]) => any);
-        contrast?: number | ((...params: any[]) => any);
-        hue?: number | ((...params: any[]) => any);
-        saturation?: number | ((...params: any[]) => any);
-        gamma?: number | ((...params: any[]) => any);
-        maximumAnisotropy?: number;
-        cutoutRectangle?: Cesium.Rectangle;
-        colorToAlpha?: Cesium.Color;
-        colorToAlphaThreshold?: number;
-        hasAlphaChannel?: boolean;
-        tileWidth?: number;
-        tileHeight?: number;
-        customTags?: any;
-        id?: string | number;
-        pid?: string | number;
-        name?: string;
-        show?: boolean;
-        eventParent?: BaseClass | boolean;
-        center?: {
-            lng: number;
-            lat: number;
-            alt?: number;
-            heading?: number;
-            pitch?: number;
-            roll?: number;
-        };
-        flyTo?: boolean;
-    });
-    /**
-     * 创建用于图层的 ImageryProvider对象
-     * @param options - Provider参数，同图层构造参数。
-     * @returns ImageryProvider类
-     */
-    static createImageryProvider(options: any): Cesium.ImageryProvider;
-    /**
-     * 创建瓦片图层对应的ImageryProvider对象
-     * @param [options = {}] - 参数对象，具体每类瓦片图层都不一样。
-     * @returns 创建完成的 ImageryProvider 对象
-     */
-    _createImageryProvider(options?: any): Cesium.UrlTemplateImageryProvider | any;
-    /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
-}
-
-/**
- * 超图MVT矢量瓦片图层,
- * 【需要引入  mars3d-supermap 插件库】
- * @param [options] - 参数对象，包括以下：
- * @param options.url - 适用于通过SuperMap桌面软件生成mvt数据,经iServer发布为rest风格的地图服务，只需提供服务地址。
- * @param options.layer - 图层名称,适用于第三方发布的WMTS服务。
- * @param [options.canvasWidth] - 用来绘制矢量的纹理边长。默认是512，越大越精细，越小性能越高。
- * @param [options.format = 'mvt'] - 适用于第三方发布的WMTS服务。
- * @param [options.mapboxStyle] - 使用的mapBox风格。
- * @param [options.多个参数] - 参考[supermap官方API]{@link http://support.supermap.com.cn:8090/webgl/docs/Documentation/Scene.html#addVectorTilesLayer}
- * @param [options.id = createGuid()] - 图层id标识
- * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
- * @param [options.name = ''] - 图层名称
- * @param [options.show = true] - 图层是否显示
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为map对象，false时不冒泡
- * @param [options.center] - 图层自定义定位视角 {@link Map#setCameraView}
- * @param options.center.lng - 经度值, 180 - 180
- * @param options.center.lat - 纬度值, -90 - 90
- * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
- * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
- */
-declare class SmMvtLayer extends BaseLayer {
-    constructor(options?: {
-        url: string;
-        layer: string;
-        canvasWidth?: number;
-        format?: string;
-        mapboxStyle?: any;
-        多个参数?: any;
-        id?: string | number;
-        pid?: string | number;
-        name?: string;
-        show?: boolean;
-        eventParent?: BaseClass | boolean;
-        center?: {
-            lng: number;
-            lat: number;
-            alt?: number;
-            heading?: number;
-            pitch?: number;
-            roll?: number;
-        };
-        flyTo?: boolean;
-    });
-    /**
-     * 对应的supermap图层 Cesium.VectorTilesLayer
-     */
-    readonly layer: any;
-    /**
-     * 设置透明度
-     * @param value - 透明度
-     * @returns 无
-     */
-    setOpacity(value: number): void;
-    /**
-     * 飞行定位至图层数据所在的视角
-     * @param [options = {}] - 参数对象:
-     * @param [options.radius] - 点状数据时，相机距离目标点的距离（单位：米）
-     * @param [options.scale = 1.2] - 线面数据时，缩放比例，可以控制视角比矩形略大一些，这样效果更友好。
-     * @param [options.duration] - 飞行时间（单位：秒）。如果省略，SDK内部会根据飞行距离计算出理想的飞行时间。
-     * @param [options.complete] - 飞行完成后要执行的函数。
-     * @param [options.cancel] - 飞行取消时要执行的函数。
-     * @param [options.endTransform] - 变换矩阵表示飞行结束时相机所处的参照系。
-     * @param [options.maximumHeight] - 飞行高峰时的最大高度。
-     * @param [options.pitchAdjustHeight] - 如果相机飞得比这个值高，在飞行过程中调整俯仰以向下看，并保持地球在视口。
-     * @param [options.flyOverLongitude] - 地球上的两点之间总有两条路。这个选项迫使相机选择战斗方向飞过那个经度。
-     * @param [options.flyOverLongitudeWeight] - 仅在通过flyOverLongitude指定的lon上空飞行，只要该方式的时间不超过flyOverLongitudeWeight的短途时间。
-     * @param [options.convert = true] - 是否将目的地从世界坐标转换为场景坐标（仅在不使用3D时相关）。
-     * @param [options.easingFunction] - 控制在飞行过程中如何插值时间。
-     * @returns 如果飞行成功则解析为true的承诺，如果当前未在场景中可视化目标或取消飞行，则为false的Promise
-     */
-    flyTo(options?: {
-        radius?: number;
-        scale?: number;
-        duration?: number;
-        complete?: Cesium.Camera.FlightCompleteCallback;
-        cancel?: Cesium.Camera.FlightCancelledCallback;
-        endTransform?: Cesium.Matrix4;
-        maximumHeight?: number;
-        pitchAdjustHeight?: number;
-        flyOverLongitude?: number;
-        flyOverLongitudeWeight?: number;
-        convert?: boolean;
-        easingFunction?: Cesium.EasingFunction.Callback;
-    }): Promise<boolean>;
 }
 
 /**
@@ -27326,6 +31420,13 @@ declare class SmMvtLayer extends BaseLayer {
  * @param [options.url = 'https://t{s}.tianditu.gov.cn/mapservice/GetTiles'] - 天地图服务地址
  * @param [options.subdomains = '01234567'] - 服务负载子域
  * @param [options.key = mars3d.Token.tianditu] - 天地图服务token令牌
+ * @param [options.label] - 文字样式信息
+ * @param [options.billboard] - 文字样式信息
+ * @param [options.metadata] - metadata
+ * @param [options.aotuCollide = true] - 是否开启避让
+ * @param [options.collisionPadding = [5, 10, 8, 5]] - 开启避让时，标注碰撞增加内边距，上、右、下、左
+ * @param [options.serverFirstStyle = true] - 服务端样式优先
+ * @param [options.boundBoxList] - GeoWTFS.initTDT方法参数
  * @param [options.id = createGuid()] - 图层id标识
  * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
  * @param [options.name = ''] - 图层名称
@@ -27335,9 +31436,9 @@ declare class SmMvtLayer extends BaseLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
  */
 declare class TdtDmLayer extends BaseLayer {
@@ -27345,6 +31446,13 @@ declare class TdtDmLayer extends BaseLayer {
         url?: string;
         subdomains?: string;
         key?: string;
+        label?: LabelEntity.StyleOptions | any;
+        billboard?: BillboardEntity.StyleOptions | any;
+        metadata?: any;
+        aotuCollide?: boolean;
+        collisionPadding?: number[];
+        serverFirstStyle?: boolean;
+        boundBoxList?: any[];
         id?: string | number;
         pid?: string | number;
         name?: string;
@@ -27360,12 +31468,6 @@ declare class TdtDmLayer extends BaseLayer {
         };
         flyTo?: boolean;
     });
-    /**
-     * 对象添加到地图上的创建钩子方法，
-     * 每次add时都会调用
-     * @returns 无
-     */
-    _addedHook(): void;
     /**
      * 对象从地图上移除的创建钩子方法，
      * 每次remove时都会调用
@@ -27388,524 +31490,6 @@ declare class TdtTerrainProvider extends Cesium.TerrainProvider {
         subdomains?: string;
         key?: string;
     });
-}
-
-declare namespace BaseWidget {
-    /**
-     * widget 配置参数
-     * @property name - 必须，中文名称，用于标识和弹窗标题。
-     * @property uri - 必须，JS文件路径，路径是相对于widgets目录的路径。如："widgets/bookmark/widget.js"
-     * @property [id] - 定义该插件的唯一标识,方便后续判断。
-     * @property [autoDisable = true] - 激活其他新插件时，是否自动释放本插件
-     * @property [disableOther = true] - 激活本插件时，是否释放其它已激活的插件
-     * @property [group] - 配置group后，同group下的widget互斥，打开任意一个会自动释放其他的
-     * @property [windowOptions] - 存在弹窗的插件的弹窗相关参数配置，更多参数请参考 [layer弹窗API]{@linkhttps://layui.gitee.io/v2/docs/modules/layer.html} 包括：
-     * @property [windowOptions.width] - 窗口宽度，可以是 像素数字(像素值) 或者 字符串(屏幕宽度百分比)，示例：200 或 "20%"
-     * @property [windowOptions.height] - 窗口高度，可以是 像素数字(像素值) 或者 字符串(屏幕高度百分比)，示例：600 或 "50%"
-     * @property [windowOptions.position = 'auto'] - 窗口所在位置坐标，配置字符串可选值：auto垂直水平居中，t顶部,b底部,r右边缘,l左边缘,lt左上角,lb左下角,rt右上角,rb右下角；也可以配置对象：
-     * @property [windowOptions.position.top] - 位置css的top值，可以是 像素数字(像素值) 或者 字符串(屏幕高度百分比)，示例：10 或 "5%"
-     * @property [windowOptions.position.bottom] - 位置css的top值，可以是 像素数字(像素值) 或者 字符串(屏幕高度百分比)，示例：10 或 "5%"
-     * @property [windowOptions.position.left] - 位置css的top值，可以是 像素数字(像素值) 或者 字符串(屏幕宽度百分比)，示例：10 或 "5%"
-     * @property [windowOptions.position.right] - 位置css的top值，可以是 像素数字(像素值) 或者 字符串(屏幕宽度百分比)，示例：10 或 "5%"
-     * @property [windowOptions.minHeight] - 限定的窗口最小高度(像素值)，默认不限制
-     * @property [windowOptions.maxHeight] - 限定的窗口最大高度(像素值)，默认不限制
-     * @property [windowOptions.minWidth] - 限定的窗口最小宽度(像素值)，默认不限制
-     * @property [windowOptions.maxWidth] - 限定的窗口最大宽度(像素值)，默认不限制
-     * @property [windowOptions.maxmin = true] - 是否可以在弹层右下角拖动来拉伸尺寸
-     * @property [windowOptions.shade = 0] - 遮罩，默认为0不显示，可配置数字0.3透明度的黑色背景（'#000'），其他颜色，可以shade: [0.8, '#393D49']
-     * @property [windowOptions.shadeClose = false] - 当shade是存在的，点击弹层外区域后是否关闭弹窗。
-     * @property [windowOptions.closeBtn = 1] - 当为0时，不显示关闭按钮，配置1和2来展示两种风格的关闭按钮
-     * @property [windowOptions.noTitle = false] - 是否不显示标题，为true是不显示标题
-     * @property [windowOptions.show = true] - 激活后是否显示弹窗，false时激活后自动隐藏弹窗。
-     * @property [openAtStart = false] - 打开系统后是否自动启动本插件
-     * @property [style] - 添加到widget的view中的class样式名
-     * @property [css] - 添加到widget的css值
-     * @property [多个参数] - 传入数据等，定义的任意参数在widget内部方法中都可以通过this.config获取到
-     */
-    type widgetOptions = {
-        name: string;
-        uri: string;
-        id?: string;
-        autoDisable?: boolean;
-        disableOther?: boolean;
-        group?: string;
-        windowOptions?: {
-            width?: number | string;
-            height?: number | string;
-            position?: {
-                top?: number | string;
-                bottom?: number | string;
-                left?: number | string;
-                right?: number | string;
-            };
-            minHeight?: number;
-            maxHeight?: number;
-            minWidth?: number;
-            maxWidth?: number;
-            maxmin?: boolean;
-            shade?: number | any[];
-            shadeClose?: boolean;
-            closeBtn?: number;
-            noTitle?: number;
-            show?: boolean;
-        };
-        openAtStart?: boolean;
-        style?: string;
-        css?: any;
-        多个参数?: any;
-    };
-}
-
-/**
- * widget基础类,
- * 需要继承后使用，不用手动实例化，框架内部自动实例化及相关处理。
- * 【需要引入  mars3d-widget 插件库】
- * @example
- * //使用示例
- * class MyWidget extends mars3d.widget.BaseWidget {
- *   //外部资源配置
- *   get resources() {
- *     return [
- *       'js/test.js', //当前同目录下
- *       './lib/dom2img/dom-to-image.js', //主页面相同目录下
- *     ]
- *   }
- *   //弹窗配置
- *   get view() {
- *     return {
- *       type: 'window',
- *       url: 'view.html',
- *       windowOptions: {  width: 250 },
- *     }
- *   }
- *   //初始化[仅执行1次]
- *   create() {}
- *   //每个窗口创建完成后调用
- *   winCreateOK(opt, result) {
- *     this.viewWindow = result
- *   }
- *   //打开激活
- *   activate() {}
- *   //关闭释放
- *   disable() {
- *     this.viewWindow = null
- *   }
- * }
- *
- * //注册到widget管理器中。
- * mars3d.widget.bindClass(MyWidget)
- * @param map - 地图对象
- * @param options - 配置参数
- */
-declare class BaseWidget extends BaseClass {
-    constructor(map: Map, options: BaseWidget.widgetOptions);
-    /**
-     * 获取当前地图
-     */
-    readonly map: Map;
-    /**
-     * 获取当前配置参数
-     */
-    readonly options: BaseWidget.widgetOptions;
-    /**
-     * 获取当前配置参数，别名，同options
-     */
-    readonly config: BaseWidget.widgetOptions;
-    /**
-     * 获取当前widget的目录路径
-     */
-    readonly path: string;
-    /**
-     * 是否激活状态
-     */
-    readonly isActivate: boolean;
-    /**
-     * 是否已创建
-     */
-    readonly isCreate: boolean;
-    /**
-     * 该模块依赖的外部js、css资源文件，会在实例化之前加入的页面中。
-     * 默认引用是当前widget所在同path目录的资源，
-     * 相当于html主页面的资源 或 外部资源 请 以 “/” 或 “.” 或 “http” 开始的url
-     */
-    readonly resources: string[];
-    /**
-     * 定义关联的view弹窗或页面配置信息，目前支持3种类型，
-     * （1）type:'window'，iframe模式弹窗 ,参考_example示例， 独立的html子页面，比较自由，简单粗暴、无任何限制；可以每个页面用不同的UI和第三方插件不用考虑冲突问题；任何水平的开发人员均容易快速开发。
-     * （2）type:'divwindow'，div元素模式弹窗 参考_example_divwin示例，可直接互相访问，这种模式弊端是易引起模块间id命名冲突，在css和html中命名时需注意。
-     * （3）type:'append'，任意html元素 参考_example_append示例，任意div节点，比较自由。
-     * 为空时表示当前模块无关联的view页面，
-     * 其中url地址规则，参考resources说明
-     */
-    readonly view: any | any;
-    /**
-     * 激活widget，同 mars3d.widget.activate方法
-     * @returns 无
-     */
-    activateBase(): void;
-    /**
-     * 构造方法完成后的钩子方法，子类继承后按需使用
-     * @returns 无
-     */
-    init(): void;
-    /**
-     * 模块初始化，仅首次初始化执行1次
-     * @param [endfun] - 当create内存在异步时，可以异步后调用下endfun
-     * @returns 无
-     */
-    create(endfun?: (...params: any[]) => any): void;
-    /**
-     * 遍历所有view配置
-     * @param callback - 回调方法
-     * @param [index] - 当有多个view时，可以指定单个操作的view的index
-     * @returns callback执行的返回结果
-     */
-    eachView(callback: (...params: any[]) => any, index?: number): any;
-    /**
-     * 更新窗口大小或位置，改变了主页面尺寸后需要调用(内部已自动调用)。
-     * @returns 无
-     */
-    indexResize(): void;
-    /**
-     * 每个view窗口或页面创建完成后调用的钩子方法
-     * @param opt - 对应的view配置
-     * @param result - 得到iframe页的窗口对象 或 view的html内容
-     * @returns 无
-     */
-    winCreateOK(opt: any, result: any | string): void;
-    /**
-     * 窗口最大化后触发后 的钩子方法
-     * @returns 无
-     */
-    winFull(): void;
-    /**
-     * 窗口最小化后触发 的钩子方法
-     * @returns 无
-     */
-    winMin(): void;
-    /**
-     * 最小化窗口
-     * @returns 无
-     */
-    minView(): void;
-    /**
-     * 还原窗口
-     * @returns 无
-     */
-    restoreView(): void;
-    /**
-     * 最大化窗口
-     * @returns 无
-     */
-    fullView(): void;
-    /**
-     * 窗口还原后触发 的钩子方法
-     * @returns 无
-     */
-    winRestore(): void;
-    /**
-     * 激活模块之前 的钩子方法
-     * @returns 无
-     */
-    beforeActivate(): void;
-    /**
-     * 激活模块【类内部实现方法】
-     * @returns 无
-     */
-    activate(): void;
-    /**
-     * 释放插件，同 mars3d.widget.disable方法
-     * @returns 无
-     */
-    disableBase(): void;
-    /**
-     * 释放模块前
-     * @returns 无
-     */
-    beforeDisable(): void;
-    /**
-     * 释放模块【类内部实现方法】
-     * @returns 无
-     */
-    disable(): void;
-    /**
-     * 还原配置为初始状态
-     * @returns 无
-     */
-    resetConfig(): void;
-    /**
-     * 设置view弹窗的显示和隐藏，基于修改css实现
-     * @param show - 是否显示
-     * @param [index] - 当有多个view时，可以指定单个操作的view的index
-     * @returns 无
-     */
-    setViewShow(show: boolean, index?: number): void;
-    /**
-     * 设置view弹窗的css
-     * @param style - css值
-     * @param [index] - 当有多个view时，可以指定单个操作的view的index
-     * @returns 无
-     */
-    setViewCss(style: any, index?: number): void;
-    /**
-     * 设置view弹窗的标题
-     * @param title - css值
-     * @param [index] - 当有多个view时，可以指定单个操作的view的index
-     * @returns 无
-     */
-    setTitle(title: string, index?: number): void;
-    /**
-     * 读取html页面的内容
-     * @param url - html页面的url
-     * @param callback - 读取完成后的回调方法
-     * @returns 无
-     */
-    getHtml(url: string, callback: (...params: any[]) => any): void;
-}
-
-/**
- * widget事件类型枚举, mars3d.widget.EventType
- * 【需要引入  mars3d-widget 插件库】
- */
-declare enum WidgetEventType {
-    /**
-     * 在实例初始化之后、创建之前执行
-     */
-    beforeCreate = "beforeCreate",
-    /**
-     * 实例创建后执行
-     */
-    created = "created",
-    /**
-     * 在activat挂载开始之前调用
-     */
-    beforeActivate = "beforeActivate",
-    /**
-     * activate方法调用后
-     */
-    activated = "activated",
-    /**
-     * view弹窗构造完成后后调用
-     */
-    openView = "openView",
-    /**
-     * 实例销毁之前调用
-     */
-    beforeDisable = "beforeDisable",
-    /**
-     * 实例销毁完成调用
-     */
-    disabled = "disabled",
-    /**
-     * 加载完成 未做任何其他处理前
-     */
-    loadBefore = "loadBefore",
-    /**
-     * 加载完成，执行所有内部处理后
-     */
-    load = "load"
-}
-
-/**
- * widget模块化框架，公共处理类
- * 【需要引入  mars3d-widget 插件库】
- */
-declare namespace widget {
-    /**
-     * 初始化widget管理器，在构造完成map后调用一次即可。
-     * @example
-     * let widgetCfg ={
-     *   "version": "2017",
-     *   "defaultOptions": {
-     *     "style": "dark",
-     *     "windowOptions": {
-     *       "skin": "layer-mars-dialog animation-scale-up",
-     *       "position": {
-     *         "top": 50,
-     *         "right": 10
-     *       },
-     *       "maxmin": false,
-     *       "resize": true
-     *     },
-     *     "autoReset": false,
-     *     "autoDisable": true,
-     *     "disableOther": true
-     *   },
-     *   "openAtStart": [
-     *     {
-     *       "name": "放大缩小按钮",
-     *       "uri": "widgets/toolButton/zoom.js"
-     *     }
-     *   ],
-     *   "widgets": [
-     *     {
-     *       "name": "模板-div弹窗",
-     *       "uri": "widgets/_example_divwin/widget.js"
-     *     },
-     *     {
-     *       "name": "模板-append模板",
-     *       "uri": "widgets/_example_append/widget.js"
-     *     }
-     *   ]
-     * }
-     * mars3d.widget.init(map, widgetCfg, './')
-     * @param map - 地图对象
-     * @param [widgetcfg = {}] - 全局配置(一般存放在widget.json)，包括：
-     * @param [widgetcfg.defaultOptions] - 所有widget的默认参数值，可以系统内所有widget相同配置统一在此处传入，额外的个性化的再配置到各widget中。
-     * @param [widgetcfg.openAtStart] - 默认自启动并不可释放的插件，其中autoDisable和openAtStart固定，设置无效。
-     * @param [widgetcfg.widgets] - 所有插件配置，传入后后续激活时，只用传入uri即可。
-     * @param [widgetcfg.version] - 加载资源时，附加的参数，主要为了清理浏览器缓存，可选值："time"（实时时间戳）或固定的字符串值，每次发布新版本换下固定值。
-     * @param [widgetcfg.debugger] - 是否显示插件测试栏，true时会在地图下侧显示所有插件测试按钮，方便测试。
-     * @param [_basePath = ''] - widgets目录所在的主路径(统一前缀), 如果widgets目录不在主页面一起或存在路由时，可以传入自定义主目录，值为 widgets目录相对于当前html页面的相对路径。
-     * @returns 无
-     */
-    function init(map: Map, widgetcfg?: {
-        defaultOptions?: BaseWidget.widgetOptions;
-        openAtStart?: BaseWidget.widgetOptions[];
-        widgets?: BaseWidget.widgetOptions[];
-        version?: string;
-        debugger?: boolean;
-    }, _basePath?: string): void;
-    /**
-     * 获取默认init时中传入配置的 windowOptions 参数
-     * @returns windowOptions参数默认值
-     */
-    function getDefWindowOptions(): any;
-    /**
-     * 激活指定 widget模块
-     * @example
-     * //常用方式，直接使用uri
-     * mars3d.widget.activate("widgets/bookmark/widget.js");
-     *
-     * //使用对象，可以传入更多参数，具体参数参看配置项手册，。
-     * mars3d.widget.activate({
-     *   name:"视角书签"
-     *   uri: "widgets/bookmark/widget.js",
-     *   autoDisable: true,
-     *   testdata:'测试数据1987', //传数据进widget内部，widget内部使用this.config.testdata获取到传的数据
-     *   success:function(thisWidget){
-     *     //创建完成的回调方法
-     *   }
-     * });
-     * @param item - 指widget模块的uri 或 指模块的配置参数,当有配置参数时，参数优先级是：
-     * 【activate方法传入的配置 > init方法传入的配置(widget.json) > widget.js内部配置的】
-     * @param [item.map] - 当单页面简单场景没有init时，也可以传入map来使用单个widget
-     * @param [noDisableOther = false] - 不释放其他已激活的widget
-     * @returns 指widget模块对象
-     */
-    function activate(item: {
-        map?: Map;
-    }, noDisableOther?: boolean): BaseWidget.widgetOptions;
-    /**
-     * 获取指定的widget配置信息
-     * @param uri - widget的uri 或 id
-     * @returns widget配置信息
-     */
-    function getWidget(uri: string): BaseWidget.widgetOptions;
-    /**
-     * 获取指定的widget 对应的实例化对象
-     * @param uri - widget的uri 或 id
-     * @returns widget对应的实例化对象
-     */
-    function getClass(uri: string): BaseWidget;
-    /**
-     * 获取widget的当前激活状态
-     * @param uri - widget的uri 或 id
-     * @returns 是否激活
-     */
-    function isActivate(uri: string): boolean;
-    /**
-     * 释放指定的widget
-     * @param uri - widget的uri 或 id
-     * @returns 是否成功调用了释放
-     */
-    function disable(uri: string | string[]): boolean;
-    /**
-     * 关闭释放所有widget
-     * @param [nodisable] - 传string时 指定不释放的widget的uri或id ，传true值强制释放所有widget(默认autoDisable为false的widet不会释放)
-     * @param [group] - 指定强制释放的group名(默认autoDisable为false的widet不会释放)，传入group值后会强制释放所有同group组的widget
-     * @returns 无
-     */
-    function disableAll(nodisable?: string | boolean, group?: string): void;
-    /**
-     * 关闭释放同组widget
-     * @param group - 指定强制释放的group名
-     * @param [nodisable] - 指定不释放的widget的uri或id
-     * @returns 无
-     */
-    function disableGroup(group: string, nodisable?: string): void;
-    /**
-     * 遍历所有widget
-     * @param method - 回调方法
-     * @returns 无
-     */
-    function eachWidget(method: (...params: any[]) => any): void;
-    /**
-     * 绑定类到当前对应js的widget中。
-     * @param _class - 定义的BaseWidget子类
-     * @returns 实例化后的对象
-     */
-    function bindClass(_class: BaseWidget): any;
-    /**
-     * 移除Widget测试栏（当有开启debugger时）
-     * @returns 无
-     */
-    function removeDebugeBar(): void;
-    /**
-     * 获取配置的version配置参数，用于附加清除浏览器缓存
-     * @returns 配置的version参数
-     */
-    function getCacheVersion(): string;
-    /**
-     * 获取init方法传入的主目录配置参数
-     * @returns 主目录配置参数
-     */
-    function getBasePath(): string;
-    /**
-     * 销毁对象
-     * @returns 无
-     */
-    function destroy(): void;
-    /**
-     * 绑定指定类型事件监听器
-     * @param types - 事件类型
-     * @param [fn] - 绑定的监听器回调方法
-     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
-     * @returns 无
-     */
-    function on(types: WidgetEventType | WidgetEventType[], fn?: (...params: any[]) => any, context?: any): void;
-    /**
-     * 解除绑定指定类型事件监听器
-     * @param types - 事件类型
-     * @param [fn] - 绑定的监听器回调方法
-     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
-     * @returns 无
-     */
-    function off(types: WidgetEventType | WidgetEventType[], fn?: (...params: any[]) => any, context?: any): void;
-    /**
-     * 触发指定类型的事件。
-     * @param type - 事件类型
-     * @param data - 传输的数据或对象，可在事件回调方法中event对象中获取进行使用
-     * @param [propagate] - 将事件传播给父类 (用addEventParent设置)
-     * @returns 无
-     */
-    function fire(type: WidgetEventType, data: any, propagate?: BaseClass | any): void;
-    /**
-     * 绑定一次性执行的指定类型事件监听器
-     * 与on类似，监听器只会被触发一次，然后被删除。
-     * @param types - 事件类型
-     * @param [fn] - 绑定的监听器回调方法
-     * @param [context] - 侦听器的上下文(this关键字将指向的对象)。
-     * @returns 无
-     */
-    function once(types: WidgetEventType | WidgetEventType[], fn?: (...params: any[]) => any, context?: any): void;
-    /**
-     * 是否有绑定指定的事件
-     * @param type - 事件类型
-     * @param [propagate] - 是否判断指定的父类 (用addEventParent设置的)
-     * @returns 是否存在
-     */
-    function listens(type: WidgetEventType, propagate?: BaseClass): boolean;
 }
 
 declare namespace CanvasWindLayer {
@@ -27941,9 +31525,13 @@ declare namespace CanvasWindLayer {
  * @param [options.particlesnumber = 4096] - 初始粒子总数
  * @param [options.maxAge = 120] - 每个粒子的最大生存周期
  * @param [options.frameRate = 10] - 每秒刷新次数，因为requestAnimationFrame固定每秒60次的渲染，所以如果不想这么快，就把该数值调小一些
- * @param [options.color = '#ffffff'] - 线颜色
  * @param [options.lineWidth = 1] - 线宽度
  * @param [options.fixedHeight = 0] - 点的固定的海拔高度
+ * @param [options.color = '#ffffff'] - 线颜色
+ * @param [options.colors] - 线多颜色时，色带的颜色数组
+ * @param [options.steps] - 线多颜色时，色带对应的数值数组
+ * @param [options.mouseHidden] - 鼠标按下时是否隐藏渲染
+ * @param [options.worker] - 处理计算粒子点的多线程JS文件地址
  * @param [options.reverseY = false] - 是否翻转纬度数组顺序，正常数据是从北往南的（纬度从大到小），如果反向时请传reverseY为true
  * @param [options.pointerEvents = false] - 图层是否可以进行鼠标交互，为false时可以穿透操作及缩放地图
  * @param [options.id = createGuid()] - 图层id标识
@@ -27955,10 +31543,11 @@ declare namespace CanvasWindLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
+ * @param [options.zIndex = 9] - 图层对应DIV的zIndex层级
  */
 declare class CanvasWindLayer extends BaseLayer {
     constructor(options?: {
@@ -27967,9 +31556,13 @@ declare class CanvasWindLayer extends BaseLayer {
         particlesnumber?: number;
         maxAge?: number;
         frameRate?: number;
-        color?: string;
         lineWidth?: number;
         fixedHeight?: number;
+        color?: string;
+        colors?: string[];
+        steps?: number[];
+        mouseHidden?: boolean;
+        worker?: string;
         reverseY?: boolean;
         pointerEvents?: boolean;
         id?: string | number;
@@ -27986,6 +31579,7 @@ declare class CanvasWindLayer extends BaseLayer {
             roll?: number;
         };
         flyTo?: boolean;
+        zIndex?: number;
     });
     /**
      * 图层对应的Canvas对象
@@ -28024,13 +31618,13 @@ declare class CanvasWindLayer extends BaseLayer {
      */
     pointerEvents: boolean;
     /**
-     * 风前进速率，意思是将当前风场横向纵向分成100份，再乘以风速就能得到移动位置，无论地图缩放到哪一级别都是一样的速度，可以用该数值控制线流动的快慢，值越大，越慢，
-     */
-    speedRate: number;
-    /**
      * 初始粒子总数
      */
     particlesnumber: number;
+    /**
+     * 风前进速率，意思是将当前风场横向纵向分成100份，再乘以风速就能得到移动位置，无论地图缩放到哪一级别都是一样的速度，可以用该数值控制线流动的快慢，值越大，越慢，
+     */
+    speedRate: number;
     /**
      * 每个粒子的最大生存周期
      */
@@ -28040,16 +31634,16 @@ declare class CanvasWindLayer extends BaseLayer {
      */
     data: CanvasWindLayer.DataOptions;
     /**
-     * 重绘，根据现有参数重新生成风场
-     * @returns 无
-     */
-    redraw(): void;
-    /**
      * 设置 风场数据
      * @param data - 风场数据
      * @returns 无
      */
     setData(data: any): void;
+    /**
+     * 重绘，根据现有参数重新生成风场
+     * @returns 无
+     */
+    redraw(): void;
     /**
      * 清除数据
      * @returns 无
@@ -28124,7 +31718,7 @@ declare namespace WindLayer {
 }
 
 /**
- * 风场图层，基于粒子实现，
+ * 风场图层，基于粒子实现(目前仅限webgl1渲染，不支持webgl2渲染)
  * 【需要引入 mars3d-wind 插件库】
  * @param [options] - 参数对象，包括以下：
  * @param [options.data] - 风场数据
@@ -28134,7 +31728,6 @@ declare namespace WindLayer {
  * @param [options.dropRateBump = 0.01] - 下降速度
  * @param [options.speedFactor = 0.5] - 速度系数
  * @param [options.lineWidth = 2.0] - 线宽度
- * @param [options.fixedHeight = 0] - 粒子点的固定的海拔高度
  * @param [options.colors = ["rgb(206,255,255)"]] - 颜色色带数组
  * @param [options.id = createGuid()] - 图层id标识
  * @param [options.pid = -1] - 图层父级的id，一般图层管理中使用
@@ -28145,9 +31738,9 @@ declare namespace WindLayer {
  * @param options.center.lng - 经度值, 180 - 180
  * @param options.center.lat - 纬度值, -90 - 90
  * @param [options.center.alt] - 高度值
- * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0-360
- * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, 0-360
- * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, 0-360
+ * @param [options.center.heading] - 方向角度值，绕垂直于地心的轴旋转角度, 0至360
+ * @param [options.center.pitch] - 俯仰角度值，绕纬度线旋转角度, -90至90
+ * @param [options.center.roll] - 翻滚角度值，绕经度线旋转角度, -90至90
  * @param [options.flyTo] - 加载完成数据后是否自动飞行定位到数据所在的区域。
  */
 declare class WindLayer extends BaseLayer {
@@ -28159,7 +31752,6 @@ declare class WindLayer extends BaseLayer {
         dropRateBump?: number;
         speedFactor?: number;
         lineWidth?: number;
-        fixedHeight?: number;
         colors?: string[];
         id?: string | number;
         pid?: string | number;
@@ -28210,7 +31802,7 @@ declare class BaiduPOI {
         key?: string[];
         city?: string;
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: Cesium.DefaultProxy;
     });
     /**
      * 百度key数组，内部轮询使用
@@ -28238,7 +31830,7 @@ declare class BaiduPOI {
      * @param queryOptions - 查询参数
      * @param queryOptions.text - 输入建议关键字（支持拼音）
      * @param [queryOptions.location] - 传入location参数后，返回结果将以距离进行排序
-     * @param [queryOptions.city] - 可以重新限定查询的区域，默认为类构造时传入的city
+     * @param [queryOptions.city] - 可以限定查询的行政区
      * @param [queryOptions.citylimit = false] - 取值为"true"，仅返回city中指定城市检索结果
      * @param [queryOptions.success] - 查询完成的回调方法
      * @param [queryOptions.error] - 查询失败的回调方法
@@ -28251,6 +31843,42 @@ declare class BaiduPOI {
         citylimit?: boolean;
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 根据ID获取POI点详情
+     * @param queryOptions - 查询参数
+     * @param queryOptions.id - AOI唯一标识， 最多可以传入1个id，传入目标区域的poiid即可
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    detail(queryOptions: {
+        id: string;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 按限定区域搜索
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param [queryOptions.graphic] - 限定的搜索区域
+     * @param [queryOptions.limit = false] - 取值为"true"，严格返回限定区域内检索结果
+     * @param [queryOptions.count = 20] - 单次召回POI数量，最大返回25条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    query(queryOptions: {
+        text: string;
+        types?: string;
+        graphic?: BaseGraphic | any;
+        limit?: boolean;
+        count?: number;
+        page?: number;
+        error?: (...params: any[]) => any;
+        success?: (...params: any[]) => any;
     }): Promise<any>;
     /**
      * 关键字搜索
@@ -28311,13 +31939,36 @@ declare class BaiduPOI {
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
     }): Promise<any>;
+    /**
+     * 多边形搜索
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param queryOptions.polygon - 经纬度数组，经纬度小数点后不得超过6位。多边形为矩形时，可传入左上右下两顶点坐标对；其他情况下首尾坐标对需相同。
+     * @param [queryOptions.limit = false] - 是否严格限定召回结果在设置检索的多边形或矩形范围内。true（是），false（否）。设置为true时会影响返回结果中total准确性及每页召回poi数量， 设置为false时可能会召回检索半径外的poi。
+     * @param [queryOptions.count = 20] - 单次召回POI数量，最大返回25条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    queryPolygon(queryOptions: {
+        text: string;
+        types?: string;
+        polygon: any[][];
+        limit?: boolean;
+        count?: number;
+        page?: number;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
 }
 
 /**
  * 高德 POI查询 工具类，
  * 参考文档：{@link https://lbs.amap.com/api/webservice/guide/api/search}
  * @param [options] - 参数对象，包括以下：
- * @param [options.key = mars3d.Token.gaodeArr] - 百度KEY,在实际项目中请使用自己申请的高德KEY，因为我们的key不保证长期有效。
+ * @param [options.key = mars3d.Token.gaodeArr] - 高德KEY,在实际项目中请使用自己申请的高德KEY，因为我们的key不保证长期有效。
  * @param [options.headers = {}] - 将被添加到HTTP请求头。
  * @param [options.proxy] - 加载资源时使用的代理。
  */
@@ -28325,7 +31976,7 @@ declare class GaodePOI {
     constructor(options?: {
         key?: string[];
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: Cesium.DefaultProxy;
     });
     /**
      * 高德key数组，内部轮询使用
@@ -28353,7 +32004,7 @@ declare class GaodePOI {
      * @param queryOptions - 查询参数
      * @param queryOptions.text - 输入建议关键字（支持拼音）
      * @param [queryOptions.location] - 建议使用location参数，可在此location附近优先返回搜索关键词信息,在请求参数city不为空时生效
-     * @param [queryOptions.city] - 可以重新限定查询的区域，默认为类构造时传入的city
+     * @param [queryOptions.city] - 可以限定查询的行政区
      * @param [queryOptions.citylimit = false] - 取值为"true"，仅返回city中指定城市检索结果
      * @param [queryOptions.success] - 查询完成的回调方法
      * @param [queryOptions.error] - 查询失败的回调方法
@@ -28364,6 +32015,19 @@ declare class GaodePOI {
         location?: LngLatPoint | Cesium.Cartesian3 | string | any[] | any;
         city?: string;
         citylimit?: boolean;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 根据ID获取POI点详情
+     * @param queryOptions - 查询参数
+     * @param queryOptions.id - AOI唯一标识， 最多可以传入1个id，传入目标区域的poiid即可
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    detail(queryOptions: {
+        id: string;
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
     }): Promise<any>;
@@ -28389,19 +32053,6 @@ declare class GaodePOI {
         count?: number;
         error?: (...params: any[]) => any;
         success?: (...params: any[]) => any;
-    }): Promise<any>;
-    /**
-     * 根据ID获取POI点详情
-     * @param queryOptions - 查询参数
-     * @param queryOptions.id - AOI唯一标识， 最多可以传入1个id，传入目标区域的poiid即可
-     * @param [queryOptions.success] - 查询完成的回调方法
-     * @param [queryOptions.error] - 查询失败的回调方法
-     * @returns 查询完成的Promise,等价于success参数
-     */
-    detail(queryOptions: {
-        id: string;
-        success?: (...params: any[]) => any;
-        error?: (...params: any[]) => any;
     }): Promise<any>;
     /**
      * 关键字搜索
@@ -28488,7 +32139,7 @@ declare class GaodeRoute {
     constructor(options?: {
         key?: string[];
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: Cesium.DefaultProxy;
     });
     /**
      * 高德key数组，内部轮询使用
@@ -28568,7 +32219,6 @@ declare class GaodeRoute {
      * @param queryOptions - 查询参数
      * @param queryOptions.points - 按起点、途经点、终点 顺序的坐标数组,如[[117.500244, 40.417801],[117.500244, 40.417801]]
      * @param queryOptions.avoidpolygons - 区域避让数组(支持多个)，支持32个避让区域，每个区域最多可有16个顶点。避让区域不能超过81平方公里，否则避让区域会失效。
-     * @param [queryOptions.extensions = 'base'] - 返回结果控制,可选值：core/all  base:返回基本信息；all：返回全部信息
      * @param [queryOptions.strategy = 0] - 驾车选择策略，参考高德官网说明，默认为0：速度优先，不考虑当时路况，此路线不一定距离最短
      * @param [queryOptions.success] - 查询完成的回调方法
      * @param [queryOptions.error] - 查询失败的回调方法
@@ -28577,7 +32227,6 @@ declare class GaodeRoute {
     queryDriving(queryOptions: {
         points: any[][];
         avoidpolygons: any[][];
-        extensions?: string;
         strategy?: string;
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
@@ -28616,6 +32265,7 @@ declare namespace QueryArcServer {
  * ArcGIS WFS矢量服务查询类
  * @param options - 参数对象，包括以下：
  * @param options.url - ArcGIS服务地址, 示例：'http://server.mars3d.cn/arcgis/rest/services/mars/hefei/MapServer/37'
+ * @param [options.token] - 用于通过ArcGIS MapServer服务进行身份验证的ArcGIS令牌。
  * @param [options.pageSize = 10] - 每页条数 *
  * @param [options.headers = {}] - 将被添加到HTTP请求头。
  * @param [options.proxy] - 加载资源时使用的代理。
@@ -28632,9 +32282,10 @@ declare namespace QueryArcServer {
 declare class QueryArcServer extends BaseClass {
     constructor(options: {
         url: string;
+        token?: string;
         pageSize?: number;
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: Cesium.DefaultProxy;
         id?: string | number;
         pid?: string | number;
         name?: string;
@@ -28697,6 +32348,7 @@ declare class QueryArcServer extends BaseClass {
      * @param [queryOptions.where] - 自定义的检索条件，与text二选一
      * @param [queryOptions.graphic] - 限定的搜索区域
      * @param [queryOptions.page = true] - 是否分页查询,false时不分页，一次性查询返回
+     * @param [queryOptions.parameters] - 其他参数，arcgis服务本身支持的参数均支持
      * @param [queryOptions.success] - 查询完成的回调方法
      * @param [queryOptions.error] - 查询失败的回调方法
      * @returns 查询完成的Promise,等价于success参数
@@ -28708,6 +32360,7 @@ declare class QueryArcServer extends BaseClass {
         where?: string;
         graphic?: BaseGraphic | any;
         page?: boolean;
+        parameters?: any;
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
     }): Promise<any>;
@@ -28746,7 +32399,7 @@ declare class QueryGeoServer extends BaseClass {
         layer: string;
         crs?: string;
         headers?: any;
-        proxy?: Cesium.Proxy;
+        proxy?: Cesium.DefaultProxy;
         id?: string | number;
         pid?: string | number;
         name?: string;
@@ -28766,13 +32419,13 @@ declare class QueryGeoServer extends BaseClass {
      * @param [queryOptions.column] - 检索关键字时，对应的字段名称
      * @param [queryOptions.like = true] - 检索关键字时，是否模糊匹配，false时精确查询
      * @param [queryOptions.graphic] - 限定的搜索区域
-     * @param [queryOptions.geometryName = 'the_geom'] - 限定的搜索区域时，对应的geometry字段名称
+     * @param [queryOptions.geometryName = 'the_geom'] - 限定的搜索区域时，对应的geometry字段名称, 比如：geom 或 the_geom
      * @param [queryOptions.maxFeatures = 1000] - 返回结果最大数量
      * @param [queryOptions.sortBy] - 排序的属性名称，默认升序，降序时+D
      * @param [queryOptions.更多参数] - WFS服务支持的其他参数，均支持
      * @param [queryOptions.success] - 查询完成的回调方法
      * @param [queryOptions.error] - 查询失败的回调方法
-     * @returns 当前对象本身，可以链式调用
+     * @returns 查询完成的Promise,等价于success参数
      */
     query(queryOptions: {
         text?: string;
@@ -28785,11 +32438,11 @@ declare class QueryGeoServer extends BaseClass {
         更多参数?: any;
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
-    }): QueryGeoServer;
+    }): Promise<any>;
     /**
      * 查询服务，基于cql_filter条件
      * @param queryOptions - 查询参数
-     * @param queryOptions.cql_filter - 筛选服务数据的[SQL语句]{@link https://docs.geoserver.org/2.12.2/user/services/wfs/vendor.html#wfs-vendor-parameters}
+     * @param queryOptions.cql_filter - 筛选服务数据的SQL语句
      * @param [queryOptions.graphic] - 限定的搜索区域,自动转换后加入到cql_filter中，也可以外部自行处理
      * @param [queryOptions.geometryName = 'the_geom'] - 限定的搜索区域时，对应的geometry字段名称
      * @param [queryOptions.maxFeatures = 1000] - 返回结果最大数量
@@ -28797,7 +32450,7 @@ declare class QueryGeoServer extends BaseClass {
      * @param [queryOptions.更多参数] - WFS服务支持的其他参数，均支持
      * @param [queryOptions.success] - 查询完成的回调方法
      * @param [queryOptions.error] - 查询失败的回调方法
-     * @returns 当前对象本身，可以链式调用
+     * @returns 查询完成的Promise,等价于success参数
      */
     queryBySql(queryOptions: {
         cql_filter: string;
@@ -28808,12 +32461,183 @@ declare class QueryGeoServer extends BaseClass {
         更多参数?: any;
         success?: (...params: any[]) => any;
         error?: (...params: any[]) => any;
-    }): QueryGeoServer;
+    }): Promise<any>;
     /**
      * 清除
      * @returns 无
      */
     clear(): void;
+}
+
+/**
+ * 天地图 POI查询 工具类，
+ * 参考文档：{@link http://lbs.tianditu.gov.cn/server/search2.html}
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.key = mars3d.Token.tiandituArr] - 天地图KEY,在实际项目中请使用自己申请的天地图KEY，因为我们的key不保证长期有效。
+ * @param [options.headers = {}] - 将被添加到HTTP请求头。
+ * @param [options.proxy] - 加载资源时使用的代理。
+ */
+declare class TdtPOI {
+    constructor(options?: {
+        key?: string[];
+        headers?: any;
+        proxy?: Cesium.DefaultProxy;
+    });
+    /**
+     * 天地图key数组，内部轮询使用
+     */
+    keys: string[];
+    /**
+     * 轮询取单个key进行使用
+     */
+    readonly key: string;
+    /**
+     * 根据经纬度坐标获取地址，逆地理编码
+     * @param queryOptions - 查询参数
+     * @param [queryOptions.location] - 经纬度坐标
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    getAddress(queryOptions: {
+        location?: LngLatPoint | Cesium.Cartesian3 | string | any[] | any;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 天地图搜索提示
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 输入建议关键字（支持拼音）
+     * @param [queryOptions.location] - 建议使用location参数，可在此location附近优先返回搜索关键词信息,在请求参数city不为空时生效
+     * @param [queryOptions.city] - 可以限定查询的行政区
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    autoTip(queryOptions: {
+        text: string;
+        location?: LngLatPoint | Cesium.Cartesian3 | string | any[] | any;
+        city?: string;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 按限定区域搜索
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param [queryOptions.graphic] - 限定的搜索区域
+     * @param [queryOptions.limit = false] - 取值为"true"，严格返回限定区域内检索结果
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.count = 20] - 单次召回POI数量，默认为10条记录，最大返回20条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    query(queryOptions: {
+        text: string;
+        types?: string;
+        graphic?: BaseGraphic | any;
+        limit?: boolean;
+        page?: number;
+        count?: number;
+        error?: (...params: any[]) => any;
+        success?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 关键字搜索
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param [queryOptions.city] - 可以重新限定查询的区域，默认为类构造时传入的city
+     * @param [queryOptions.level = 18] - 查询的级别,1-18级
+     * @param [queryOptions.mapBound] - 查询的地图范围: "minx,miny,maxx,maxy"
+     * @param [queryOptions.count = 20] - 单次召回POI数量，最大返回300条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    queryText(queryOptions: {
+        text: string;
+        types?: string;
+        city?: string;
+        level?: string;
+        mapBound?: string;
+        count?: number;
+        page?: number;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 周边搜索(圆形搜索)
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param [queryOptions.location] - 圆形区域检索中心点，取值范围:0-50000。规则：大于50000按默认值，单位：米
+     * @param [queryOptions.radius = 3000] - 圆形区域检索半径，单位为米。（增加区域内数据召回权重，如需严格限制召回数据在区域内，请搭配使用radiuslimit参数），当半径过大，超过中心点所在城市边界时，会变为城市范围检索，检索范围为中心点所在城市
+     * @param [queryOptions.limit = false] - 是否严格限定召回结果在设置检索半径范围内。true（是），false（否）。设置为true时会影响返回结果中total准确性及每页召回poi数量， 设置为false时可能会召回检索半径外的poi。
+     * @param [queryOptions.count = 20] - 单次召回POI数量，最大返回25条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    queryCircle(queryOptions: {
+        text: string;
+        types?: string;
+        location?: LngLatPoint | Cesium.Cartesian3 | string | any[] | any;
+        radius?: number;
+        limit?: boolean;
+        count?: number;
+        page?: number;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 多边形搜索
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param queryOptions.polygon - 经纬度数组，经纬度小数点后不得超过6位。多边形为矩形时，可传入左上右下两顶点坐标对；其他情况下首尾坐标对需相同。
+     * @param [queryOptions.limit = false] - 是否严格限定召回结果在设置检索的多边形或矩形范围内。true（是），false（否）。设置为true时会影响返回结果中total准确性及每页召回poi数量， 设置为false时可能会召回检索半径外的poi。
+     * @param [queryOptions.count = 20] - 单次召回POI数量，最大返回25条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    queryPolygon(queryOptions: {
+        text: string;
+        types?: string;
+        polygon: any[][];
+        limit?: boolean;
+        count?: number;
+        page?: number;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
+    /**
+     * 视野内搜索
+     * @param queryOptions - 查询参数
+     * @param queryOptions.text - 检索关键字。支持多个关键字并集检索，不同关键字间以空格符号分隔，最多支持10个关键字检索。
+     * @param [queryOptions.types = ''] - 检索分类偏好，与text组合进行检索，多个分类以","分隔（POI分类），如果需要严格按分类检索，请通过text参数设置
+     * @param queryOptions.extent - 可传入左上右下两顶点坐标对；
+     * @param [queryOptions.count = 20] - 单次召回POI数量，最大返回25条。多关键字检索时，返回的记录数为关键字个数*count。多关键词检索时，单页返回总数=关键词数量*count
+     * @param [queryOptions.page = 0] - 分页页码，默认为0, 0代表第一页，1代表第二页，以此类推。常与 count 搭配使用，仅当返回结果为poi时可以翻页。
+     * @param [queryOptions.success] - 查询完成的回调方法
+     * @param [queryOptions.error] - 查询失败的回调方法
+     * @returns 查询完成的Promise,等价于success参数
+     */
+    queryExtent(queryOptions: {
+        text: string;
+        types?: string;
+        extent: any[][];
+        count?: number;
+        page?: number;
+        success?: (...params: any[]) => any;
+        error?: (...params: any[]) => any;
+    }): Promise<any>;
 }
 
 declare namespace Measure {
@@ -28826,8 +32650,8 @@ declare namespace Measure {
      * @property change - 测量值变化了
      * @property start - 异步测量中，开始测量
      * @property end - 异步测量中，完成了测量后
-     * @property add - 添加对象
-     * @property remove - 移除对象
+     * @property addGraphic - 添加了矢量对象
+     * @property removeGraphic - 移除了矢量对象
      * @property show - 显示了对象
      * @property hide - 隐藏了对象
      * @property click - 左键单击 鼠标事件
@@ -28858,8 +32682,8 @@ declare namespace Measure {
         change: string;
         start: string;
         end: string;
-        add: string;
-        remove: string;
+        addGraphic: string;
+        removeGraphic: string;
         show: string;
         hide: string;
         click: string;
@@ -28891,7 +32715,7 @@ declare namespace Measure {
 /**
  * 图上量算
  * @param [options] - 参数对象，包括以下：
- * @param [options.hasEdit = false] - 是否可编辑
+ * @param [options.hasEdit = true] - 是否可编辑
  * @param [options.isAutoEditing = true] - 完成测量时是否自动启动编辑(需要hasEdit:true时)
  * @param [options.isContinued = false] - 是否连续测量
  * @param [options.label] - 测量结果文本的样式
@@ -28929,7 +32753,9 @@ declare class Measure extends BaseThing {
      * 测量 空间长度
      * @param [options] - 控制参数
      * @param [options.style] - 路线的样式
-     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、mile、zhang 。auto时根据距离值自动选用k或km
+     * @param [options.label] - 测量结果文本的样式
+     *   //  * @param {function} [options.label.updateText] 测量结果文本更新的回调方法
+     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
      * @param [options.addHeight] - 在绘制时，在绘制点的基础上增加的高度值
      * @param [options.showAddText = true] - 是否显示每一段的增加部分距离，如（+10.1km）
@@ -28938,6 +32764,7 @@ declare class Measure extends BaseThing {
      */
     distance(options?: {
         style?: PolylineEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         maxPointNum?: number;
         addHeight?: number;
@@ -28948,56 +32775,68 @@ declare class Measure extends BaseThing {
      * 测量 贴地长度
      * @param [options] - 控制参数
      * @param [options.style] - 路线的样式
-     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、mile、zhang 。auto时根据距离值自动选用k或km
+     * @param [options.label] - 测量结果文本的样式,
+     *   //  * @param {function} [options.label.updateText] 测量结果文本更新的回调方法
+     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
      * @param [options.addHeight] - 在绘制时，在绘制点的基础上增加的高度值
      * @param [options.showAddText = true] - 是否显示每一段的增加部分距离，如（+10.1km）
-     * @param [options.splitNum = 100] - 插值数，将线段分割的个数
+     * @param [options.splitNum = 100] - 插值数，将线段分割的个数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.decimal = 2] - 显示的文本中保留的小数位
      * @returns 绘制创建完成的Promise，返回 贴地长度测量控制类 对象
      */
     distanceSurface(options?: {
         style?: PolylineEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         maxPointNum?: number;
         addHeight?: number;
         showAddText?: boolean;
         splitNum?: number;
         has3dtiles?: boolean;
+        exact?: boolean;
         decimal?: number;
     }): Promise<DistanceSurfaceMeasure | any>;
     /**
      * 剖面分析，测量线插值点的高程数据
      * @param [options] - 控制参数
      * @param [options.style] - 路线的样式
-     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、mile、zhang 。auto时根据距离值自动选用k或km
+     * @param [options.label] - 测量结果文本的样式
+     *   //  * @param {function} [options.label.updateText] 测量结果文本更新的回调方法
+     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @param [options.maxPointNum = 9999] - 绘制时，最多允许点的个数
      * @param [options.addHeight] - 在绘制时，在绘制点的基础上增加的高度值
-     * @param [options.splitNum = 200] - 插值数，将线段分割的个数
+     * @param [options.splitNum = 200] - 插值数，将线段分割的个数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.decimal = 2] - 显示的文本中保留的小数位
      * @returns 绘制创建完成的Promise，返回 剖面分析控制类矢量对象
      */
     section(options?: {
         style?: PolylineEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         maxPointNum?: number;
         addHeight?: number;
         splitNum?: number;
         has3dtiles?: boolean;
+        exact?: boolean;
         decimal?: number;
     }): Promise<SectionMeasure | any>;
     /**
      * 面积测量（水平面）
      * @param [options] - 控制参数
      * @param [options.style] - 面的样式
+     * @param [options.label] - 测量结果文本的样式
      * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatArea}可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用k或km
      * @param [options.decimal = 2] - 显示的文本中保留的小数位
      * @returns 绘制创建完成的Promise，返回 面积测量控制类 对象
      */
     area(options?: {
         style?: PolygonEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         decimal?: number;
     }): Promise<AreaMeasure | any>;
@@ -29005,62 +32844,84 @@ declare class Measure extends BaseThing {
      * 贴地面积测量
      * @param [options] - 控制参数
      * @param [options.style] - 面的样式
+     * @param [options.label] - 测量结果文本的样式
      * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatArea}可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用k或km
-     * @param [options.splitNum = 10] - 插值数，将面分割的网格数
+     * @param [options.splitNum = 10] - 插值数，将面分割的网格数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.decimal = 2] - 显示的文本中保留的小数位
+     * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @returns 绘制创建完成的Promise，返回 面积测量控制类 对象
      */
     areaSurface(options?: {
         style?: PolygonEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         splitNum?: number;
         has3dtiles?: boolean;
         decimal?: number;
+        exact?: boolean;
     }): Promise<AreaSurfaceMeasure | any>;
     /**
      * 体积测量（方量分析）
      * @param [options] - 控制参数
      * @param [options.style] - 基准面的样式
-     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatArea}可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用k或km
-     * @param [options.splitNum = 10] - 插值数，将面分割的网格数
+     * @param [options.polygonWall] - 围墙面的样式
+     * @param [options.label] - 测量结果文本的样式
+     * @param [options.showFillVolume = true] - 是否显示填方体积结果文本
+     * @param [options.fillVolumeName = '填方体积'] - 填方体积结果的名称
+     * @param [options.showDigVolume = true] - 是否显示挖方体积结果文本
+     * @param [options.digVolumeName = '挖方体积'] - 挖方体积结果的名称
+     * @param [options.showArea = true] - 是否显示横切面积结果文本
+     * @param [options.areaName = '横切面积'] - 横切面积结果的名称
+     * @param [options.heightLabel = true] - 是否显示各边界点高度值文本
+     * @param [options.offsetLabel = false] - 是否显示各边界点高度差文本
+     * @param [options.labelHeight] - 各边界点高度结果文本的样式
+     * @param [options.decimal = 2] - 显示的 数值 文本中保留的小数位
      * @param [options.has3dtiles] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
+     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatArea}可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用k或km
+     * @param [options.splitNum = 10] - 插值数，将面分割的网格数(概略值，有经纬网网格来插值)
      * @param [options.minHeight] - 可以指定最低高度（单位：米）
      * @param [options.maxHeight] - 可以指定最高高度（单位：米）
      * @param [options.height] - 可以指定基准面高度（单位：米），默认是绘制后的最低高度值
-     * @param [options.heightLabel = true] - 是否显示各边界点高度值文本
-     * @param [options.offsetLabel = false] - 是否显示各边界点高度差文本
-     * @param [options.showArea = true] - 是否显示横切面积
-     * @param [options.polygonWall] - 围合的墙样式
-     * @param [options.labelHeight] - 各边界点高度结果文本的样式
-     * @param [options.decimal = 2] - 显示的文本中保留的小数位
+     * @param [options.depth = false] - 是否采用 {@link VolumeDepthMeasure}进行分析
      * @returns 绘制创建完成的Promise，返回 体积测量控制类 对象
      */
     volume(options?: {
         style?: PolygonEntity.StyleOptions | any;
+        polygonWall?: PolygonEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any;
+        showFillVolume?: boolean;
+        fillVolumeName?: string;
+        showDigVolume?: boolean;
+        digVolumeName?: string;
+        showArea?: boolean;
+        areaName?: string;
+        heightLabel?: boolean;
+        offsetLabel?: boolean;
+        labelHeight?: LabelEntity.StyleOptions | any;
+        decimal?: number;
+        has3dtiles?: boolean;
+        exact?: boolean;
         unit?: string;
         splitNum?: number;
-        has3dtiles?: boolean;
         minHeight?: number;
         maxHeight?: number;
         height?: number;
-        heightLabel?: boolean;
-        offsetLabel?: boolean;
-        showArea?: boolean;
-        polygonWall?: PolygonEntity.StyleOptions | any;
-        labelHeight?: LabelEntity.StyleOptions | any;
-        decimal?: number;
+        depth?: boolean;
     }): Promise<VolumeMeasure | any>;
     /**
      * 高度测量
      * @param [options] - 控制参数
      * @param [options.style] - 路线的样式
-     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、mile、zhang 。auto时根据距离值自动选用k或km
+     * @param [options.label] - 测量结果文本的样式
+     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @param [options.decimal = 2] - 显示的文本中保留的小数位
      * @returns 绘制创建完成的Promise，返回 高度测量 对象
      */
     height(options?: {
         style?: PolylineEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         decimal?: number;
     }): Promise<HeightMeasure | any>;
@@ -29069,12 +32930,14 @@ declare class Measure extends BaseThing {
      * 包括水平距离、空间距离、高度差。
      * @param [options] - 控制参数
      * @param [options.style] - 路线的样式
-     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、mile、zhang 。auto时根据距离值自动选用k或km
+     * @param [options.label] - 测量结果文本的样式
+     * @param [options.unit = 'auto'] - 计量单位,{@link MeasureUtil#formatDistance}可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
      * @param [options.decimal = 2] - 显示的文本中保留的小数位
      * @returns 绘制创建完成的Promise，返回 三角高度测量控制类 对象
      */
     heightTriangle(options?: {
         style?: PolylineEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         unit?: string;
         decimal?: number;
     }): Promise<HeightTriangleMeasure | any>;
@@ -29082,23 +32945,27 @@ declare class Measure extends BaseThing {
      * 角度测量
      * @param [options] - 控制参数
      * @param [options.style] - 路线的样式，默认为箭头线
+     * @param [options.label] - 测量结果文本的样式
      * @param [options.angleDecimal = 1] - 显示的 角度值 文本中保留的小数位
      * @param [options.decimal = 2] - 显示的 距离值 文本中保留的小数位
      * @returns 绘制创建完成的Promise，返回 角度测量控制类 对象
      */
     angle(options?: {
         style?: PolylineEntity.StyleOptions | any;
+        label?: LabelEntity.StyleOptions | any | any;
         angleDecimal?: number;
         decimal?: number;
     }): Promise<AngleMeasure | any>;
     /**
-     * 坐标测量
+     * 坐标测量 popup
      * @param [options] - 控制参数
      * @param [options.style] - 点的样式
+     * @param [options.popup] - 绑定的popup弹窗值的自定义回调方法
      * @returns 绘制创建完成的Promise，返回 坐标测量控制类 对象
      */
     point(options?: {
         style?: PointEntity.StyleOptions | any;
+        popup?: (...params: any[]) => any;
     }): Promise<PointMeasure | any>;
     /**
      * 停止绘制，如有未完成的绘制会自动删除
@@ -29123,7 +32990,7 @@ declare class Measure extends BaseThing {
     clear(): void;
     /**
      * 更新量测结果的单位
-     * @param unit - 计量单位,{@link MeasureUtil#formatDistance}{@link MeasureUtil#formatArea} 可选值：auto、m、km、mile、zhang 等。auto时根据距离值自动选用k或km
+     * @param unit - 计量单位,{@link MeasureUtil#formatDistance}{@link MeasureUtil#formatArea} 可选值：auto、m、km、wm、mile、zhang 等等。auto时根据距离值自动选用k或km
      * @returns 无
      */
     updateUnit(unit: string): void;
@@ -29172,11 +33039,15 @@ declare class Shadows extends BaseThing {
         eventParent?: BaseClass | boolean;
     });
     /**
+     * 场景的ShadowMap阴影图
+     */
+    readonly shadowMap: Cesium.ShadowMap;
+    /**
      * 当前时间
      */
     time: Date;
     /**
-     * 是否在播放
+     * 是否在播放 【针对全局时钟的，即 map.clock.shouldAnimate】
      */
     readonly isStart: boolean;
     /**
@@ -29192,17 +33063,17 @@ declare class Shadows extends BaseThing {
      */
     start(startDate: Date, endDate: Date, currentTime?: Date): void;
     /**
-     * 暂停
+     * 暂停 【针对全局时钟的，即 map.clock.shouldAnimate】
      * @returns 无
      */
     pause(): void;
     /**
-     * 继续
+     * 继续 【针对全局时钟的，即 map.clock.shouldAnimate】
      * @returns 无
      */
     proceed(): void;
     /**
-     * 停止
+     * 停止 【针对全局时钟的，即 map.clock.shouldAnimate】
      * @returns 无
      */
     stop(): void;
@@ -29211,6 +33082,25 @@ declare class Shadows extends BaseThing {
      * @returns 无
      */
     clear(): void;
+    /**
+     * 开始 日照阴影率 分析
+     * @param options - 参数
+     * @param options.startDate - 开始时间
+     * @param options.endDate - 结束时间
+     * @param options.positions - 分析区域范围坐标
+     * @param options.step - 间隔（单位米）
+     * @param [options.minHeight] - 最小高程（单位米）,与maxHeight一起可以设置多层
+     * @param [options.maxHeight] - 最大高程（单位米）
+     * @returns 分析结果
+     */
+    startRate(options: {
+        startDate: Date;
+        endDate: Date;
+        positions: Cesium.Cartesian3[] | LngLatPoint[] | any;
+        step: number;
+        minHeight?: number;
+        maxHeight?: number;
+    }): Promise<any>;
 }
 
 declare namespace Sightline {
@@ -29278,7 +33168,7 @@ declare class Sightline extends BaseThing {
      * @param target - 终点（目标点）
      * @param [options = {}] - 控制参数，包括：
      * @param [options.offsetHeight = 0] - 在起点增加的高度值，比如加上人的身高
-     * @param [options.splitNum = 50] - 插值数，等比分割的个数
+     * @param [options.splitNum = 50] - 插值数，等比分割的个数(概略值，有经纬网网格来插值)
      * @param [options.minDistance] - 插值时的最小间隔(单位：米)，优先级高于splitNum
      * @returns 分析结果完成的Promise
      */
@@ -29295,7 +33185,7 @@ declare class Sightline extends BaseThing {
 }
 
 /**
- * 天际线 描边
+ * 天际线描边
  * @param [options] - 参数对象，包括以下：
  * @param [options.color = new Cesium.Color(1.0, 0.0, 0.0)] - 边际线颜色
  * @param [options.width = 2] - 天际线宽度
@@ -29319,19 +33209,13 @@ declare class Skyline extends BaseThing {
      * 天际线宽度
      */
     width: number;
-    /**
-     * 销毁当前对象
-     * @param [noDel = false] - false:会自动delete释放所有属性，true：不delete绑定的变量
-     * @returns 无
-     */
-    destroy(noDel?: boolean): void;
 }
 
 /**
- * 地下模式类
+ * 地下模式
  * @param [options] - 参数对象，包括以下：
  * @param [options.alpha = 0.5] - 透明度  0.0-1.0
- * @param [options.color = Cesium.Color.BLAC] - 当相机在地下或球体是半透明时，渲染球体背面的颜色
+ * @param [options.color = Cesium.Color.BLACK] - 当相机在地下或球体是半透明时，渲染球体背面的颜色
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -29685,6 +33569,41 @@ declare class MatrixMove extends BaseThing {
 }
 
 /**
+ * 坐标点按XYZ轴平移图上编辑处理类
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.position] - 坐标位置
+ * @param [options.onChange] - 编辑移动了坐标后的回调方法
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
+ * @param [options.pid = -1] - 量算对应的图层父级的id，一般图层管理中使用
+ * @param [options.name = ''] - 量算对应的图层名称
+ */
+declare class MatrixMove2 extends BaseThing {
+    constructor(options?: {
+        position?: LngLatPoint | Cesium.Cartesian3 | number[];
+        onChange?: (...params: any[]) => any;
+        id?: string | number;
+        enabled?: boolean;
+        eventParent?: BaseClass | boolean;
+        pid?: string | number;
+        name?: string;
+    });
+    /**
+     * 位置坐标 （笛卡尔坐标）, 赋值时可以传入LatLngPoint对象
+     */
+    position: Cesium.Cartesian3;
+    /**
+     * 获取当前编辑轴的长度
+     */
+    radius: number;
+    /**
+     * 是否正在拖动编辑
+     */
+    readonly isMoveing: boolean;
+}
+
+/**
  * 按XYZ轴旋转方向图上编辑处理类
  * @param [options] - 参数对象，包括以下：
  * @param [options.position] - 坐标位置
@@ -29799,10 +33718,17 @@ declare class ContourLine extends TerrainEditBase {
      */
     color: Cesium.Color | string;
     /**
-     * 清除数据
-     * @returns 无
+     * 地表渲染配色方案中的 最低海拔高度
      */
-    clear(): void;
+    minHeight: number;
+    /**
+     * 地表渲染配色方案中的 最高海拔高度
+     */
+    maxHeight: number;
+    /**
+     * 是否显示区域外的地图
+     */
+    showElseArea: boolean;
 }
 
 declare namespace FloodByGraphic {
@@ -29960,6 +33886,10 @@ declare class FloodByMaterial extends TerrainEditBase {
      */
     color: Cesium.Color;
     /**
+     * 是否显示区域外的地图
+     */
+    showElseArea: boolean;
+    /**
      * 重新赋值参数，同构造方法参数一致。
      * @param options - 参数,与类的构造方法参数相同
      * @returns 当前对象本身，可以链式调用
@@ -30044,10 +33974,12 @@ declare class Slope extends BaseThing {
      * 添加计算的 位置
      * @param positions - 坐标数组 或 单个坐标
      * @param [options = {}] - 控制参数，包括：
-     * @param [options.splitNum = 8] - 插值数，横纵等比分割的网格个数
+     * @param [options.splitNum = 8] - 插值数，横纵等比分割的网格个数(概略值，有经纬网网格来插值)
      * @param [options.radius = 2] - 取样分析，点周边半径（单位：米）
      * @param [options.count = 4] - 取样分析，点周边象限内点的数量，共计算 count*4 个点
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @returns 无，计算结果在 end事件中返回
      */
     add(positions: any[][] | LngLatPoint[] | Cesium.Cartesian3[] | LngLatPoint | Cesium.Cartesian3, options?: {
@@ -30055,6 +33987,8 @@ declare class Slope extends BaseThing {
         radius?: number;
         count?: number;
         has3dtiles?: boolean;
+        objectsToExclude?: any;
+        exact?: boolean;
     }): void;
     /**
      * 计算两点之间的坡度
@@ -30073,19 +34007,25 @@ declare class Slope extends BaseThing {
      * @param options - 参数对象，具有以下属性:
      * @param options.map - Map地图对象
      * @param options.positions - 坐标数组
-     * @param options.radius - 缓冲半径（影响坡度坡向的精度）
-     * @param options.count - 缓冲的数量（影响坡度坡向的精度）会求周边(count*4)个点
-     * @param options.has3dtiles - 是否在3dtiles模型上分析（模型分析较慢，按需开启）
-     * @param options.endItem - 异步计算中，每计算完成1个点的坡度坡向后 的回调方法
+     * @param [options.endItem] - 异步计算中，每计算完成1个点的坡度坡向后 的回调方法
+     * @param [options.splitNum = 8] - 插值数，横纵等比分割的网格个数(概略值，有经纬网网格来插值)
+     * @param [options.radius = 2] - 取样分析，点周边半径（单位：米）
+     * @param [options.count = 4] - 取样分析，点周边象限内点的数量，共计算 count*4 个点
+     * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @returns 异步计算完成的Promise
      */
     static getSlope(options: {
         map: Map;
         positions: Cesium.Cartesian3[];
-        radius: number;
-        count: number;
-        has3dtiles: boolean;
-        endItem: getSlope_endItem;
+        endItem?: getSlope_endItem;
+        splitNum?: number;
+        radius?: number;
+        count?: number;
+        has3dtiles?: boolean;
+        objectsToExclude?: any;
+        exact?: boolean;
     }): Promise<any>;
 }
 
@@ -30135,19 +34075,19 @@ declare type getSlope_endItem = (event: {
  * 地形开挖，
  * 基于地球材质，可以多个区域开挖。
  * @param [options] - 参数对象，包括以下：
- * @param [options.positions] - 坐标位置数组，只显示单个区域【单个区域场景时使用】
+ * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
  * @param [options.clipOutSide = false] - 是否外切开挖
  * @param [options.image] - 开挖区域的井墙面贴图URL。未传入该值时，不显示开挖区域的井。
  * @param [options.imageBottom] - 当显示开挖区域的井时，井底面贴图URL
  * @param [options.diffHeight] - 当显示开挖区域的井时，设置所有区域的挖掘深度（单位：米）
- * @param [options.splitNum = 30] - 当显示开挖区域的井时，井墙面每两点之间插值个数
+ * @param [options.splitNum = 30] - 当显示开挖区域的井时，井墙面每两点之间插值个数(概略值，有经纬网网格来插值)
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
  */
 declare class TerrainClip extends TerrainEditBase {
     constructor(options?: {
-        positions?: any[][] | string[] | LngLatPoint[] | Cesium.Cartesian3[];
+        area?: any;
         clipOutSide?: boolean;
         image?: string;
         imageBottom?: string;
@@ -30173,16 +34113,16 @@ declare class TerrainClip extends TerrainEditBase {
 }
 
 /**
- * 地形开挖、淹没等分析 基础类
+ * 地形编辑 基础类 （包括：压平、抬升、开挖、淹没 等）
  * @param [options] - 参数对象，包括以下：
- * @param [options.positions] - 坐标位置数组，只显示单个区域【单个区域场景时使用】
+ * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
  */
 declare class TerrainEditBase extends BaseThing {
     constructor(options?: {
-        positions?: any[][] | string[] | LngLatPoint[] | Cesium.Cartesian3[];
+        area?: any;
         id?: string | number;
         enabled?: boolean;
         eventParent?: BaseClass | boolean;
@@ -30192,17 +34132,13 @@ declare class TerrainEditBase extends BaseThing {
      */
     readonly list: any;
     /**
-     * 是否显示区域外的地图
+     * 已添加的区域个数
      */
-    showElseArea: boolean;
+    readonly length: number;
     /**
      * 坐标位置数组，只显示单个区域【单个区域场景时使用】
      */
     positions: any[][] | string[] | LngLatPoint[] | Cesium.Cartesian3[];
-    /**
-     * 已添加的区域个数
-     */
-    readonly length: number;
     /**
      * 清除所有区域
      * @returns 无
@@ -30213,35 +34149,65 @@ declare class TerrainEditBase extends BaseThing {
      * @param id - id值
      * @returns 区域对象
      */
-    getAreaById(id: number): any;
+    getAreaById(id: number | string): any;
     /**
      * 隐藏单个区域
      * @param id - 区域id值
      * @returns 无
      */
-    hideArea(id: number): void;
+    hideArea(id: number | string): void;
     /**
      * 显示单个区域
      * @param id - 区域id值
      * @returns 无
      */
-    showArea(id: number): void;
+    showArea(id: number | string): void;
     /**
      * 移除单个区域
      * @param item - 区域的id值，或 addArea返回的区域对象
      * @returns 无
      */
-    removeArea(item: number | any): void;
+    removeArea(item: number | string | any): void;
     /**
      * 添加单个区域
      * @param positions - 坐标位置数组
      * @param [options = {}] - 控制的参数
-     * @param [options.diffHeight] - 开挖深度（地形开挖时，可以控制单个区域的开挖深度）
+     * @param [options.height] - 地形压平时，高度值
+     * @param [options.diffHeight] - 地形开挖和抬升时，墙体的高度值
+     * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+     * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
+     * @param [options.id] - 外部自定义ID，注意不用有重复值。默认内部自动赋予
      * @returns 添加区域的记录对象
      */
     addArea(positions: string[] | any[][] | LngLatPoint[] | Cesium.Cartesian3[], options?: {
+        height?: any;
         diffHeight?: any;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
+        id?: number | string;
     }): any;
+}
+
+/**
+ * 地形压平
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
+ */
+declare class TerrainFlat extends TerrainEditBase {
+    constructor(options?: {
+        area?: any;
+        id?: string | number;
+        enabled?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
 }
 
 /**
@@ -30253,7 +34219,7 @@ declare class TerrainEditBase extends BaseThing {
  * @param [options.image] - 开挖区域的井墙面贴图URL。未传入该值时，不显示开挖区域的井。
  * @param [options.imageBottom] - 当显示开挖区域的井时，井底面贴图URL
  * @param [options.diffHeight] - 当显示开挖区域的井时，设置区域的挖掘深度（单位：米）
- * @param [splitNum = 30] - 当显示开挖区域的井时，井墙面每两点之间插值个数
+ * @param [options.splitNum = 30] - 当显示开挖区域的井时，井墙面每两点之间插值个数
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -30265,10 +34231,11 @@ declare class TerrainPlanClip extends BaseThing {
         image?: string;
         imageBottom?: string;
         diffHeight?: number;
+        splitNum?: number;
         id?: string | number;
         enabled?: boolean;
         eventParent?: BaseClass | boolean;
-    }, splitNum?: number);
+    });
     /**
      * 开挖区域的 坐标位置数组
      */
@@ -30289,12 +34256,52 @@ declare class TerrainPlanClip extends BaseThing {
 }
 
 /**
- * 限高分析
+ * 地形抬升
+ * @param [options] - 参数对象，包括以下：
+ * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
+ * @param [options.upHeight] - 设置所有区域的抬升高度（单位：米）,目前不支持单个区域的高度自定义。
+ * @param [options.image] - 开挖区域的井墙面贴图URL。未传入该值时，不显示开挖区域的井。
+ * @param [options.imageBottom] - 当显示开挖区域的井时，井底面贴图URL
+ * @param [options.diffHeight] - 当显示开挖区域的井时，设置所有区域的挖掘深度（单位：米）
+ * @param [options.splitNum = 30] - 当显示开挖区域的井时，井墙面每两点之间插值个数(概略值，有经纬网网格来插值)
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
+ */
+declare class TerrainUplift extends TerrainEditBase {
+    constructor(options?: {
+        area?: any;
+        upHeight?: number;
+        image?: string;
+        imageBottom?: string;
+        diffHeight?: number;
+        splitNum?: number;
+        id?: string | number;
+        enabled?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+    /**
+     * 是否显示抬升区，为false时效果类同 地形开挖 的效果
+     */
+    showUp: boolean;
+    /**
+     * 设置所有区域的抬升高度（单位：米）,目前不支持单个区域的高度自定义。
+     */
+    upHeight: number;
+    /**
+     * 清除抬升
+     * @returns 无
+     */
+    clear(): void;
+}
+
+/**
+ * 模型限高分析
  * @param [options] - 参数对象，包括以下：
  * @param [options.positions] - 限高区域坐标数组
  * @param [options.height] - 限高高度（单位米）,相对于bottomHeight模型地面的海拔高度的相对高度。
  * @param [options.bottomHeight] - 模型地面的海拔高度（单位米）
- * @param [options.color = "#3388ff"] - 颜色
+ * @param [options.color = "#ffffff"] - 颜色
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -30458,6 +34465,7 @@ declare class TilesetBoxClip extends BaseThing {
  * @param options.layer - 需要裁剪的对象（3dtiles图层）
  * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
  * @param [options.clipOutSide = false] - 是否外裁剪
+ * @param [options.precise = true] - true:精确模式, 直接存储范围,但传入的范围顶点数量多时，就会造成一定程度的卡顿； false: 掩膜模式，栅格化范围,效率与范围顶点数量无关,但放大后锯齿化严重
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -30467,14 +34475,11 @@ declare class TilesetClip extends TilesetEditBase {
         layer: TilesetLayer;
         area?: any;
         clipOutSide?: boolean;
+        precise?: boolean;
         id?: string | number;
         enabled?: boolean;
         eventParent?: BaseClass | boolean;
     });
-    /**
-     * 是否外裁剪
-     */
-    clipOutSide: boolean;
 }
 
 /**
@@ -30482,6 +34487,7 @@ declare class TilesetClip extends TilesetEditBase {
  * @param [options] - 参数对象，包括以下：
  * @param options.layer - 需要模型分析的对象（3dtiles图层）
  * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
+ * @param [options.precise = true] - true:精确模式, 直接存储范围,但传入的范围顶点数量多时，就会造成一定程度的卡顿； false: 掩膜模式，栅格化范围,效率与范围顶点数量无关,但放大后锯齿化严重
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -30490,6 +34496,7 @@ declare class TilesetEditBase extends BaseThing {
     constructor(options?: {
         layer: TilesetLayer;
         area?: any;
+        precise?: boolean;
         id?: string | number;
         enabled?: boolean;
         eventParent?: BaseClass | boolean;
@@ -30503,13 +34510,13 @@ declare class TilesetEditBase extends BaseThing {
      */
     layer: TilesetLayer;
     /**
+     * 相对高度 (单位：米)，基于 压平/淹没区域 最低点高度的偏移量
+     */
+    readonly editHeight: number;
+    /**
      * 需要分析的模型 对应的 Cesium3DTileset 对象
      */
     readonly tileset: Cesium.Cesium3DTileset;
-    /**
-     * 压平高度 (单位：米)，基于压平区域最低点高度的偏移量
-     */
-    readonly layerHeight: number;
     /**
      * 已添加的区域个数
      */
@@ -30520,35 +34527,55 @@ declare class TilesetEditBase extends BaseThing {
      */
     clear(): void;
     /**
+     * 添加单个区域
+     * @param positions - 坐标位置数组
+     * @param [options = {}] - 控制的参数
+     * @param [options.height] - 开挖深度（模型开挖时，可以控制单个区域的开挖深度）
+     * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+     * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
+     * @param [options.id] - 外部自定义ID，注意不用有重复值。默认内部自动赋予
+     * @returns 添加区域的记录对象
+     */
+    addArea(positions: string[] | any[][] | LngLatPoint[] | Cesium.Cartesian3[], options?: {
+        height?: any;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
+        id?: number | string;
+    }): any;
+    /**
      * 根据id获取区域对象
      * @param id - id值
      * @returns 区域对象
      */
-    getAreaById(id: number): any;
+    getAreaById(id: number | string): any;
     /**
      * 隐藏单个区域
      * @param id - 区域id值
      * @returns 无
      */
-    hideArea(id: number): void;
+    hideArea(id: number | string): void;
     /**
      * 显示单个区域
      * @param id - 区域id值
      * @returns 无
      */
-    showArea(id: number): void;
+    showArea(id: number | string): void;
     /**
      * 移除单个区域
      * @param item - 区域的id，或 addArea返回的区域对象
      * @returns 无
      */
-    removeArea(item: number | any): void;
+    removeArea(item: number | string | any): void;
     /**
-     * 添加区域
-     * @param positions - 坐标位置数组
-     * @returns 添加区域的记录对象
+     * 转为Json简单对象，用于存储后再传参加载
+     * @returns Json简单对象
      */
-    addArea(positions: string[] | any[][] | LngLatPoint[] | Cesium.Cartesian3[]): any;
+    toJSON(): any;
 }
 
 /**
@@ -30556,8 +34583,9 @@ declare class TilesetEditBase extends BaseThing {
  * @param [options] - 参数对象，包括以下：
  * @param options.layer - 需要压平的对象（3dtiles图层）
  * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
- * @param [options.flatHeight] - 模型基准高度(单位：米)，基于压平区域最低点高度的纠偏，也支持定义在模型图层中
- * @param [options.old] - 使用老版本压平，即内部自动使用{@link TilesetFlatOld}类
+ * @param [options.editHeight] - 模型基准高度(单位：米)，基于压平/淹没区域最低点高度的纠偏，也支持定义在模型图层中
+ * @param [options.raise = true] - 是否开启区域抬高
+ * @param [options.precise = true] - true:精确模式, 直接存储范围,但传入的范围顶点数量多时，就会造成一定程度的卡顿； false: 掩膜模式，栅格化范围,效率与范围顶点数量无关,但放大后锯齿化严重
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -30566,107 +34594,40 @@ declare class TilesetFlat extends TilesetEditBase {
     constructor(options?: {
         layer: TilesetLayer;
         area?: any;
-        flatHeight?: number;
-        old?: boolean;
+        editHeight?: number;
+        raise?: boolean;
+        precise?: boolean;
         id?: string | number;
         enabled?: boolean;
         eventParent?: BaseClass | boolean;
     });
     /**
-     * 区域 列表
+     * 更新压平高度
+     * @param height - 压平高度，单位：米
+     * @param [id] - 精确模式下指定更新的区域id，为空时更新所有，掩膜模式下无效
      */
-    readonly list: any;
-    /**
-     * 需要分析的模型（3dtiles图层）
-     */
-    layer: TilesetLayer;
-    /**
-     * 需要分析的模型 对应的 Cesium3DTileset 对象
-     */
-    readonly tileset: Cesium.Cesium3DTileset;
-    /**
-     * 压平高度 (单位：米)，基于压平区域最低点高度的偏移量
-     */
-    readonly layerHeight: number;
-    /**
-     * 已添加的区域个数
-     */
-    readonly length: number;
+    updateHeight(height: number, id?: number): void;
     /**
      * 添加单个区域
      * @param positions - 坐标位置数组
      * @param [options = {}] - 控制的参数
-     * @param [options.height] - 开挖深度（地形开挖时，可以控制单个区域的开挖深度）
+     * @param [options.height] - 开挖深度（模型开挖时，可以控制单个区域的开挖深度）
+     * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+     * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
+     * @param [options.id] - 外部自定义ID，注意不用有重复值。默认内部自动赋予
      * @returns 添加区域的记录对象
      */
     addArea(positions: string[] | any[][] | LngLatPoint[] | Cesium.Cartesian3[], options?: {
         height?: any;
-    }): Promise<any>;
-    /**
-     * 根据id获取区域对象
-     * @param id - id值
-     * @returns 区域对象
-     */
-    getAreaById(id: number): any;
-    /**
-     * 更新压平高度 (单位：米)
-     * @param height - 高度值（单位：米）
-     * @param [id] - 区域对象id
-     */
-    updateHeight(height: number, id?: number): void;
-    /**
-     * 隐藏单个区域
-     * @param id - 区域id值
-     * @returns 无
-     */
-    hideArea(id: number): void;
-    /**
-     * 显示单个区域
-     * @param id - 区域id值
-     * @returns 无
-     */
-    showArea(id: number): void;
-    /**
-     * 移除单个区域
-     * @param item - 区域的id，或 addArea返回的区域对象
-     * @returns 无
-     */
-    removeArea(item: number | any): void;
-    /**
-     * 清除分析
-     * @returns 无
-     */
-    clear(): void;
-}
-
-/**
- * 3dtiles模型压平
- * @param [options] - 参数对象，包括以下：
- * @param options.layer - 需要压平的对象（3dtiles图层）
- * @param [options.area] - 多区域数组对象, 示例： [{ positions: [[108.959062, 34.220134, 397], [108.959802, 34.220147, 397], [108.959106, 34.21953, 398]] }]
- * @param [options.height] - 压平高度 (单位：米)，基于压平区域最低点高度的偏移量
- * @param [options.id = createGuid()] - 对象的id标识
- * @param [options.enabled = true] - 对象的启用状态
- * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
- */
-declare class TilesetFlatOld extends TilesetEditBase {
-    constructor(options?: {
-        layer: TilesetLayer;
-        area?: any;
-        height?: number;
-        id?: string | number;
-        enabled?: boolean;
-        eventParent?: BaseClass | boolean;
-    });
-    /**
-     * 压平高度 (单位：米)，基于压平区域最低点高度的偏移量
-     */
-    height: number;
-    /**
-     * 更新压平高度 (单位：米)
-     * @param height - 高度值（单位：米）
-     */
-    updateHeight(height: number): void;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
+        id?: number | string;
+    }): any;
 }
 
 declare namespace TilesetFlood {
@@ -30698,6 +34659,8 @@ declare namespace TilesetFlood {
  * @param [options.maxHeight] - 淹没结束的海拔高度（单位：米）
  * @param [options.color = new Cesium.Color(0.15, 0.7, 0.95, 0.5)] - 淹没颜色
  * @param [options.floodAll] - 是否对整个模型进行分析
+ * @param [options.limitMin = false] - 显示效果中是否不显示最低高度以下的部分颜色
+ * @param [options.precise = true] - true:精确模式, 直接存储范围,但传入的范围顶点数量多时，就会造成一定程度的卡顿； false: 掩膜模式，栅格化范围,效率与范围顶点数量无关,但放大后锯齿化严重
  * @param [options.id = createGuid()] - 对象的id标识
  * @param [options.enabled = true] - 对象的启用状态
  * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
@@ -30711,6 +34674,8 @@ declare class TilesetFlood extends TilesetEditBase {
         maxHeight?: number;
         color?: Cesium.Color | string;
         floodAll?: boolean;
+        limitMin?: boolean;
+        precise?: boolean;
         id?: string | number;
         enabled?: boolean;
         eventParent?: BaseClass | boolean;
@@ -30731,12 +34696,6 @@ declare class TilesetFlood extends TilesetEditBase {
      * 淹没颜色
      */
     color: Cesium.Color;
-    /**
-     * 重新赋值参数，同构造方法参数一致。
-     * @param options - 参数,与类的构造方法参数相同
-     * @returns 当前对象本身，可以链式调用
-     */
-    setOptions(options: any): TilesetFlood;
     /**
      * 开始播放淹没动画效果
      * @returns 无
@@ -30771,7 +34730,7 @@ declare class TilesetFlood extends TilesetEditBase {
  * @param [options.clipOutSide = false] - 是否外裁剪
  * @param [options.edgeWidth = 0] - 裁剪区域边线宽度，0时不显示
  * @param [options.edgeColor = Cesium.Color.WHITE] - 裁剪区域边线颜色
- * @param [options.showPlane = false] - 是否显示裁剪平面
+ * @param [options.showPlane = false] - 是否显示裁剪平面, PS: 但裁剪面与实际效果由于cesium内部机制不同可能存在偏移。
  * @param [options.editPlane = false] - 是否可以拖拽裁剪平面进行编辑，需要showPlane：true时有效
  * @param [options.planeStyle] - 裁剪平面显示时的样式
  * @param [options.id = createGuid()] - 对象的id标识
@@ -30817,13 +34776,21 @@ declare class TilesetPlanClip extends BaseThing {
      */
     distance: number;
     /**
+     * 裁剪的斜面角度 0-360度
+     */
+    angle1: number;
+    /**
+     * 裁剪的斜面角度 0-180度
+     */
+    angle2: number;
+    /**
      * 裁剪的斜面偏移量
      */
     normalZ: number;
     /**
      * 裁剪类型（按方向类型正方向单面裁剪）
      */
-    type: ClipType;
+    type: string | number;
     /**
      * 裁剪区域坐标数组(按面或线裁剪)
      */
@@ -30844,11 +34811,74 @@ declare class TilesetPlanClip extends BaseThing {
      */
     updateAllDistance(val: number): void;
     /**
-     * 更新所有面的 裁剪的斜面偏移量
-     * @param val - 斜面偏移量
+     * 更新所有面的 裁剪的斜面角度
+     * @param angle1 - 角度1
+     * @param angel2 - 角度2
      * @returns 无
      */
-    updateAllNormalZ(val: number): void;
+    updateAllNormal(angle1: number, angel2: number): void;
+    /**
+     * 转为Json简单对象，用于存储后再传参加载
+     * @returns Json简单对象
+     */
+    toJSON(): any;
+}
+
+/**
+ * 3dtiles模型 模拟地震晃动的效果
+ * @param [options] - 参数对象，包括以下：
+ * @param options.layer - 需要模型分析的对象（3dtiles图层）
+ * @param [options.positions] - 限定地震晃动区域坐标数组
+ * @param [options.maxDistance] - 最大的摇晃距离，单位：米
+ * @param [options.duration = 1000] - 摇晃一次的时间,单位：毫秒
+ * @param [options.maxHeight = 120] - 最大高度,单位：米
+ * @param [options.inRangeColor = "rgba(255,0,0,0.5)"] - 在范围内的颜色，透明度为0时不显示
+ * @param [options.outRangeColor = "rgba(0,0,0,0)"] - 在范围外的颜色，透明度为0时不显示
+ * @param [options.id = createGuid()] - 对象的id标识
+ * @param [options.enabled = true] - 对象的启用状态
+ * @param [options.eventParent] - 指定的事件冒泡对象，默认为所加入的map对象，false时不冒泡事件
+ */
+declare class TilesetShake extends BaseThing {
+    constructor(options?: {
+        layer: TilesetLayer;
+        positions?: any[][] | string[] | LngLatPoint[] | Cesium.Cartesian3[];
+        maxDistance?: number;
+        duration?: number;
+        maxHeight?: number;
+        inRangeColor?: string | Cesium.Color;
+        outRangeColor?: string | Cesium.Color;
+        id?: string | number;
+        enabled?: boolean;
+        eventParent?: BaseClass | boolean;
+    });
+    /**
+     * 需要分析的模型（3dtiles图层）
+     */
+    layer: TilesetLayer;
+    /**
+     * 限定地震晃动区域坐标数组
+     */
+    positions: any[][] | string[] | LngLatPoint[] | Cesium.Cartesian3[];
+    /**
+     * 最大的摇晃距离，单位：米
+     */
+    maxDistance: number;
+    /**
+     * 摇晃一次的时间,单位：毫秒
+     */
+    duration: number;
+    /**
+     * 最大高度,单位：米
+     */
+    maxHeight: number;
+    /**
+     * 在范围内的颜色
+     */
+    inRangeColor: Cesium.Color | string;
+    /**
+     * 在范围外的颜色
+     */
+    outRangeColor: Cesium.Color | string;
 }
 
 /**
@@ -31499,25 +35529,31 @@ declare namespace DomUtil {
  */
 declare namespace DrawUtil {
     /**
-     * 拖拽点分类
-     */
-    const PointType: number;
-    /**
-     * 拖拽点颜色
+     * 根据类型设置编辑点的样式
      * @example
-     * mars3d.DrawUtil.PointColor.Control = '#1c197d' //位置控制拖拽点
-     * mars3d.DrawUtil.PointColor.MoveAll = '#8c003a' //整体平移(如线面)拖拽点
-     * mars3d.DrawUtil.PointColor.MoveHeight = '#9500eb' //上下移动高度的拖拽点
-     * mars3d.DrawUtil.PointColor.EditAttr = '#f73163' //辅助修改属性（如半径）的拖拽点
-     * mars3d.DrawUtil.PointColor.AddMidPoint = 'rgba(4,194,201,0.3)' //增加新点，辅助拖拽点
-     */
-    const PointColor: Cesium.Color;
-    /**
-     * 设置编辑点的样式（color颜色除外）
-     * @param value - 像素
+     * mars3d.DrawUtil.setEditPointStyle(mars3d.EditPointType.Control, {
+     *   type: mars3d.GraphicType.billboardP, // 支持设置type指定编辑点类型
+     *   image: "img/icon/move.png",
+     *   horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+     *   verticalOrigin: Cesium.VerticalOrigin.CENTER
+     * })
+     * @param type - 类型
+     * @param newStyle - 样式
      * @returns 无
      */
-    function setPointStyle(value: PointPrimitive.StyleOptions | any): void;
+    function setEditPointStyle(type: EditPointType | number, newStyle: PointPrimitive.StyleOptions | any | any): void;
+    /**
+     * 更新所有编辑点的样式
+     * @param style - 样式
+     * @returns 无
+     */
+    function setAllEditPointStyle(style: PointPrimitive.StyleOptions | any | any): void;
+    /**
+     * 根据类型获取编辑点样式
+     * @param [type = mars3d.EditPointType.Control] - 类型
+     * @returns 样式对象
+     */
+    function getEditPointStyle(type?: EditPointType | number): PointPrimitive.StyleOptions | any | any;
 }
 
 /**
@@ -31577,9 +35613,10 @@ declare namespace GraphicUtil {
      * 注册矢量数据类
      * @param type - 矢量数据类型
      * @param graphicClass - 矢量数据类
+     * @param [isPoint] - 是否为点状数据
      * @returns 无
      */
-    function register(type: string, graphicClass: BaseGraphic | any): void;
+    function register(type: string, graphicClass: BaseGraphic | any, isPoint?: boolean): void;
     /**
      * 根据 矢量数据类型 获取 矢量数据类
      * @param type - 矢量数据类型
@@ -31652,7 +35689,7 @@ declare namespace LayerUtil {
      * @param options - Provider参数，具体见各Provider类的构造方法参数说明
      * @returns ImageryProvider类
      */
-    function createImageryProvider(options: any): any;
+    function createImageryProvider(options: any): Promise<any>;
     /**
      * 获取baseLayerPicker使用的绑定图层列表配置，
      * 用于将config.json的配置basemaps数据转换为imageryProviderViewModels
@@ -31688,7 +35725,7 @@ declare namespace LayerUtil {
      * @returns 地形对象
      */
     function createTerrainProvider(options: {
-        type: TerrainType;
+        type: string | TerrainType;
         url: string | Cesium.Resource;
         proxy?: string;
         templateValues?: any;
@@ -31697,13 +35734,14 @@ declare namespace LayerUtil {
         requestVertexNormals?: boolean;
         requestWaterMask?: boolean;
         requestMetadata?: boolean;
-    }): Cesium.CesiumTerrainProvider;
+    }): Promise<Cesium.CesiumTerrainProvider | any>;
     /**
      * 获取baseLayerPicker使用的绑定地形列表
      * @param options - 地形参数,同{@link createTerrainProvider}方法参数
+     * @param [getLangText] - 取文本的方法
      * @returns 地形列表
      */
-    function getTerrainProviderViewModels(options: any): Cesium.ProviderViewModel[];
+    function getTerrainProviderViewModels(options: any, getLangText?: any): Cesium.ProviderViewModel[];
 }
 
 /**
@@ -31793,6 +35831,28 @@ declare namespace MaterialUtil {
      * @returns json简单对象
      */
     function toJSONByType(materialType: string, materialOptions: any): any;
+    /**
+     * 给 Material 添加一个 Texture uniform
+     * @param options - 参数
+     * @param options.material - 材质对象
+     * @param options.context - 取 map.scene.context
+     * @param options.uniformName - Uniform 名
+     * @param options.image - 图片的地址
+     * @param [options.wrapS = Cesium.TextureWrap.REPEAT] - 纹理参数，决定纹理坐标 S 方向上超出 [0, 1] 时如何抽样。
+     * @param [options.wrapT = Cesium.TextureWrap.REPEAT] - 纹理参数，决定纹理坐标 T 方向上超出 [0, 1] 时如何抽样。
+     * @param [options.minificationFilter = Cesium.TextureMinificationFilter.LINEAR] - 纹理参数，决定纹理缩小时如何抽样，
+     * @param [options.magnificationFilter = Cesium.TextureMagnificationFilter.LINEAR] - 纹理参数，决定纹理放大时如何抽样，
+     */
+    function addTextureUniform(options: {
+        material: Cesium.Material;
+        context: any;
+        uniformName: string;
+        image: string;
+        wrapS?: number;
+        wrapT?: number;
+        minificationFilter?: Cesium.TextureMinificationFilter | number;
+        magnificationFilter?: Cesium.TextureMagnificationFilter | number;
+    }): void;
 }
 
 /**
@@ -31840,8 +35900,9 @@ declare namespace MeasureUtil {
      * @param positions - 坐标数组
      * @param options - 参数对象，具有以下属性:
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
-     * @param [options.splitNum = 100] - 插值数，将线段分割的个数
+     * @param [options.splitNum = 100] - 插值数，将线段分割的个数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
+     * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param options.endItem - 异步计算贴地距离中，每计算完成2个点之间的距离后 的回调方法
      * @param options.end - 异步计算完成的 回调方法
      * @returns 异步计算完成的Promise
@@ -31850,6 +35911,7 @@ declare namespace MeasureUtil {
         scene: Cesium.Scene;
         splitNum?: number;
         has3dtiles?: boolean;
+        exact?: boolean;
         endItem: getClampDistance_endItem;
         end: getClampDistance_endItem;
     }): Promise<any>;
@@ -31878,9 +35940,9 @@ declare namespace MeasureUtil {
      * @param positions - 坐标数组
      * @param options - 参数对象，具有以下属性:
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
-     * @param [options.splitNum = 10] - 插值数，将面分割的网格数
+     * @param [options.splitNum = 10] - 插值数，将面分割的网格数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
-     * @param [options.exact] - 是否进行精确计算
+     * @param [options.exact = true] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @returns 异步计算完成的Promise
      */
     function getClampArea(positions: Cesium.Cartesian3[] | LngLatPoint[], options: {
@@ -31901,14 +35963,14 @@ declare namespace MeasureUtil {
      * 格式化显示距离值, 可指定单位
      * @param val - 距离值，米
      * @param [options] - 参数：
-     * @param [options.unit = 'auto'] - 计量单位, 可选值：auto、m、km、mile、zhang 。auto时根据距离值自动选用k或km
-     * @param [options.lang = 0] - 使用的语言
+     * @param [options.unit = 'auto'] - 计量单位, 可选值：auto、m、km、wm、mile、zhang 等。auto时根据距离值自动选用k或km
+     * @param [options.getLangText] - 获取文本的对应方法
      * @param [options.decimal = 2] - 保留的小数位
      * @returns 带单位的格式化距离值字符串，如：20.17 米
      */
     function formatDistance(val: number, options?: {
         unit?: string;
-        lang?: LangType;
+        getLangText?: (...params: any[]) => any;
         decimal?: number;
     }): string;
     /**
@@ -31916,13 +35978,13 @@ declare namespace MeasureUtil {
      * @param val - 面积值，平方米
      * @param [options] - 参数：
      * @param [options.unit = 'auto'] - 计量单位，可选值：auto、m、km、mu、ha 。auto时根据面积值自动选用m或km
-     * @param [options.lang = 0] - 使用的语言
+     * @param [options.getLangText] - 获取文本的对应方法
      * @param [options.decimal = 2] - 保留的小数位
      * @returns 带单位的格式化面积值字符串，如：20.21 平方公里
      */
     function formatArea(val: number, options?: {
         unit?: string;
-        lang?: LangType;
+        getLangText?: (...params: any[]) => any;
         decimal?: number;
     }): string;
     /**
@@ -31930,13 +35992,13 @@ declare namespace MeasureUtil {
      * @param val - 体积值，立方米
      * @param [options] - 参数：
      * @param [options.unit = 'auto'] - 计量单位，当前无用，备用参数
-     * @param [options.lang = 0] - 使用的语言
+     * @param [options.getLangText] - 获取文本的对应方法
      * @param [options.decimal = 2] - 保留的小数位
-     * @returns 带单位的格式化体积值字符串，如：20.21 方
+     * @returns 带单位的格式化体积值字符串，如：20.21立方米
      */
     function formatVolume(val: number, options?: {
         unit?: string;
-        lang?: LangType;
+        getLangText?: (...params: any[]) => any;
         decimal?: number;
     }): string;
 }
@@ -31978,7 +36040,7 @@ declare namespace PointTrans {
      * 使用proj4转换坐标（支持任意坐标系），
      * 坐标系 可以在 {@link http://epsg.io }进行查询，已经内置支持 EPSG:4326、EPSG:3857、EPSG:4490、EPSG:4491至4554
      * @param arrdata - 原始坐标,示例：[39396641,3882123]
-     * @param fromProjParams - 原始坐标的坐标系，如'EPSG:4527'
+     * @param fromProjParams - 原始坐标的坐标系，如'EPSG:4527' 或  mars3d.CRS.CGCS2000_GK_Zone_3
      * @param [toProjParams = 'EPSG:4326'] - 转为返回的结果坐标系
      * @returns 返回结果坐标系的对应坐标,示例：[115.866936, 35.062583]
      */
@@ -32131,7 +36193,7 @@ declare namespace PointUtil {
      * 获取position的最终value值，
      * 因为cesium经常属性或绑定一层，通过该方法可以内部去判断是否有getValue或_value进行取最终value值。
      * @param position - 各种位置属性对象
-     * @param [time = Cesium.JulianDate.now()] - 指定的时间值
+     * @param [time = Cesium.JulianDate.now()] - 指定的时间值 ,如 map.clock.currentTime
      * @returns 具体的Cartesian3对象坐标值
      */
     function getPositionValue(position: Cesium.Cartesian3 | Cesium.SampledPositionProperty | any, time?: Cesium.JulianDate): Cesium.Cartesian3;
@@ -32181,6 +36243,13 @@ declare namespace PointUtil {
     }): number;
     /**
      * 异步精确计算坐标的 贴地(或贴模型)高度
+     * @example
+     * const position = graphic.position
+     *   mars3d.PointUtil.getSurfaceHeight(map.scene, graphic.position, { has3dtiles: true }).then((result) => {
+     *     console.log("原始高度为：" + result.height_original.toFixed(2) + ",贴地高度：" + result.height.toFixed(2))
+     *
+     *     graphic.position = result.position
+     *   })
      * @param scene - 三维地图场景对象，一般用map.scene或viewer.scene
      * @param position - 坐标
      * @param [options = {}] - 参数对象:
@@ -32243,9 +36312,10 @@ declare namespace PointUtil {
      * 求2点的中间点（贴地表）
      * @param mpt1 - 点1坐标
      * @param mpt2 - 点2坐标
+     * @param [fraction = 0.5] - 起始点和终点之间距离的比例
      * @returns 2个点是否为重复的点
      */
-    function getMidpoint(mpt1: Cesium.Cartesian3 | LngLatPoint, mpt2: Cesium.Cartesian3 | LngLatPoint): Cesium.Cartesian3;
+    function getMidpoint(mpt1: Cesium.Cartesian3 | LngLatPoint, mpt2: Cesium.Cartesian3 | LngLatPoint, fraction?: number): Cesium.Cartesian3;
     /**
      * 判断2个点是否为重复的点，比如标绘中的双击会偶尔产生2个重复点
      * @param mpt1 - 点1坐标
@@ -32302,9 +36372,10 @@ declare namespace PointUtil {
      * @param orientation - HeadingPitchRoll方向 或 四元数实例
      * @param reverse - 是否翻转射线方向
      * @param [ellipsoid = Cesium.Ellipsoid.WGS84] - 变换中使用固定坐标系的椭球。
+     * @param [fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
      * @returns 射线与地球的交点
      */
-    function getRayEarthPosition(position: Cesium.Cartesian3, orientation: Cesium.HeadingPitchRoll | Cesium.Quaternion, reverse: boolean, ellipsoid?: Cesium.Ellipsoid): Cesium.Cartesian3;
+    function getRayEarthPosition(position: Cesium.Cartesian3, orientation: Cesium.HeadingPitchRoll | Cesium.Quaternion, reverse: boolean, ellipsoid?: Cesium.Ellipsoid, fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame): Cesium.Cartesian3;
     /**
      * 按转换矩阵，求观察点射向地球与地球的交点
      * @param matrix - 转换矩阵
@@ -32335,11 +36406,25 @@ declare namespace PointUtil {
      * 求 localStart点 到 localEnd点的 Heading Pitch Roll方向
      * @param localStart - 起点坐标
      * @param localEnd - 终点坐标
-     * @param [ellipsoid = Cesium.Ellipsoid.WGS84] - 变换中使用固定坐标系的椭球。
-     * @param [fixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame] - 参考系
+     * @param [reverse] - 是否翻转
      * @returns Heading Pitch Roll方向
      */
-    function getHeadingPitchRollForLine(localStart: Cesium.Cartesian3 | LngLatPoint, localEnd: Cesium.Cartesian3 | LngLatPoint, ellipsoid?: Cesium.Ellipsoid, fixedFrameTransform?: Cesium.Transforms.LocalFrameToFixedFrame): Cesium.HeadingPitchRoll;
+    function getHeadingPitchRollForLine(localStart: Cesium.Cartesian3 | LngLatPoint, localEnd: Cesium.Cartesian3 | LngLatPoint, reverse?: boolean): Cesium.HeadingPitchRoll;
+    /**
+     * 获取反射向量
+     * @param view - 视角方向
+     * @param normal - 法线方向
+     * @returns 反射向量
+     */
+    function getReflectVector(view: Cesium.Cartesian3, normal: Cesium.Cartesian3): Cesium.Cartesian3;
+    /**
+     * 获取属性坐标对应时间的index和坐标值
+     * @param property - 属性坐标
+     * @param time - 指定时间
+     * @param [result] - 坐标对象
+     * @returns 返回index和坐标值 , 示例：{ position: xx, index:xx }
+     */
+    function getPropertyIndex(property: Cesium.SampledPositionProperty, time: Cesium.JulianDate, result?: Cesium.Cartesian3): any;
 }
 
 /**
@@ -32399,7 +36484,7 @@ declare namespace PolyUtil {
      * @param [options = {}] - 参数对象:
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
      * @param options.positions - 坐标数组
-     * @param [options.splitNum = 10] - 插值数，横纵等比分割的网格个数
+     * @param [options.splitNum = 10] - 插值数，横纵等比分割的网格个数(概略值，有经纬网网格来插值)
      * @param [options.exact = false] - 是否进行精确计算
      * @param [options.has3dtiles] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
@@ -32420,7 +36505,7 @@ declare namespace PolyUtil {
      * @param positions - 坐标数组
      * @param scene - 三维地图场景对象，一般用map.scene
      * @param [options = {}] - 参数对象:
-     * @param [options.splitNum = 10] - 插值数，横纵等比分割的网格个数
+     * @param [options.splitNum = 10] - 插值数，横纵等比分割的网格个数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
      * @returns 异步计算完成的Promise，结果示例：{ maxHeight: 100, minHeight: 21 }
@@ -32462,7 +36547,7 @@ declare namespace PolyUtil {
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
      * @param options.positions - 坐标数组
      * @param [options.exact = false] - 是否进行精确计算
-     * @param [options.splitNum = 10] - 插值数，横纵等比分割的网格个数
+     * @param [options.splitNum = 10] - 插值数，横纵等比分割的网格个数(概略值，有经纬网网格来插值)
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
      * @returns 异步计算完成的Promise
@@ -32559,7 +36644,7 @@ declare namespace PolyUtil {
      * @param options.center - 中心坐标
      * @param [options.width] - 矩形的宽度，单位：米
      * @param [options.height] - 矩形的高度，单位：米
-     * @param [options.rotation = 0] - 旋转的角度
+     * @param [options.rotation = 0] - 旋转的角度（弧度值）
      * @param [options.originX = 0.5] - 中心点所在的位置x轴方向比例，取值范围：0.1-1.0
      * @param [options.originY = 0.5] - 中心点所在的位置y轴方向比例，取值范围：0.1-1.0
      * @returns 矩形面的顶点坐标数组
@@ -32582,16 +36667,37 @@ declare namespace PolyUtil {
     /**
      * 求贝塞尔曲线坐标
      * @param positions - 坐标数组
-     * @param [closure = fasle] - 是否闭合曲线
+     * @param [options] - 控制参数
+     * @param [options.closure = fasle] - 是否闭合曲线
+     * @param [options.sharpness = 0.85] - 曲线的弯曲程度
+     * @param [options.resolution = 10000] - 点之间的时间（以毫秒为单位）
      * @returns 坐标数组
      */
-    function getBezierCurve(positions: LngLatPoint[] | Cesium.Cartesian3[] | any[], closure?: boolean): Cesium.Cartesian3[];
+    function getBezierCurve(positions: LngLatPoint[] | Cesium.Cartesian3[] | any[], options?: {
+        closure?: boolean;
+        sharpness?: number;
+        resolution?: number;
+    }): Cesium.Cartesian3[];
+    /**
+     * 抽析简化点数量
+     * @param positions - 坐标数组
+     * @param [options] - 控制参数
+     * @param [options.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
+     * @returns 坐标数组
+     */
+    function simplifyPositions(positions: LngLatPoint[] | Cesium.Cartesian3[] | any[], options?: {
+        tolerance?: number;
+        highQuality?: boolean;
+        mutate?: boolean;
+    }): any[];
     /**
      * 对路线进行平面等比插值，高度：指定的固定height值 或 按贴地高度。
      * @param [options = {}] - 参数对象:
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
      * @param options.positions - 坐标数组
-     * @param [options.splitNum = 100] - 插值数，等比分割的个数
+     * @param [options.splitNum = 100] - 插值数，等比分割的个数(概略值，有经纬网网格来插值)
      * @param [options.minDistance] - 插值最小间隔(单位：米)，优先级高于splitNum
      * @param [options.height = 0] - 坐标的高度
      * @param [options.surfaceHeight = true] - 是否计算贴地高度 （非精确计算，根据当前加载的地形和模型数据情况有关）
@@ -32610,23 +36716,24 @@ declare namespace PolyUtil {
      * 比如：用于航线的插值运算
      * @param positions - 坐标数组
      * @param [options = {}] - 参数对象:
-     * @param [options.splitNum] - 插值数，等比分割的个数，默认不插值
-     * @param [options.minDistance] - 插值时的最小间隔(单位：米)，优先级高于splitNum
+     * @param [options.splitNum] - 插值数，等比分割的个数，默认不插值(概略值，有经纬网网格来插值)
+     * @param [options.minDistance] - 插值时的最小间隔(单位：米)，优先级高于splitNum,如果传"auto"，自动计算坐标中最小的2点距离
      * @returns 插值后的坐标对象
      */
     function interLine(positions: LngLatPoint[] | Cesium.Cartesian3[] | any[], options?: {
         splitNum?: number;
-        minDistance?: number;
+        minDistance?: number | string;
     }): Cesium.Cartesian3[];
     /**
      * 求路线的贴地线坐标（插值）
      * @param [options = {}] - 参数对象:
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
      * @param options.positions - 坐标数组
-     * @param [options.splitNum = 100] - 插值数，等比分割的个数
+     * @param [options.splitNum = 100] - 插值数，等比分割的个数(概略值，有经纬网网格来插值)
      * @param [options.minDistance] - 插值最小间隔(单位：米)，优先级高于splitNum
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.offset = 0] - 可以按需增加偏移高度（单位：米），便于可视
      * @returns 异步计算完成的Promise, 等价于callback
      */
@@ -32637,6 +36744,7 @@ declare namespace PolyUtil {
         minDistance?: number;
         has3dtiles?: boolean;
         objectsToExclude?: any;
+        exact?: boolean;
         offset?: number;
     }): Promise<any>;
     /**
@@ -32646,6 +36754,7 @@ declare namespace PolyUtil {
      * @param options.positions - 坐标数组
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.offset = 0] - 可以按需增加偏移高度（单位：米），便于可视
      * @returns 异步计算完成的Promise, 等价于callback
      */
@@ -32654,6 +36763,7 @@ declare namespace PolyUtil {
         positions: Cesium.Cartesian3[] | LngLatPoint[];
         has3dtiles?: boolean;
         objectsToExclude?: any;
+        exact?: boolean;
         offset?: number;
     }): Promise<any>;
     /**
@@ -32673,12 +36783,13 @@ declare namespace PolyUtil {
      * @param [options = {}] - 参数对象:
      * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
      * @param options.positions - 坐标数组
-     * @param [options.splitNum = 100] - 插值数，等比分割的个数
+     * @param [options.splitNum = 100] - 插值数，等比分割的个数(概略值，有经纬网网格来插值)
      * @param [options.minDistance] - 插值最小间隔(单位：米)，优先级高于splitNum
      * @param [options.has3dtiles = auto] - 是否在3dtiles模型上分析（模型分析较慢，按需开启）,默认内部根据点的位置自动判断（但可能不准）
      * @param [options.objectsToExclude] - 贴模型分析时，排除的不进行贴模型计算的模型对象，可以是： primitives, entities, 或 3D Tiles features
+     * @param [options.exact = false] - 是否进行精确计算， 传false时是否快速概略计算方式，该方式计算精度较低，但计算速度快，仅能计算在当前视域内坐标的高度
      * @param [options.offset = 0] - 可以按需增加偏移高度（单位：米），便于可视
-     * @param options.endItem - 异步计算高度完成后 的回调方法
+     * @param options.endItem - 异步计算每2个点后之间坐标后 的回调方法
      * @param options.end - 异步计算高度完成后 的回调方法
      * @returns 异步计算完成的Promise,同callback
      */
@@ -32689,6 +36800,7 @@ declare namespace PolyUtil {
         minDistance?: number;
         has3dtiles?: boolean;
         objectsToExclude?: any;
+        exact?: boolean;
         offset?: number;
         endItem: computeStepSurfaceLine_endItem;
         end: computeStepSurfaceLine_end;
@@ -32737,6 +36849,92 @@ declare namespace PolyUtil {
      * @returns 坐标集合 ,如： {points:[LngLatPoint,LngLatPoint], size: 500 }
      */
     function getGridPoints(bbox: number[], count: number, alt?: number): any;
+    /**
+     * 获取指定多边形范围内的插值Grid网格点集合
+     * @param positions - 区域范围
+     * @param step - 间隔步长，单位：米
+     * @param [alt] - 高度值
+     * @returns 坐标集合
+     */
+    function getGridPointsByPoly(positions: Cesium.Cartesian3[], step: number, alt?: number): LngLatPoint[] | undefined;
+    /**
+     * 计算面内最大、最小高度值，并 使用离屏渲染深度图的方式加速计算范围内的任何可见的物体的高度 <br />
+     * @param positions - 坐标数组
+     * @param scene - 三维地图场景对象，一般用map.scene
+     * @param [options = {}] - 参数对象:
+     * @param [options.splitNum = 512] - 网格个数，横纵等比分割的网格个数，理论上：外接矩形的点个数 = splitNum * splitNum
+     * @param [options.cameraHeight = scene.camera.positionCartographic.height] - 相机高度
+     * @returns 异步计算完成的Promise，结果示例：{ maxHeight: 100, minHeight: 21 }
+     */
+    function getHeightRangeByDepth(positions: LngLatPoint[] | Cesium.Cartesian3[] | any[], scene: Cesium.Scene, options?: {
+        splitNum?: number;
+        cameraHeight?: number;
+    }): Promise<any>;
+    /**
+     * 对面内进行插值，并 使用离屏渲染深度图的方式加速计算范围内的任何可见的物体的高度 <br />
+     * 注意事项：<br />
+     * 1. 需要地形和模型等需要分析区域对应的数据加载完成后才能使用该方法。<br />
+     * 2. 如果有遮挡了分析区域的任何矢量对象，都需要分析前隐藏下，分析结束后再改回显示。<br />
+     * @param [options = {}] - 参数对象:
+     * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
+     * @param options.positions - 坐标数组
+     * @param [options.splitNum = 512] - 网格个数，横纵等比分割的网格个数，理论上：外接矩形的点个数 = splitNum * splitNum
+     * @param [options.cameraHeight = scene.camera.positionCartographic.height] - 相机高度
+     * @returns 计算完成的相关数据
+     */
+    function interPolygonByDepth(options?: {
+        scene: Cesium.Scene;
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+        splitNum?: number;
+        cameraHeight?: number;
+    }): Promise<any>;
+    /**
+     * 对路线内进行插值，并 使用离屏渲染深度图的方式加速计算范围内的任何可见的物体的高度 <br />
+     * 注意事项：<br />
+     * 1. 需要地形和模型等需要分析区域对应的数据加载完成后才能使用该方法。<br />
+     * 2. 如果有遮挡了分析区域的任何矢量对象，都需要分析前隐藏下，分析结束后再改回显示。<br />
+     * @param [options = {}] - 参数对象:
+     * @param options.scene - 三维地图场景对象，一般用map.scene或viewer.scene
+     * @param options.positions - 坐标数组
+     * @param [options.splitNum = 100] - 计算的间隔长度,数据量不能大于Cesium.ContextLimits.maximumTextureSize
+     * @param [options.minDistance] - 插值最小间隔(单位：米)，优先级高于splitNum
+     * @param [options.cameraHeight = scene.camera.positionCartographic.height] - 相机高度
+     * @returns 计算完成的相关数据
+     */
+    function interPolylineByDepth(options?: {
+        scene: Cesium.Scene;
+        positions: LngLatPoint[] | Cesium.Cartesian3[] | any[];
+        splitNum?: number;
+        minDistance?: number;
+        cameraHeight?: number;
+    }): Promise<any>;
+}
+
+/**
+ * Thing对象(如 分析、管理类等)  相关 静态方法
+ */
+declare namespace ThingUtil {
+    /**
+     * 注册Thing对象类
+     * @param type - Thing对象类型
+     * @param thingClass - Thing对象类
+     * @param [isOnlyInMap = true] - 是否在地图上唯一存在
+     * @returns 无
+     */
+    function register(type: string, thingClass: BaseThing, isOnlyInMap?: boolean): void;
+    /**
+     * 根据 Thing对象类型 获取 Thing对象类
+     * @param type - Thing对象类型
+     * @returns Thing对象类
+     */
+    function getClass(type: ThingType): BaseThing | undefined;
+    /**
+     * 创建Thing对象工厂方法
+     * @param type - Thing对象类型
+     * @param options - Thing对象参数，具体见各{@link ThingType}对应的Thing对象类的构造方法参数
+     * @returns 创建完成的Thing对象对象
+     */
+    function create(type: ThingType, options: any): BaseThing;
 }
 
 /**
@@ -32928,15 +37126,42 @@ declare namespace Util {
         randomColor?: boolean;
     }, defval?: Cesium.Color): Cesium.Color;
     /**
+     * 获取JulianDate时间
+     * @param currTime - 指定时间。当为String时，可以传入 '2021-01-01 12:13:00';
+     * @returns JulianDate时间
+     */
+    function getJulianDate(currTime: Cesium.JulianDate | Date | string): Cesium.JulianDate;
+    /**
+     * 指定时间范围内显示对象所用到的TimeIntervalCollection对象
+     * @example
+     * graphic.availability = mars3d.Util.getAvailability([
+     *   { start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false },
+     *   { start: "2017-08-25 09:00:00", stop: "2017-08-25 09:02:30" }
+     * ])
+     *
+     * graphic.availability = mars3d.Util.getAvailability({ start: "2017-08-25 08:00:00", stop: "2017-08-25 08:01:20", isStartIncluded: true, isStopIncluded: false })
+     * @param availability - 指定时间范围
+     * @returns JulianDate时间
+     */
+    function getAvailability(availability: Cesium.TimeIntervalCollection | Cesium.TimeInterval | any[] | any): Cesium.TimeIntervalCollection;
+    /**
+     * 获取时间范围的简单对象数组，用于对象的编辑
+     * @param availability - 指定时间范围
+     * @returns JulianDate时间
+     */
+    function getAvailabilityJson(availability: Cesium.TimeIntervalCollection): any;
+    /**
      * 取属性值，简化Cesium内的属性，去掉getValue等，取最简的键值对。
      * 方便popup、tooltip等构造方法使用
      * @param attr - Cesium内的属性对象
      * @param [options = {}] - 参数对象:
-     * @param options.onlySimpleType - 是否只获取简易类型的对象
+     * @param [options.onlySimpleType] - 是否只获取简易类型的对象
+     * @param [options.noArray] - onlySimpleType：true时，并且不取数组
      * @returns 最简的键值对属性对象
      */
     function getAttrVal(attr: any, options?: {
-        onlySimpleType: boolean;
+        onlySimpleType?: boolean;
+        noArray?: boolean;
     }): any;
     /**
      * 取3DTile模型瓦片的feature原有属性
@@ -33016,14 +37241,20 @@ declare namespace Util {
      * @param [options = {}] - 控制参数
      * @param [options.type] - 转为指定的类型
      * @param [options.style = {}] - Style样式，每种不同类型数据都有不同的样式，具体见各矢量数据的style参数。{@link GraphicType}
+     * //  * @param {boolean} [options.style.merge] 是否合并并覆盖json中已有的style，默认不合并，仅适用style配置。
      * @param [options.symbol] - symbol配置，与style二选一
      * @param [options.symbol.type] - 标识数据类型
      * @param [options.symbol.merge] - 是否合并并覆盖json中已有的style，默认不合并，仅适用symbol配置。
-     * @param options.symbol.styleOptions - Style样式，每种不同类型数据都有不同的样式，具体见各矢量数据的style参数。{@link GraphicType}
+     * @param [options.symbol.styleOptions] - Style样式，每种不同类型数据都有不同的样式，具体见各矢量数据的style参数。{@link GraphicType}
      * @param [options.symbol.styleField] - 按 styleField 属性设置不同样式。
      * @param [options.symbol.styleFieldOptions] - 按styleField值与对应style样式的键值对象。
      * @param [options.symbol.callback] - 自定义判断处理返回style ，示例：callback: function (attr, styleOpt){  return { color: "#ff0000" };  }
      * @param [options.crs] - 原始数据的坐标系，如'EPSG:3857' （可以从 {@link http://epsg.io }查询）
+     * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+     * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
+     * @param [options.onPointTrans] - 坐标转换方法，可用于对每个坐标做额外转换处理,比如坐标纠偏 onPointTrans: mars3d.PointUtil.getTransFun(mars3d.ChinaCRS.GCJ02, map.chinaCRS)
      * @returns Graphic构造参数数组（用于创建{@link BaseGraphic}）
      */
     function geoJsonToGraphics(geojson: any, options?: {
@@ -33032,12 +37263,18 @@ declare namespace Util {
         symbol?: {
             type?: GraphicType | string;
             merge?: boolean;
-            styleOptions: any;
+            styleOptions?: any;
             styleField?: string;
             styleFieldOptions?: any;
             callback?: (...params: any[]) => any;
         };
         crs?: string;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
+        onPointTrans?: (...params: any[]) => any;
     }): any;
     /**
      * GeoJSON格式的Feature单个对象转为 Graphic构造参数（用于创建{@link BaseGraphic}）
@@ -33045,7 +37282,12 @@ declare namespace Util {
      * @param [options = {}] - 参数，包括：
      * @param [options.type] - 转为指定的类型
      * @param [options.style = {}] - Style样式，每种不同类型数据都有不同的样式，具体见各矢量数据的style参数。{@link GraphicType}
+     * //  * @param {boolean} [options.style.merge] 是否合并并覆盖json中已有的style，默认不合并，仅适用style配置。
      * @param [options.crs] - 原始数据的坐标系，如'EPSG:3857' （可以从 {@link http://epsg.io }查询）
+     * @param [options.simplify] - 是否简化坐标点位，为空时不简化
+     * @param [options.simplify.tolerance = 0.0001] - 简化的程度，传值是经纬度的小数位
+     * @param [options.simplify.highQuality = true] - 是否花更多的时间用不同的算法创建更高质量的简化
+     * @param [options.simplify.mutate = true] - 是否允许对输入进行变异（如果为true，则显著提高性能）
      * @param [options.onPointTrans] - 坐标转换方法，可用于对每个坐标做额外转换处理
      * @returns Graphic构造参数（用于创建{@link BaseGraphic}）
      */
@@ -33053,6 +37295,11 @@ declare namespace Util {
         type?: GraphicType | string;
         style?: any;
         crs?: string;
+        simplify?: {
+            tolerance?: number;
+            highQuality?: boolean;
+            mutate?: boolean;
+        };
         onPointTrans?: (...params: any[]) => any;
     }): any;
     /**
@@ -33080,7 +37327,7 @@ declare namespace Util {
     }): Cesium.Resource;
     /**
      * 文字转base64图片
-     * @param text - 文字内容
+     * @param text - 文字内容 (提示：暂不支持换行)
      * @param [textStyle = {}] - 参数对象:
      * @param [textStyle.font = '10px sans-serif'] - 使用的CSS字体。
      * @param [textStyle.textBaseline = 'bottom'] - 文本的基线。
@@ -33136,7 +37383,7 @@ declare namespace Util {
     }): string;
     /**
      * 导出下载图片文件
-     * @param name - 图片文件名称，不需要后缀名
+     * @param name - 图片文件名称， 后缀名默认为.png
      * @param base64 - 图片内容，base64格式
      * @returns 无
      */
@@ -33206,9 +37453,13 @@ declare namespace Util {
     /**
      * 格式化时长
      * @param strtime - 时长
+     * @param [options] - 参数：
+     * @param [options.getLangText] - 获取文本的对应方法
      * @returns 格式化字符串，如XX小时XX分钟
      */
-    function formatTime(strtime: number): string;
+    function formatTime(strtime: number, options?: {
+        getLangText?: (...params: any[]) => any;
+    }): string;
     /**
      * 请求服务返回JSON结果
      * @param options - 请求参数
@@ -33246,13 +37497,6 @@ declare namespace Util {
         headers?: any;
     }): Promise<any>;
     /**
-     * 根据设置的lang参数，获取当前key对应语言的文本内容。
-     * @param key - 文本key
-     * @param langType - 使用的语言
-     * @returns lang参数指定的对应文本内容
-     */
-    function getLangText(key: string, langType: LangType): void;
-    /**
      * 进入全屏
      * @param container - 指定DOM元素，如 map.container
      * @returns 是否全屏
@@ -33274,6 +37518,18 @@ declare namespace Util {
  */
 declare namespace control {
   export { BaseControl }
+
+  export { Animation }
+  export { BaseLayerPicker }
+  export { FullscreenButton }
+  export { Geocoder }
+  export { HomeButton }
+  export { NavigationHelpButton }
+  export { ProjectionPicker }
+  export { SceneModePicker }
+  export { Timeline }
+  export { VRButton }
+
   export { LocationBar }
   export { MouseDownView }
   export { Zoom }
@@ -33281,9 +37537,9 @@ declare namespace control {
   export { Compass }
   export { DistanceLegend }
   export { MapSplit }
+  export { MapCompare }
   export { OverviewMap }
   export { ClockAnimate }
-  export { Timeline }
 }
 
 /**
@@ -33306,6 +37562,7 @@ declare namespace effect {
   export { DepthOfFieldEffect }
   export { OutlineEffect }
   export { BloomTargetEffect }
+  export { ColorCorrectionEffect }
 }
 
 
@@ -33356,6 +37613,7 @@ declare namespace material {
  */
 declare namespace graphic {
   export { BaseGraphic }
+  export { GroupGraphic }
   export { BaseEntity }
   export { BasePointEntity }
   export { BasePolyEntity }
@@ -33379,6 +37637,7 @@ declare namespace graphic {
   export { EllipsoidEntity }
   export { PolylineEntity }
   export { CurveEntity }
+  export { BrushLineEntity }
   export { PolylineVolumeEntity }
   export { PathEntity }
   export { CorridorEntity }
@@ -33388,6 +37647,8 @@ declare namespace graphic {
   export { EllipseEntity }
   export { RectangularSensor }
   export { Video2D }
+  export { PitEntity }
+
 
   //polygon扩展的entity
   export { AttackArrow }
@@ -33415,6 +37676,7 @@ declare namespace graphic {
   export { AreaMeasure }
   export { AreaSurfaceMeasure }
   export { VolumeMeasure }
+  export { VolumeDepthMeasure }
 
   //基础primitive
   export { PointPrimitive }
@@ -33429,13 +37691,14 @@ declare namespace graphic {
   export { ConeTrackPrimitive }
   export { EllipsoidPrimitive }
   export { PolylinePrimitive }
-  export { PolylineSimplePrimitive }
   export { WallPrimitive }
   export { CorridorPrimitive }
   export { PolylineVolumePrimitive }
   export { RectanglePrimitive }
   export { PolygonPrimitive }
   export { FrustumPrimitive }
+  export { ThickWall }
+
   //扩展的普通primitive
   export { LightCone }
   export { Water }
@@ -33444,11 +37707,12 @@ declare namespace graphic {
   export { DynamicRiver }
   export { Road }
   export { Pit }
+  export { DoubleSidedPlane }
+  export { ReflectionWater }
 
   //批量大数据primitive
   export { BaseCombine }
   export { FlatBillboard }
-  export { ModelCombine }
   export { PlaneCombine }
   export { BoxCombine }
   export { CircleCombine }
@@ -33471,6 +37735,7 @@ declare namespace graphic {
   export { Popup }
   export { Tooltip }
 
+
   //自定义扩展：其他
   export { ParticleSystem }
   export { ArcFrustum }
@@ -33479,6 +37744,15 @@ declare namespace graphic {
   export { Video3D }
   export { Route }
   export { FixedRoute }
+  export { PointLight }
+  export { SpotLight }
+  export { VolumeCloud }
+
+  export { PointVisibility }
+  export { ConeVisibility }
+  export { SkylineBody }
+  export { ViewDome }
+
 
   //卫星插件
   export { CamberRadar }
@@ -33487,6 +37761,32 @@ declare namespace graphic {
   export { Satellite }
   export { SatelliteSensor }
 }
+
+/**
+ * 矢量数据编辑类 命名空间
+ */
+declare namespace edit {
+  export { EditBase }
+  export { EditBox }
+  export { EditCircle }
+  export { EditCorridor }
+  export { EditCylinder }
+  export { EditEllipsoid }
+  export { EditModel }
+  export { EditPlane }
+  export { EditPoint }
+  export { EditPoly }
+  export { EditPolygon }
+  export { EditPolygonGrid }
+  export { EditPolylineVolume }
+  export { EditRectangle }
+  export { EditTileset }
+  export { EditVideo2D }
+  export { EditWall }
+
+  export { EditDivGraphic }
+}
+
 
 /**
  * 图层类 命名空间，
@@ -33530,6 +37830,7 @@ declare namespace layer {
   export { GraphicLayer as DivLayer }
   export { GraphicGroupLayer }
   export { GeoJsonLayer }
+  export { BusineDataLayer }
   export { TilesetLayer }
   export { OsmBuildingsLayer }
   export { GraticuleLayer }
@@ -33544,9 +37845,6 @@ declare namespace layer {
   export { EchartsLayer }
   export { HeatLayer }
   export { MapVLayer }
-  export { S3MLayer }
-  export { SmImgLayer }
-  export { SmMvtLayer }
   export { TdtDmLayer }
 }
 
@@ -33556,6 +37854,7 @@ declare namespace layer {
 declare namespace query {
   export { BaiduPOI }
   export { GaodePOI }
+  export { TdtPOI }
   export { GaodeRoute }
   export { QueryGeoServer }
   export { QueryArcServer }
@@ -33580,6 +37879,8 @@ declare namespace thing {
   export { FloodByMaterial }
   export { TerrainClip }
   export { ContourLine }
+  export { TerrainFlat }
+  export { TerrainUplift }
 
   export { LimitHeight }
   export { TilesetPlanClip }
@@ -33601,10 +37902,11 @@ declare namespace thing {
 }
 
 export {
-  name, update, version, proj4,
-  BaseClass, BaseThing, LngLatPoint, LngLatArray, GroundSkyBox, LocalWorldTransform, CRS, ChinaCRS, EventType, State, Token, MaterialType, GraphicType, LayerType, ControlType, EffectType, Lang, LangType, MoveType, ClipType, Icon,
-  DomUtil, MeasureUtil, PointUtil, PolyUtil, PointTrans, Util, Log, MaterialUtil, GraphicUtil, DrawUtil, LayerUtil, ControlUtil, EffectUtil,
+  name, update, version, proj4, Tle,
+  BaseClass, BaseThing, LngLatPoint, LngLatArray, GroundSkyBox, MultipleSkyBox, LocalWorldTransform, CRS, ChinaCRS, EventType, State, Token, ColorRamp,
+  MaterialType, GraphicType, LayerType, ControlType, EffectType, ThingType, Lang, MoveType, ClipType, Icon, EditPointType,
+  DomUtil, MeasureUtil, PointUtil, PolyUtil, PointTrans, Util, Log, MaterialUtil, GraphicUtil, DrawUtil, LayerUtil, ControlUtil, EffectUtil, ThingUtil,
   BaseMaterialConver, BaseStyleConver, BillboardStyleConver, CloudStyleConver, BoxStyleConver, CircleStyleConver, CorridorStyleConver, CylinderStyleConver, DivGraphicStyleConver, EllipsoidStyleConver, LabelStyleConver, ModelStyleConver, PathStyleConver, PlaneStyleConver, PointStyleConver, PolygonStyleConver, PolylineStyleConver, PolylineVolumeStyleConver, RectangleStyleConver, RectangularSensorStyleConver, WallStyleConver,
-  material, graphic, provider, layer, thing, effect, control, query,
+  material, graphic, edit, provider, layer, thing, effect, control, query,
   Map,
 };
