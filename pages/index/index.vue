@@ -44,7 +44,8 @@ export default {
 			"http://mars3d.cn/lib/mars3d/mars3d.css",
 			"http://mars3d.cn/lib/mars3d/mars3d.js", 
 		]).then(() => {
-			this.createMap()
+     this.rewriteCesiumSources(Cesium);
+      this.createMap()
 		})
 	},
 	methods: {
@@ -79,6 +80,32 @@ export default {
 				stepOne(resolve)
 			})
 		},
+
+    rewriteCesiumSources (Cesium) {
+      const loadImageElement_old = Cesium.Resource._Implementations.loadImageElement;
+      Cesium.Resource._Implementations.loadImageElement = function (url, crossOrigin, deferred) {
+        // 修改本地file本地文件需要设置跨域（uniapp环境等）
+        if (url.startsWith('file')) {
+          crossOrigin = true;
+        }
+        if (!url.startsWith('http')) {
+          crossOrigin = true;
+        }
+
+        return loadImageElement_old(url, crossOrigin, deferred);
+      };
+
+      const contains_old = Cesium.TrustedServers.contains;
+      Cesium.TrustedServers.contains = function (url) {
+        // 修改本地file本地文件需要设置跨域（uniapp环境等）
+        if (url.startsWith('file')) {
+          return false;
+        }
+
+        return contains_old.bind(this)(url);
+      };
+    },
+
 
 		// 加载scrpit
 		loadScript(src, async = true) {
