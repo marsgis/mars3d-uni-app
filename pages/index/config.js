@@ -14,21 +14,21 @@ export const mapOptions = {
     showSun: true,
     showMoon: true,
     showSkyBox: true,
-    showSkyAtmosphere: true,
-    fog: true,
+    showSkyAtmosphere: false,
+    fog: false,
     fxaa: true,
-    requestRenderMode: true,
+    requestRenderMode: false,
     globe: {
       depthTestAgainstTerrain: false,
       baseColor: "#546a53",
-      showGroundAtmosphere: true,
+      showGroundAtmosphere: false,
       enableLighting: false
     },
     contextOptions: {
       requestWebgl1: true
     },
     cameraController: {
-      zoomFactor: 3.0,
+      zoomFactor:4.0,
       minimumZoomDistance: 1,
       maximumZoomDistance: 50000000,
       enableRotate: true,
