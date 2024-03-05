@@ -72,8 +72,8 @@
 }
 .cesium-toolbar-button {
   box-sizing: border-box;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 14%;
   padding: 0;
   vertical-align: middle;
@@ -701,6 +701,7 @@ input.cesium-cesiumInspector-url {
   height: 100%;
   margin: 0;
   border-radius: 0;
+  border:none
 }
 
 /* packages/widgets/Source/VRButton/VRButton.css */
@@ -710,6 +711,7 @@ input.cesium-cesiumInspector-url {
   height: 100%;
   margin: 0;
   border-radius: 0;
+  border:none
 }
 
 /* packages/widgets/Source/Geocoder/Geocoder.css */
@@ -1313,6 +1315,34 @@ span.cesium-projectionPicker-wrapper {
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* packages/widgets/Source/I3SBuildingSceneLayerExplorer/I3SBuildingSceneLayerExplorer.css */
+ul {
+  list-style-type: none;
+}
+.layersList {
+  padding: 0;
+}
+input {
+  margin: 0 3px 0 0;
+}
+.expandItem {
+  cursor: pointer;
+  user-select: none;
+  width: 20px;
+}
+.nested,
+#bsl-wrapper {
+  display: none;
+}
+.active {
+  display: block;
+}
+.li-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-content: center;
 }
 
 /* packages/widgets/Source/widgets.css */
