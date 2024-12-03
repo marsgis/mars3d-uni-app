@@ -1,10 +1,10 @@
 /**
  * Mars3D三维可视化平台  mars3d
  *
- * 版本信息：v3.7.5
- * 编译日期：2024-03-05 20:10:12
+ * 版本信息：v3.8.9
+ * 编译日期：2024-12-03 18:04
  * 版权所有：Copyright by 火星科技  http://mars3d.cn
- * 使用单位：免费公开版 ，2024-01-15
+ * 使用单位：免费公开版 ，2024-08-01
  */
 
 /**地球容器div*/
@@ -25,7 +25,6 @@
 /**隐藏的div对象，如 DivBillboardEntity、HeatLayer 等*/
 .mars3d-hideDiv {
   z-index: -99;
-  position: absolute !important;
   top: 0;
   left: 0;
   margin: 0;
@@ -234,6 +233,10 @@
   user-select: none;
   width: 55px;
   height: 55px;
+}
+.mars3d-compass:hover .mars3d-compass-outer svg {
+  transform: scale(1.1);
+  transition: transform 0.3s;
 }
 .mars3d-compass .mars3d-compass-outer {
   position: absolute;
@@ -475,12 +478,25 @@
   cursor: pointer;
   margin: 0 3px;
   padding: 0;
+  display: grid;
+  place-items: center;
 }
 .mar3d-toolButton img,
 .mar3d-toolButton svg,
 .mar3d-toolButton div {
   height: 100%;
   text-align: center;
+}
+.mars3d-subtitles {
+  position: absolute;
+  user-select: none;
+  overflow: hidden;
+  padding: 10px;
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-align: center;
+  z-index: 999;
 }
 .mars3d-divGraphic {
   position: absolute;
