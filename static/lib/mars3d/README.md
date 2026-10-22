@@ -47,4 +47,4 @@ Mars3D SDK采用 **“社区免费版 + 商业授权版” 双重授权**。
 | 数量 / 期限限制 | 无 | 无 |
 | 商业交付 / 招投标 | 须保留署名 | 提供盖章授权，合规无忧 |
 
-📘 完整协议：[`LICENSE`](./LICENSE) ｜ [购买授权](https://mall.marsgis.cn)
+📘 完整协议：[`LICENSE`](./LICENSE) ｜ [购买授权](http://mars3d.cn/buy.html)
